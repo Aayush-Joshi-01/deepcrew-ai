@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepcrew-ai — Multi-Agent Spawning for Python</title>
+  <meta name="description" content="Build parallel AI workflows with any LLM provider. MCP tools, SSE streaming, DAG workflows, automated routing." />
+  <meta property="og:title" content="deepcrew-ai" />
+  <meta property="og:description" content="Multi-agent spawning library for Python — litellm, MCP, parallel workflows, SSE streaming." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- ═══════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════ -->
+<header>
+  <a href="#hero" class="logo">
+    <img src="assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="#getting-started" data-section="getting-started">Docs</a></li>
+    <li><a href="#api-reference" data-section="api-reference">API</a></li>
+    <li><a href="#mcp" data-section="mcp">MCP</a></li>
+    <li><a href="#examples" data-section="examples">Examples</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">v0.1.0</span>
+    <a href="https://github.com/deepcrew-ai/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener">PyPI →</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+</header>
+
+<!-- ═══════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════════ -->
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Overview</span>
+    <a class="sidebar-link active" data-target="hero">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L15 5V11L8 15L1 11V5L8 1Z"/></svg>
+      Introduction
+    </a>
+    <a class="sidebar-link" data-target="getting-started">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3l5 5-5 5"/></svg>
+      Getting Started
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label">Core</span>
+    <a class="sidebar-link" data-target="agents">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
+      Agents
+    </a>
+    <a class="sidebar-link" data-target="tools">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l-1.5 1.5L12 5l2-2-2-1zM2 12l5-5 1.5 1.5-5 5H2v-1.5z"/></svg>
+      Python Tools
+    </a>
+    <a class="sidebar-link" data-target="runner">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5,3 13,8 5,13"/></svg>
+      Runner
+    </a>
+    <a class="sidebar-link" data-target="streaming">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8h2M13 8h2M4 4l1.5 1.5M10.5 10.5 12 12M4 12l1.5-1.5M10.5 5.5 12 4"/><circle cx="8" cy="8" r="3"/></svg>
+      Streaming
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label">Orchestration</span>
+    <a class="sidebar-link" data-target="workflow">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="4" rx="1"/><rect x="10" y="1" width="5" height="4" rx="1"/><rect x="5.5" y="11" width="5" height="4" rx="1"/><path d="M3.5 5v2h9V5M8 7v4"/></svg>
+      Workflow Builder
+    </a>
+    <a class="sidebar-link" data-target="orchestrator">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5l-3.5 6M8 5l3.5 6M5 13h6"/></svg>
+      Orchestrator
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label">MCP Tools</span>
+    <a class="sidebar-link" data-target="mcp">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1"/><path d="M5 4V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M1 8h14"/></svg>
+      Overview
+    </a>
+    <a class="sidebar-link" data-target="mcp-stdio">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M4 7l2 2-2 2M8 11h4"/></svg>
+      StdioMCP
+    </a>
+    <a class="sidebar-link" data-target="mcp-http">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 3H3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M1 7h14"/></svg>
+      HTTPMCP
+    </a>
+    <a class="sidebar-link" data-target="mcp-sse">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 11A5.5 5.5 0 0 1 3.5 5M6 9.5A2.5 2.5 0 0 1 6 6.5M12.5 5a5.5 5.5 0 0 1 0 6M10 6.5a2.5 2.5 0 0 1 0 3"/><circle cx="8" cy="8" r="1"/></svg>
+      SSEMCP
+    </a>
+    <a class="sidebar-link" data-target="mcp-manager">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="8" cy="12" r="2"/><path d="M4 6v2l4 2M12 6v2l-4 2"/></svg>
+      MCPManager
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label">Reference</span>
+    <a class="sidebar-link" data-target="api-reference">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M5 6h6M5 9h4"/></svg>
+      API Reference
+    </a>
+    <a class="sidebar-link" data-target="events">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h4"/></svg>
+      Stream Events
+    </a>
+    <a class="sidebar-link" data-target="examples">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3zM6 6l4 4M10 6l-4 4"/></svg>
+      Examples
+    </a>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════════ -->
+<main>
+
+<!-- ─── HERO ─── -->
+<div id="hero" data-section="hero">
+  <div class="scanline-wrap"><div class="scanline"></div></div>
+
+  <!-- ── Two-column hero split ───────────────────────── -->
+  <div class="hero-split">
+
+    <!-- LEFT: headline + code -->
+    <div class="hero-left">
+      <section class="hero">
+        <div class="hero-eyebrow">pip install deepcrew-ai</div>
+        <h1>Multi-agent AI,<br/><em>without the boilerplate.</em></h1>
+        <p>Build parallel AI workflows using any LLM provider. Attach tools via MCP, stream events in real time, and let agents collaborate — automatically or through explicit DAG workflows.</p>
+        <div class="hero-actions">
+          <a href="#getting-started" class="btn-hero-primary">Get Started →</a>
+          <a href="https://github.com/deepcrew-ai/deepcrew-ai" class="btn-hero-secondary" target="_blank">View on GitHub</a>
+        </div>
+      </section>
+
+      <div class="hero-code-preview">
+        <div class="hcp-bar">
+          <span class="hcp-dot"></span><span class="hcp-dot"></span><span class="hcp-dot"></span>
+          <span class="hcp-filename">quickstart.py</span>
+        </div>
+        <pre><code class="language-python">from deepcrew import Agent, WorkflowBuilder, tool
+
+@tool
+def search(query: str) -> str:
+    "Search the web."
+    return f"Results for: {query}"
+
+researcher = Agent("researcher", model="openai/gpt-4o-mini",
+                   system_prompt="Research thoroughly.", tools=[search])
+writer     = Agent("writer",     model="openai/gpt-4o",
+                   system_prompt="Write clearly.")
+
+result = await (
+    WorkflowBuilder()
+    .add_agent("research", researcher, task="{input}")
+    .add_agent("write",    writer,    task="Write about:\n{research}")
+    .then("research", "write")
+    .run("The future of AI agents")
+)
+print(result.final_output.text)</code></pre>
+      </div>
+    </div>
+
+    <!-- RIGHT: animated agent diagram -->
+    <div class="hero-right">
+      <div class="agent-diagram" id="agent-diagram">
+        <div class="diag-label">asyncio.gather · parallel execution</div>
+
+        <!-- Orchestrator -->
+        <div class="diag-orch-row">
+          <div class="diag-card diag-card--orch">
+            <div class="diag-pulse-ring"></div>
+            <div class="diag-card-inner">
+              <span class="diag-model-tag">gpt-4o-mini</span>
+              <div class="diag-card-title">Orchestrator</div>
+              <div class="diag-card-status">
+                <span class="diag-st diag-st--routing">routing request…</span>
+                <span class="diag-st diag-st--routed">✓ dispatched</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Down wires + signal dots -->
+        <svg class="diag-svg diag-svg--down" viewBox="0 0 300 44" fill="none">
+          <path id="wd0" class="diag-wire" d="M150,0 C150,22 62,22 62,44"/>
+          <path id="wd1" class="diag-wire" d="M150,0 L150,44"/>
+          <path id="wd2" class="diag-wire" d="M150,0 C150,22 238,22 238,44"/>
+          <circle class="diag-signal" r="2.5">
+            <animateMotion dur="8s" repeatCount="indefinite" begin="-6.4s"><mpath href="#wd0"/></animateMotion>
+            <animate attributeName="opacity" dur="8s" repeatCount="indefinite" begin="-6.4s" values="0;0;0.9;0.9;0;0;0;0;0;0" keyTimes="0;0.13;0.19;0.27;0.32;0.5;0.65;0.8;0.9;1"/>
+          </circle>
+          <circle class="diag-signal" r="2.5">
+            <animateMotion dur="8s" repeatCount="indefinite" begin="-6.2s"><mpath href="#wd1"/></animateMotion>
+            <animate attributeName="opacity" dur="8s" repeatCount="indefinite" begin="-6.2s" values="0;0;0.9;0.9;0;0;0;0;0;0" keyTimes="0;0.13;0.19;0.27;0.32;0.5;0.65;0.8;0.9;1"/>
+          </circle>
+          <circle class="diag-signal" r="2.5">
+            <animateMotion dur="8s" repeatCount="indefinite" begin="-6.0s"><mpath href="#wd2"/></animateMotion>
+            <animate attributeName="opacity" dur="8s" repeatCount="indefinite" begin="-6.0s" values="0;0;0.9;0.9;0;0;0;0;0;0" keyTimes="0;0.13;0.19;0.27;0.32;0.5;0.65;0.8;0.9;1"/>
+          </circle>
+        </svg>
+
+        <!-- Three agent cards -->
+        <div class="diag-agents-row">
+          <!-- Agent 0 -->
+          <div class="diag-card diag-card--agent" style="--ai:0">
+            <div class="diag-agent-head">
+              <span class="diag-agent-dot"></span>
+              <span class="diag-agent-name">researcher</span>
+            </div>
+            <div class="diag-model-small">gpt-4o</div>
+            <div class="diag-gen-lines">
+              <div class="diag-gen-bar" style="--tw:82%;--td:0.05s"></div>
+              <div class="diag-gen-bar" style="--tw:58%;--td:0.35s"></div>
+              <div class="diag-gen-bar" style="--tw:74%;--td:0.65s"></div>
+              <div class="diag-gen-bar" style="--tw:38%;--td:0.95s"></div>
+            </div>
+            <div class="diag-done-tag">✓ done</div>
+          </div>
+          <!-- Agent 1 -->
+          <div class="diag-card diag-card--agent" style="--ai:1">
+            <div class="diag-agent-head">
+              <span class="diag-agent-dot"></span>
+              <span class="diag-agent-name">analyst</span>
+            </div>
+            <div class="diag-model-small">claude-haiku</div>
+            <div class="diag-gen-lines">
+              <div class="diag-gen-bar" style="--tw:90%;--td:0.1s"></div>
+              <div class="diag-gen-bar" style="--tw:52%;--td:0.4s"></div>
+              <div class="diag-gen-bar" style="--tw:79%;--td:0.7s"></div>
+              <div class="diag-gen-bar" style="--tw:33%;--td:1.0s"></div>
+            </div>
+            <div class="diag-done-tag">✓ done</div>
+          </div>
+          <!-- Agent 2 -->
+          <div class="diag-card diag-card--agent" style="--ai:2">
+            <div class="diag-agent-head">
+              <span class="diag-agent-dot"></span>
+              <span class="diag-agent-name">writer</span>
+            </div>
+            <div class="diag-model-small">gpt-4o</div>
+            <div class="diag-gen-lines">
+              <div class="diag-gen-bar" style="--tw:71%;--td:0.15s"></div>
+              <div class="diag-gen-bar" style="--tw:88%;--td:0.45s"></div>
+              <div class="diag-gen-bar" style="--tw:50%;--td:0.75s"></div>
+              <div class="diag-gen-bar" style="--tw:65%;--td:1.05s"></div>
+            </div>
+            <div class="diag-done-tag">✓ done</div>
+          </div>
+        </div>
+
+        <!-- Up wires -->
+        <svg class="diag-svg diag-svg--up" viewBox="0 0 300 44" fill="none">
+          <path id="wu0" class="diag-wire" d="M62,0 C62,22 150,22 150,44"/>
+          <path id="wu1" class="diag-wire" d="M150,0 L150,44"/>
+          <path id="wu2" class="diag-wire" d="M238,0 C238,22 150,22 150,44"/>
+          <circle class="diag-signal" r="2.5">
+            <animateMotion dur="8s" repeatCount="indefinite" begin="-2.4s"><mpath href="#wu0"/></animateMotion>
+            <animate attributeName="opacity" dur="8s" repeatCount="indefinite" begin="-2.4s" values="0;0;0;0;0;0.9;0.9;0;0;0" keyTimes="0;0.13;0.27;0.32;0.57;0.63;0.73;0.78;0.9;1"/>
+          </circle>
+          <circle class="diag-signal" r="2.5">
+            <animateMotion dur="8s" repeatCount="indefinite" begin="-2.2s"><mpath href="#wu1"/></animateMotion>
+            <animate attributeName="opacity" dur="8s" repeatCount="indefinite" begin="-2.2s" values="0;0;0;0;0;0.9;0.9;0;0;0" keyTimes="0;0.13;0.27;0.32;0.57;0.63;0.73;0.78;0.9;1"/>
+          </circle>
+          <circle class="diag-signal" r="2.5">
+            <animateMotion dur="8s" repeatCount="indefinite" begin="-2.0s"><mpath href="#wu2"/></animateMotion>
+            <animate attributeName="opacity" dur="8s" repeatCount="indefinite" begin="-2.0s" values="0;0;0;0;0;0.9;0.9;0;0;0" keyTimes="0;0.13;0.27;0.32;0.57;0.63;0.73;0.78;0.9;1"/>
+          </circle>
+        </svg>
+
+        <!-- Synthesizer -->
+        <div class="diag-synth-row">
+          <div class="diag-card diag-card--synth">
+            <div class="diag-glow-ring"></div>
+            <div class="diag-card-inner">
+              <div class="diag-synth-check">✓</div>
+              <div class="diag-card-title">Synthesizer</div>
+              <div class="diag-card-status"><span class="diag-st">Final response ready</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /agent-diagram -->
+    </div><!-- /hero-right -->
+  </div><!-- /hero-split -->
+
+  <!-- ── Install + stats (full width) ───────────────── -->
+  <div class="install-strip">
+    <span class="dollar">$</span>
+    <span class="cmd" id="install-cmd">pip install deepcrew-ai</span>
+    <button class="copy-btn" data-text="pip install deepcrew-ai">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M3 11V3a1 1 0 0 1 1-1h8"/></svg>
+      Copy
+    </button>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat-item">
+      <div class="stat-num" data-count="100" data-suffix="+">0+</div>
+      <div class="stat-label">LLM providers</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" data-count="3">0</div>
+      <div class="stat-label">MCP transports</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" data-count="37">0</div>
+      <div class="stat-label">Tests passing</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" data-count="0" data-suffix=" deps*">0</div>
+      <div class="stat-label">Custom provider code</div>
+    </div>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1L4 9h5l-2 6 7-10H9L11 1z"/></svg></div>
+      <h3>Parallel by default</h3>
+      <p>Independent agents and tool calls always run concurrently via <code>asyncio.gather</code> — no extra configuration needed.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg></div>
+      <h3>100+ LLM providers</h3>
+      <p>LiteLLM handles OpenAI, Anthropic, Gemini, Bedrock, Azure, Ollama, and more — same API, zero provider-specific code.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-1 1 4 4 1-1a2.83 2.83 0 0 0-4-4z"/><path d="M9.5 2.5l-7 7 4 4 7-7"/><path d="M2.5 9.5l-1 4 4-1"/></svg></div>
+      <h3>MCP tool integration</h3>
+      <p>Attach tools from any MCP server — subprocess stdio, legacy SSE, or modern streamable-HTTP. Or use plain Python functions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 10c1-2 3-3 4-1s3 2 4 0 3-3 4-1"/><path d="M1 6c1-2 3-3 4-1s3 2 4 0 3-3 4-1"/></svg></div>
+      <h3>SSE streaming</h3>
+      <p>Every event — text deltas, tool calls, agent completions — streams in real time. Drop-in compatible with FastAPI <code>StreamingResponse</code>.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="5" height="4" rx="1"/><rect x="10" y="1" width="5" height="4" rx="1"/><rect x="5.5" y="11" width="5" height="4" rx="1"/><path d="M3.5 5v2h9V5M8 7v4"/></svg></div>
+      <h3>Workflow Builder</h3>
+      <p>Declare agent dependencies as a DAG. Independent nodes at each level execute in parallel automatically via topological sort.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5l-3.5 6M8 5l3.5 6M5 13h6"/></svg></div>
+      <h3>Automated routing</h3>
+      <p>Let a router LLM decide which agents to run and in what configuration. Falls back to a synthesizer when multiple agents are used.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ─── GETTING STARTED ─── -->
+<section class="section" id="getting-started" data-section="getting-started">
+  <div class="section-eyebrow">Getting started</div>
+  <h2>Installation</h2>
+  <p>Requires Python 3.11+. Install from PyPI:</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash">pip install deepcrew-ai
+
+# with dev dependencies (pytest, respx)
+pip install "deepcrew-ai[dev]"</code></pre>
+  </div>
+
+  <h3>Set your API key</h3>
+  <p>deepcrew-ai uses LiteLLM under the hood, so you set provider credentials the same way you would for any LiteLLM project — environment variables:</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash">export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export GEMINI_API_KEY="..."</code></pre>
+  </div>
+
+  <h3>Your first agent</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">first_agent.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import asyncio
+from deepcrew import Agent, run_agent, tool
+
+@tool
+def get_weather(city: str) -> dict:
+    "Get current weather for a city."
+    return {"city": city, "temperature": 22, "condition": "sunny"}
+
+async def main():
+    agent = Agent(
+        name="assistant",
+        model="openai/gpt-4o-mini",
+        system_prompt="You are a helpful weather assistant.",
+        tools=[get_weather],
+    )
+    result = await run_agent(
+        agent,
+        [{"role": "user", "content": "What's the weather in Tokyo?"}],
+    )
+    print(result.text)
+    print(f"Tokens: {result.input_tokens}in / {result.output_tokens}out")
+
+asyncio.run(main())</code></pre>
+  </div>
+</section>
+
+<!-- ─── AGENTS ─── -->
+<section class="section" id="agents" data-section="agents">
+  <div class="section-eyebrow">Core</div>
+  <h2>Agents</h2>
+  <p>An <code>Agent</code> is a dataclass that bundles a model, system prompt, and the tools it can use. Agents are stateless — you pass conversation history into <code>run_agent()</code> each time.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent
+from deepcrew.mcp import HTTPMCP
+
+mcp = HTTPMCP("https://my-mcp.example.com/mcp")
+
+agent = Agent(
+    name="researcher",
+    model="anthropic/claude-opus-4-8",     # any litellm string
+    system_prompt="You are a research specialist.",
+    mcps=[mcp],                            # MCP tool servers
+    tools=[my_fn, another_fn],            # Python @tool functions
+    max_turns=10,                          # LLM→tool→LLM cycles
+    temperature=0.7,
+    max_tokens=4096,
+    extra_params={                         # forwarded to litellm verbatim
+        "thinking": {"type": "enabled", "budget_tokens": 5000},
+    },
+)</code></pre>
+  </div>
+
+  <h4>Agent parameters</h4>
+  <div class="param-table">
+    <div class="param-row">
+      <div class="param-cell param-name">name<span class="param-required">*</span></div>
+      <div class="param-cell param-type">str</div>
+      <div class="param-cell param-desc">Unique identifier used in logs, events, and result objects.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">model<span class="param-required">*</span></div>
+      <div class="param-cell param-type">str</div>
+      <div class="param-cell param-desc">LiteLLM model string: <code>"openai/gpt-4o"</code>, <code>"anthropic/claude-opus-4-8"</code>, <code>"gemini/gemini-2.0-flash"</code>, etc.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">system_prompt</div>
+      <div class="param-cell param-type">str</div>
+      <div class="param-cell param-desc">Injected as the first system message before conversation history.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">mcps</div>
+      <div class="param-cell param-type">list[MCPClient]</div>
+      <div class="param-cell param-desc">MCP clients whose tools this agent can call. Tools are discovered lazily on first use.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">tools</div>
+      <div class="param-cell param-type">list[Callable]</div>
+      <div class="param-cell param-desc">Python functions (decorated with <code>@tool</code> or plain). JSON Schema is auto-generated from type hints.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">max_turns</div>
+      <div class="param-cell param-type">int = 10</div>
+      <div class="param-cell param-desc">Max LLM→tool→LLM cycles. <code>MaxTurnsError</code> is raised if exceeded.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">temperature</div>
+      <div class="param-cell param-type">float | None</div>
+      <div class="param-cell param-desc">Sampling temperature. <code>None</code> uses the provider's default.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">max_tokens</div>
+      <div class="param-cell param-type">int | None</div>
+      <div class="param-cell param-desc">Max output tokens. <code>None</code> uses the provider's default.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">extra_params</div>
+      <div class="param-cell param-type">dict</div>
+      <div class="param-cell param-desc">Any extra kwargs forwarded verbatim to <code>litellm.acompletion</code>.</div>
+    </div>
+  </div>
+
+  <h3>Model strings</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python"># OpenAI
+Agent("a", model="openai/gpt-4o")
+Agent("a", model="openai/gpt-4o-mini")
+
+# Anthropic
+Agent("a", model="anthropic/claude-opus-4-8")
+Agent("a", model="anthropic/claude-haiku-4-5-20251001")
+
+# Google
+Agent("a", model="gemini/gemini-2.0-flash")
+Agent("a", model="gemini/gemini-2.5-pro")
+
+# AWS Bedrock
+Agent("a", model="bedrock/anthropic.claude-opus-4-8-20250514-v1:0")
+
+# Azure OpenAI
+Agent("a", model="azure/gpt-4o", extra_params={"api_base": "https://..."})
+
+# Local via Ollama
+Agent("a", model="ollama/llama3.2")</code></pre>
+  </div>
+</section>
+
+<!-- ─── TOOLS ─── -->
+<section class="section" id="tools" data-section="tools">
+  <div class="section-eyebrow">Core</div>
+  <h2>Python Function Tools</h2>
+  <p>Decorate any Python function with <code>@tool</code> to make it available as an agent tool. The JSON Schema is generated automatically from type hints.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import tool, Agent, run_agent
+
+@tool
+def search_web(query: str, max_results: int = 5) -> list[str]:
+    """Search the web and return a list of URLs.
+
+    Args:
+        query (str): The search query.
+        max_results (int): Maximum number of results to return.
+    """
+    # your implementation
+    return ["https://example.com/..."]
+
+
+@tool(name="db_lookup", description="Query the internal database")
+def lookup_database(table: str, id: int) -> dict:
+    return {"id": id, "data": "..."}
+
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    tools=[search_web, lookup_database],
+)</code></pre>
+  </div>
+
+  <h3>Supported types</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Python type</th><th>JSON Schema</th></tr></thead>
+      <tbody>
+        <tr><td>str</td><td>{"type": "string"}</td></tr>
+        <tr><td>int</td><td>{"type": "integer"}</td></tr>
+        <tr><td>float</td><td>{"type": "number"}</td></tr>
+        <tr><td>bool</td><td>{"type": "boolean"}</td></tr>
+        <tr><td>list[str]</td><td>{"type": "array", "items": {"type": "string"}}</td></tr>
+        <tr><td>dict[str, int]</td><td>{"type": "object", "additionalProperties": {"type": "integer"}}</td></tr>
+        <tr><td>Optional[str]</td><td>{"type": ["string", "null"]}</td></tr>
+        <tr><td>Literal["a", "b"]</td><td>{"enum": ["a", "b"]}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">ℹ️</span>
+    <div>Google-style docstring parameter descriptions (<code>Args: param (type): description</code>) are automatically extracted and added to each parameter's JSON Schema.</div>
+  </div>
+
+  <h3>Async tools</h3>
+  <p>Async functions work natively — the runner awaits them automatically:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import httpx
+from deepcrew import tool
+
+@tool
+async def fetch_url(url: str) -> str:
+    "Fetch the content of a URL."
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url)
+        return r.text[:2000]</code></pre>
+  </div>
+</section>
+
+<!-- ─── RUNNER ─── -->
+<section class="section" id="runner" data-section="runner">
+  <div class="section-eyebrow">Core</div>
+  <h2>Runner</h2>
+  <p><code>run_agent()</code> executes a single agent's agentic loop: call the LLM, buffer streamed tool calls, execute them in parallel, append results, and repeat.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent
+
+agent = Agent("assistant", model="openai/gpt-4o")
+
+result = await run_agent(
+    agent,
+    messages=[{"role": "user", "content": "Hello!"}],
+    tool_defs=None,   # optional: pre-fetched ToolDef list
+    queue=None,       # optional: asyncio.Queue for streaming events
+    agent_id=None,    # optional: override agent_id in events
+)
+
+print(result.text)           # final text output
+print(result.tool_calls)     # list of all tool calls made
+print(result.input_tokens)   # LLM input token count
+print(result.output_tokens)  # LLM output token count</code></pre>
+  </div>
+
+  <h3>How the loop works</h3>
+  <ul>
+    <li>Calls <code>litellm.acompletion(..., stream=True)</code> and buffers streamed tool call deltas by index</li>
+    <li>When the stream ends with tool calls buffered, executes all of them in parallel via <code>asyncio.gather</code></li>
+    <li>Appends the assistant message (with tool_calls) and tool results to history, then loops</li>
+    <li>Exits when the model produces a response with no tool calls, or when <code>max_turns</code> is reached</li>
+    <li>Each event (text delta, tool call, tool result, etc.) is put into <code>queue</code> if provided</li>
+  </ul>
+</section>
+
+<!-- ─── STREAMING ─── -->
+<section class="section" id="streaming" data-section="streaming">
+  <div class="section-eyebrow">Core</div>
+  <h2>Streaming</h2>
+  <p>Every part of deepcrew-ai emits <code>StreamEvent</code> objects. You can consume them as an async generator or encode them as Server-Sent Events.</p>
+
+  <h3>With FastAPI</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from deepcrew import Agent, Orchestrator
+
+app = FastAPI()
+orch = Orchestrator([
+    Agent("assistant", model="openai/gpt-4o", system_prompt="Be helpful."),
+])
+
+@app.post("/chat")
+async def chat(query: str):
+    async def event_stream():
+        async for event in orch.stream(query):
+            yield event.to_sse()   # "event: text_delta\ndata: {...}\n\n"
+    return StreamingResponse(event_stream(), media_type="text/event-stream")</code></pre>
+  </div>
+
+  <h3>With asyncio.Queue</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import asyncio
+from deepcrew import Agent, run_agent
+from deepcrew.types import EventType
+
+queue = asyncio.Queue()
+agent = Agent("bot", model="openai/gpt-4o")
+
+# Run agent in background, reading events in real time
+task = asyncio.create_task(
+    run_agent(agent, [{"role": "user", "content": "Hi"}], queue=queue)
+)
+
+while True:
+    event = await queue.get()
+    if event is None:
+        break
+    if event.event == EventType.TEXT_DELTA:
+        print(event.data["chunk"], end="", flush=True)
+
+await task</code></pre>
+  </div>
+</section>
+
+<!-- ─── WORKFLOW ─── -->
+<section class="section" id="workflow" data-section="workflow">
+  <div class="section-eyebrow">Orchestration</div>
+  <h2>Workflow Builder</h2>
+  <p>Build explicit agent pipelines as a directed acyclic graph. Nodes at the same dependency level run in parallel automatically.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, WorkflowBuilder
+
+researcher = Agent("researcher", model="openai/gpt-4o-mini",
+                   system_prompt="Research the topic.")
+critic     = Agent("critic",     model="openai/gpt-4o-mini",
+                   system_prompt="Find gaps and weaknesses.")
+expander   = Agent("expander",   model="openai/gpt-4o-mini",
+                   system_prompt="Add technical depth.")
+writer     = Agent("writer",     model="openai/gpt-4o",
+                   system_prompt="Write a polished report.")
+
+workflow = (
+    WorkflowBuilder()
+    .add_agent("research", researcher, task="{input}")
+    .add_agent("critique", critic,   task="Critique:\n{research}")
+    .add_agent("expand",   expander, task="Expand:\n{research}")
+    .add_agent("report",   writer,
+               task="Write a report.\n\n"
+                    "Research:\n{research}\n\n"
+                    "Critique:\n{critique}\n\n"
+                    "Details:\n{expand}")
+    .then("research", "critique")   # critique waits for research
+    .then("research", "expand")     # expand waits for research
+    .then("critique", "report")     # report waits for both
+    .then("expand", "report")
+)
+
+# research → [critique + expand in parallel] → report
+result = await workflow.run("The future of renewable energy")
+print(result.final_output.text)
+print(f"Total tokens: {result.total_tokens}")</code></pre>
+  </div>
+
+  <h3>Task templates</h3>
+  <p>The <code>task</code> argument is a Python format string where <code>{input}</code> is the initial query and <code>{node_name}</code> is the text output of any predecessor node. Or pass a callable:</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python"># String template
+.add_agent("writer", agent, task="Write about:\n{research}\n\nContext:\n{expand}")
+
+# Callable — receives a dict with "input" and all predecessor outputs
+.add_agent("writer", agent, task=lambda ctx: (
+    f"Topic: {ctx['input']}\n\n"
+    f"Research ({len(ctx['research'])} chars): {ctx['research'][:500]}..."
+))</code></pre>
+  </div>
+
+  <h3>Streaming workflow</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.types import EventType
+
+async for event in workflow.stream("My topic"):
+    if event.event == EventType.STEP_START:
+        print(f"▶ {event.data['node']} starting...")
+    elif event.event == EventType.TEXT_DELTA:
+        print(event.data["chunk"], end="", flush=True)
+    elif event.event == EventType.STEP_DONE:
+        print(f"\n✓ {event.data['node']} done")
+    elif event.event == EventType.DONE:
+        print(f"\n\nFinal: {event.data['final_text']}")</code></pre>
+  </div>
+</section>
+
+<!-- ─── ORCHESTRATOR ─── -->
+<section class="section" id="orchestrator" data-section="orchestrator">
+  <div class="section-eyebrow">Orchestration</div>
+  <h2>Orchestrator</h2>
+  <p>The automated mode: a router LLM analyzes your query and the available agents, decides whether to use one agent or fan out to multiple agents running in parallel, then a synthesizer merges the results.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, Orchestrator
+
+agents = [
+    Agent("researcher", model="openai/gpt-4o-mini",
+          system_prompt="Gather comprehensive facts and background."),
+    Agent("analyst",    model="openai/gpt-4o-mini",
+          system_prompt="Evaluate trends, risks, and opportunities."),
+    Agent("writer",     model="openai/gpt-4o-mini",
+          system_prompt="Produce clear, engaging written content."),
+]
+
+orch = Orchestrator(
+    agents=agents,
+    router_model="openai/gpt-4o-mini",
+    synthesizer_model="openai/gpt-4o",
+    max_parallel_agents=5,
+)
+
+# Non-streaming
+result = await orch.run("What are the key challenges of AI in healthcare?")
+print(result.final_text)
+print(result.total_tokens)
+
+# Streaming
+async for event in orch.stream("..."):
+    print(event.to_sse(), end="")</code></pre>
+  </div>
+
+  <h3>How routing works</h3>
+  <p>The router calls <code>router_model</code> with a JSON-mode prompt listing all agents. The model returns either:</p>
+  <div class="two-col">
+    <div class="code-block" style="margin:0">
+      <div class="code-header"><span class="code-lang">json — single agent</span></div>
+      <pre><code class="language-json">{
+  "route": "single",
+  "agent": "researcher",
+  "task": "Research quantum computing trends"
+}</code></pre>
+    </div>
+    <div class="code-block" style="margin:0">
+      <div class="code-header"><span class="code-lang">json — parallel</span></div>
+      <pre><code class="language-json">{
+  "route": "parallel",
+  "agents": [
+    {"name": "researcher", "task": "Gather facts"},
+    {"name": "analyst",    "task": "Evaluate trends"}
+  ]
+}</code></pre>
+    </div>
+  </div>
+
+  <h3>Custom prompts</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">orch = Orchestrator(
+    agents=agents,
+    router_model="openai/gpt-4o-mini",
+    router_system_prompt="Your custom routing instructions...\n\nAgents:\n{agent_descriptions}",
+    synthesizer_system_prompt="Merge these results into a single answer.",
+)</code></pre>
+  </div>
+</section>
+
+<!-- ─── MCP OVERVIEW ─── -->
+<section class="section" id="mcp" data-section="mcp">
+  <div class="section-eyebrow">MCP Tools</div>
+  <h2>Model Context Protocol</h2>
+  <p>deepcrew-ai implements all three MCP transport types. Attach any combination to an agent via <code>mcps=[...]</code>. Tools are discovered in parallel on first use.</p>
+
+  <div class="callout">
+    <span class="callout-icon">📋</span>
+    <div>All three clients implement the same <code>MCPClient</code> abstract base and support the <strong>async context manager</strong> protocol: <code>async with StdioMCP(...) as mcp:</code></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Transport</th><th>Class</th><th>Use case</th></tr></thead>
+      <tbody>
+        <tr><td>stdio</td><td>StdioMCP</td><td>Subprocess MCP servers (npx, python, etc.)</td></tr>
+        <tr><td>streamable-HTTP</td><td>HTTPMCP</td><td>Remote MCP servers — modern protocol (2024-11-05+)</td></tr>
+        <tr><td>SSE</td><td>SSEMCP</td><td>Legacy /sse + /messages protocol servers</td></tr>
+        <tr><td>multi</td><td>MCPManager</td><td>Aggregate any mix of the above into one interface</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ─── STDIO MCP ─── -->
+<section class="section" id="mcp-stdio" data-section="mcp-stdio">
+  <div class="section-eyebrow">MCP Tools</div>
+  <h2>StdioMCP</h2>
+  <p>Spawns a subprocess and communicates via JSON-RPC over stdin/stdout. The standard transport for MCP servers distributed as npm packages or Python scripts.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent
+from deepcrew.mcp import StdioMCP
+
+# Official filesystem MCP server (Node.js / npx)
+async with StdioMCP(
+    command="npx",
+    args=["-y", "@modelcontextprotocol/server-filesystem", "."],
+    env={"SOME_VAR": "value"},   # merged with current environment
+) as mcp:
+    tools = await mcp.list_tools()
+    print([t.name for t in tools])
+
+    agent = Agent(
+        name="file_agent",
+        model="openai/gpt-4o",
+        system_prompt="Help users with file operations.",
+        mcps=[mcp],
+    )
+    result = await run_agent(
+        agent,
+        [{"role": "user", "content": "List the files in the current directory."}],
+    )
+    print(result.text)</code></pre>
+  </div>
+
+  <h3>Constructor parameters</h3>
+  <div class="param-table">
+    <div class="param-row">
+      <div class="param-cell param-name">command<span class="param-required">*</span></div>
+      <div class="param-cell param-type">str</div>
+      <div class="param-cell param-desc">Executable to run, e.g. <code>"npx"</code>, <code>"python"</code>, <code>"uvx"</code>.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">args</div>
+      <div class="param-cell param-type">list[str]</div>
+      <div class="param-cell param-desc">Command-line arguments passed to the executable.</div>
+    </div>
+    <div class="param-row">
+      <div class="param-cell param-name">env</div>
+      <div class="param-cell param-type">dict | None</div>
+      <div class="param-cell param-desc">Extra environment variables, merged with the current process environment.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── HTTP MCP ─── -->
+<section class="section" id="mcp-http" data-section="mcp-http">
+  <div class="section-eyebrow">MCP Tools</div>
+  <h2>HTTPMCP</h2>
+  <p>Modern streamable-HTTP transport (MCP spec 2024-11-05+). Manages a <code>Mcp-Session-Id</code> header, automatically re-initializes on expired sessions, and retries transient errors with exponential backoff.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.mcp import HTTPMCP
+
+async with HTTPMCP(
+    url="https://my-mcp.example.com/mcp",
+    headers={"Authorization": "Bearer sk-..."},
+    timeout=30,
+    retries=2,
+) as mcp:
+    tools = await mcp.list_tools()
+    result = await mcp.call_tool("search", {"query": "hello world"})</code></pre>
+  </div>
+</section>
+
+<!-- ─── SSE MCP ─── -->
+<section class="section" id="mcp-sse" data-section="mcp-sse">
+  <div class="section-eyebrow">MCP Tools</div>
+  <h2>SSEMCP</h2>
+  <p>Legacy SSE transport. Connects to <code>/sse</code> to receive the <code>endpoint</code> event, then POSTs JSON-RPC requests to that endpoint.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.mcp import SSEMCP
+
+async with SSEMCP(
+    base_url="http://localhost:3000",
+    headers={"X-API-Key": "secret"},
+) as mcp:
+    tools = await mcp.list_tools()
+    result = await mcp.call_tool("my_tool", {"arg": "value"})</code></pre>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⚠️</span>
+    <div><strong>Requires:</strong> <code>httpx-sse</code> is included in the default dependencies. If you see an import error, run <code>pip install httpx-sse</code>.</div>
+  </div>
+</section>
+
+<!-- ─── MCP MANAGER ─── -->
+<section class="section" id="mcp-manager" data-section="mcp-manager">
+  <div class="section-eyebrow">MCP Tools</div>
+  <h2>MCPManager</h2>
+  <p>Aggregates multiple MCP clients. Discovers tools from all servers in parallel and routes <code>call_tool()</code> to the right server automatically. Implements <code>MCPClient</code> so it can be passed directly to <code>Agent.mcps</code>.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent
+from deepcrew.mcp import MCPManager, StdioMCP, HTTPMCP
+
+async with MCPManager([
+    StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."]),
+    HTTPMCP("https://search-mcp.example.com/mcp"),
+    HTTPMCP("https://calendar-mcp.example.com/mcp"),
+]) as manager:
+    tools = await manager.discover_tools()
+    print(f"{len(tools)} tools from 3 servers")
+
+    # Pass the manager as a single MCP — it handles routing
+    agent = Agent(
+        name="super_agent",
+        model="openai/gpt-4o",
+        system_prompt="Use all available tools to answer questions.",
+        mcps=[manager],
+    )
+    result = await run_agent(agent, [{"role": "user", "content": "..."}])</code></pre>
+  </div>
+</section>
+
+<!-- ─── API REFERENCE ─── -->
+<section class="section" id="api-reference" data-section="api-reference">
+  <div class="section-eyebrow">Reference</div>
+  <h2>API Reference</h2>
+  <p>All public names exported from <code>import deepcrew</code>.</p>
+
+  <h3>run_agent()</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">signature</span></div>
+    <pre><code class="language-python">async def run_agent(
+    agent: Agent,
+    messages: list[dict[str, Any]],
+    *,
+    tool_defs: list[ToolDef] | None = None,
+    queue: asyncio.Queue[StreamEvent | None] | None = None,
+    agent_id: str | None = None,
+) -> AgentResult</code></pre>
+  </div>
+
+  <h3>Orchestrator</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span></div>
+    <pre><code class="language-python">class Orchestrator:
+    def __init__(
+        self,
+        agents: list[Agent],
+        router_model: str = "openai/gpt-4o-mini",
+        synthesizer_model: str | None = None,
+        router_system_prompt: str | None = None,
+        synthesizer_system_prompt: str | None = None,
+        max_parallel_agents: int = 5,
+    ) -> None
+
+    async def run(self, query: str, context: dict | None = None) -> OrchestratorResult
+    def stream(self, query: str, context: dict | None = None) -> AsyncGenerator[StreamEvent, None]</code></pre>
+  </div>
+
+  <h3>WorkflowBuilder</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span></div>
+    <pre><code class="language-python">class WorkflowBuilder:
+    def add_agent(self, name: str, agent: Agent,
+                  task: str | Callable = "{input}") -> WorkflowBuilder
+    def then(self, predecessor: str, successor: str) -> WorkflowBuilder
+    async def run(self, initial_input: str, context: dict | None = None) -> WorkflowResult
+    def stream(self, initial_input: str, context: dict | None = None) -> AsyncGenerator[StreamEvent, None]</code></pre>
+  </div>
+
+  <h3>Result types</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span></div>
+    <pre><code class="language-python">@dataclass class AgentResult:
+    agent_id: str
+    text: str
+    tool_calls: list[dict]
+    input_tokens: int
+    output_tokens: int
+    model: str
+    total_tokens: int   # property
+
+@dataclass class WorkflowResult:
+    outputs: dict[str, AgentResult]   # node_name → result
+    final_output: AgentResult | None
+    total_input_tokens: int
+    total_output_tokens: int
+    total_tokens: int   # property
+
+@dataclass class OrchestratorResult:
+    final_text: str
+    agent_results: list[AgentResult]
+    router_result: AgentResult | None
+    total_input_tokens: int
+    total_output_tokens: int
+    total_tokens: int   # property</code></pre>
+  </div>
+</section>
+
+<!-- ─── STREAM EVENTS ─── -->
+<section class="section" id="events" data-section="events">
+  <div class="section-eyebrow">Reference</div>
+  <h2>Stream Events</h2>
+  <p>Every event has <code>event</code> (EventType), <code>agent_id</code> (str), and <code>data</code> (dict). Call <code>.to_sse()</code> to encode as a Server-Sent Event string.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Event</th><th>data keys</th><th>Emitted by</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge-event">agent_start</span></td><td>model</td><td>run_agent at loop start</td></tr>
+        <tr><td><span class="badge-event">text_delta</span></td><td>chunk</td><td>Each streamed text token</td></tr>
+        <tr><td><span class="badge-event">thinking_delta</span></td><td>chunk</td><td>Thinking/reasoning tokens (where supported)</td></tr>
+        <tr><td><span class="badge-event">tool_call</span></td><td>tool, args</td><td>Before tool execution</td></tr>
+        <tr><td><span class="badge-event">tool_result</span></td><td>tool, result</td><td>After tool execution</td></tr>
+        <tr><td><span class="badge-event">agent_done</span></td><td>input_tokens, output_tokens</td><td>Agent loop complete</td></tr>
+        <tr><td><span class="badge-event">step_start</span></td><td>node</td><td>WorkflowBuilder: node begins</td></tr>
+        <tr><td><span class="badge-event">step_done</span></td><td>node</td><td>WorkflowBuilder: node finished</td></tr>
+        <tr><td><span class="badge-event">error</span></td><td>message</td><td>Any exception during execution</td></tr>
+        <tr><td><span class="badge-event">done</span></td><td>final_text</td><td>Entire run complete</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.types import EventType, StreamEvent
+
+event = StreamEvent(EventType.TEXT_DELTA, {"chunk": "Hello"}, agent_id="bot")
+
+# SSE string: "event: text_delta\ndata: {"agent_id": "bot", "chunk": "Hello"}\n\n"
+print(event.to_sse())
+
+# dict form
+print(event.to_dict())</code></pre>
+  </div>
+</section>
+
+<!-- ─── EXAMPLES ─── -->
+<section class="section" id="examples" data-section="examples">
+  <div class="section-eyebrow">Examples</div>
+  <h2>Full Examples</h2>
+
+  <h3>Multi-step research pipeline</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">research_pipeline.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import asyncio
+from deepcrew import Agent, WorkflowBuilder
+from deepcrew.types import EventType
+
+async def main():
+    models = {
+        "fast": "openai/gpt-4o-mini",
+        "smart": "openai/gpt-4o",
+    }
+
+    workflow = (
+        WorkflowBuilder()
+        .add_agent("outline",  Agent("outline",  model=models["fast"],
+                   system_prompt="Create a detailed outline."), task="{input}")
+        .add_agent("section1", Agent("section1", model=models["fast"],
+                   system_prompt="Write section 1 in depth."),
+                   task="Topic: {input}\n\nOutline:\n{outline}\n\nWrite section 1.")
+        .add_agent("section2", Agent("section2", model=models["fast"],
+                   system_prompt="Write section 2 in depth."),
+                   task="Topic: {input}\n\nOutline:\n{outline}\n\nWrite section 2.")
+        .add_agent("editor",   Agent("editor",   model=models["smart"],
+                   system_prompt="Edit and merge into a cohesive document."),
+                   task="Merge and edit:\n\n{section1}\n\n---\n\n{section2}")
+        .then("outline", "section1")
+        .then("outline", "section2")
+        .then("section1", "editor")
+        .then("section2", "editor")
+    )
+
+    print("Running: outline → [section1 + section2 parallel] → editor\n")
+    async for event in workflow.stream("The history of the internet"):
+        if event.event == EventType.STEP_START:
+            print(f"\n▶ {event.data['node']}")
+        elif event.event == EventType.TEXT_DELTA:
+            print(event.data["chunk"], end="", flush=True)
+
+asyncio.run(main())</code></pre>
+  </div>
+
+  <h3>FastAPI + SSE streaming endpoint</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">server.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from deepcrew import Agent, Orchestrator
+
+app = FastAPI()
+
+orch = Orchestrator([
+    Agent("researcher", model="openai/gpt-4o-mini",
+          system_prompt="Research any topic thoroughly."),
+    Agent("writer",     model="openai/gpt-4o",
+          system_prompt="Write clear, engaging content."),
+], router_model="openai/gpt-4o-mini", synthesizer_model="openai/gpt-4o")
+
+class ChatRequest(BaseModel):
+    message: str
+
+@app.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    async def generate():
+        async for event in orch.stream(req.message):
+            yield event.to_sse()
+        yield "event: done\ndata: {}\n\n"
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache",
+                                      "X-Accel-Buffering": "no"})</code></pre>
+  </div>
+
+  <h3>MCP filesystem agent</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">fs_agent.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import asyncio
+from deepcrew import Agent, run_agent
+from deepcrew.mcp import StdioMCP
+
+async def main():
+    async with StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."]) as mcp:
+        agent = Agent(
+            name="fs",
+            model="openai/gpt-4o",
+            system_prompt="Help users manage their files. Always confirm before deleting.",
+            mcps=[mcp],
+        )
+        result = await run_agent(agent, [
+            {"role": "user", "content": "Show me all Python files and their sizes."},
+        ])
+        print(result.text)
+
+asyncio.run(main())</code></pre>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="footer-left">
+    Built with ♥ — <strong>deepcrew-ai</strong> v0.1.0 — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/deepcrew-ai/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="https://github.com/deepcrew-ai/deepcrew-ai/blob/main/CHANGELOG.md" target="_blank">Changelog</a>
+  </div>
+</footer>
+
+</main>
+</div><!-- .page-layout -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
