@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+import asyncio
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from deepcrew.agent import Agent
+from deepcrew.exceptions import RouterError
+from deepcrew.orchestrator import Orchestrator
+from deepcrew.types import EventType
+
+
+def _make_litellm_response(text: str):
+    """Build a non-streaming litellm response with the given content."""
+    msg = MagicMock()
+    msg.content = text
+    choice = MagicMock()
+    choice.message = msg
+    resp = MagicMock()
+    resp.choices = [choice]
+    return resp
+
+
+def _make_stream_chunk(text: str | None = None):
+    delta = MagicMock()
+    delta.content = text
+    delta.tool_calls = []
+    choice = MagicMock()
+    choice.delta = delta
+    chunk = MagicMock()
+    chunk.choices = [choice]
+    chunk.usage = None
+    return chunk
+
+
+async def _fake_stream(*chunks):
+    for c in chunks:
+        yield c
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_single_route():
+    agents = [
+        Agent("researcher", model="openai/gpt-4o", system_prompt="Research specialist."),
+    ]
+    orch = Orchestrator(agents, router_model="openai/gpt-4o-mini")
+
+    router_response = _make_litellm_response(
+        json.dumps({"route": "single", "agent": "researcher", "task": "Research AI trends"})
+    )
+
+    agent_chunks = [_make_stream_chunk("AI is advancing rapidly."), _make_stream_chunk()]
+
+    call_count = 0
+
+    async def fake_completion(**kwargs):
+        nonlocal call_count
+        call_count += 1
+        if kwargs.get("stream") is False:
+            return router_response
+        return _fake_stream(*agent_chunks)
+
+    with patch("litellm.acompletion", new=AsyncMock(side_effect=fake_completion)):
+        result = await orch.run("What are the latest AI trends?")
+
+    assert "AI" in result.final_text or len(result.agent_results) > 0
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_stream_yields_events():
+    agents = [
+        Agent("writer", model="openai/gpt-4o", system_prompt="Writer."),
+    ]
+    orch = Orchestrator(agents, router_model="openai/gpt-4o-mini")
+
+    router_response = _make_litellm_response(
+        json.dumps({"route": "single", "agent": "writer", "task": "Write a poem"})
+    )
+    agent_chunks = [_make_stream_chunk("Roses are red..."), _make_stream_chunk()]
+
+    call_count = 0
+
+    async def fake_completion(**kwargs):
+        nonlocal call_count
+        call_count += 1
+        if kwargs.get("stream") is False:
+            return router_response
+        return _fake_stream(*agent_chunks)
+
+    events = []
+    with patch("litellm.acompletion", new=AsyncMock(side_effect=fake_completion)):
+        async for event in orch.stream("Write me a poem"):
+            events.append(event)
+
+    event_types = {e.event for e in events}
+    assert EventType.AGENT_START in event_types
+    assert EventType.DONE in event_types
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_invalid_router_json_raises():
+    agents = [Agent("a", model="openai/gpt-4o")]
+    orch = Orchestrator(agents, router_model="openai/gpt-4o-mini")
+
+    bad_response = _make_litellm_response("not json at all @@##")
+
+    with patch("litellm.acompletion", new=AsyncMock(return_value=bad_response)):
+        with pytest.raises(RouterError):
+            await orch._route("some query")
