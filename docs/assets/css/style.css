@@ -1074,17 +1074,91 @@ footer {
 @media (max-width: 1100px) {
   .feature-grid { grid-template-columns: repeat(2, 1fr); }
   .hero-split { grid-template-columns: 1fr; gap: 32px; padding: 0 40px; }
-  .hero-right { display: none; } /* hide diagram on tablet — keeps hero clean */
+  .hero-right { display: none; }
 }
 
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
-  aside { display: none; }
-  .hero-split, .install-strip, .feature-grid, .section, footer { padding-left: 24px; padding-right: 24px; margin-left: 0; margin-right: 0; }
-  .hero-split { padding: 0 24px; }
-  .feature-grid { grid-template-columns: 1fr; }
+
+  /* Header */
+  header { padding: 0 16px; gap: 12px; }
+  .nav-links { display: none; }
+  .badge { display: none; }
+  .nav-right { gap: 6px; }
+  .btn-outline { padding: 6px 10px; font-size: 12px; }
+  .btn-primary { padding: 6px 10px; font-size: 12px; }
+
+  /* Sidebar — hidden by default, shown as overlay via JS */
+  aside {
+    display: none;
+    width: 260px;
+    background: #050505;
+    box-shadow: 4px 0 32px rgba(0,0,0,0.9);
+    z-index: 200;
+  }
+  /* Backdrop overlay when sidebar is open */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 199;
+    backdrop-filter: blur(2px);
+  }
+  .sidebar-backdrop.open { display: block; }
+
+  /* Main / layout */
   main { margin-left: 0; }
-  footer { margin-left: 0; }
+  footer { margin-left: 0; padding: 32px 20px; }
+
+  /* Hero */
+  .hero { padding: 40px 0 28px; }
+  .hero h1 { font-size: clamp(28px, 9vw, 48px); }
+  .hero p { font-size: 15px; }
+  .hero-split { padding: 0 20px; }
+  .hero-actions { flex-direction: column; align-items: flex-start; }
+
+  /* Install strip */
+  .install-strip {
+    margin: 0 20px 40px;
+    font-size: 12px;
+    overflow-x: auto;
+    max-width: calc(100% - 40px);
+  }
+
+  /* Stat strip — 2×2 grid */
+  .stat-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0 20px 40px;
+  }
+  .stat-item { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .stat-item:nth-child(even) { border-right: none; }
+  .stat-item:nth-child(3),
+  .stat-item:nth-child(4) { border-bottom: none; }
+
+  /* Feature grid */
+  .feature-grid { grid-template-columns: 1fr; margin: 0 20px 48px; }
+
+  /* Sections */
+  .section { padding: 40px 20px; }
+
+  /* Param table — stack columns vertically */
+  .param-row { grid-template-columns: 1fr; }
+  .param-cell { padding: 4px 16px; }
+  .param-cell:first-child { padding-top: 12px; }
+  .param-cell:last-child { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .param-row:last-child .param-cell:last-child { border-bottom: none; }
+
+  /* Code blocks */
+  pre { font-size: 11.5px; padding: 16px; }
+}
+
+@media (max-width: 420px) {
+  .btn-outline span, .btn-outline { font-size: 11px; padding: 5px 8px; }
+  .nav-right .btn-outline { display: none; } /* hide GitHub btn on very small, keep PyPI */
+  .stat-num { font-size: 22px; }
+  .stat-item { padding: 16px 16px; }
 }
 
 /* ============================================================
@@ -1099,6 +1173,7 @@ footer {
   border-radius: var(--radius);
   cursor: pointer;
   font-size: 14px;
+  margin-left: auto;
 }
 @media (max-width: 768px) { .menu-toggle { display: flex; align-items: center; } }
 

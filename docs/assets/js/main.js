@@ -91,16 +91,33 @@ document.querySelectorAll('[data-count]').forEach(el => counterObserver.observe(
 // ─── Mobile sidebar toggle ───────────────────────────────────
 const toggle = document.querySelector('.menu-toggle');
 const sidebar = document.querySelector('aside');
+
+// Inject backdrop element
+const backdrop = document.createElement('div');
+backdrop.className = 'sidebar-backdrop';
+document.body.appendChild(backdrop);
+
+function closeSidebar() {
+  sidebar.style.display = '';
+  backdrop.classList.remove('open');
+  toggle.textContent = '☰';
+}
+function openSidebar() {
+  sidebar.style.display = 'block';
+  backdrop.classList.add('open');
+  toggle.textContent = '✕';
+}
+
 if (toggle && sidebar) {
   toggle.addEventListener('click', () => {
-    const open = sidebar.style.display === 'block';
-    sidebar.style.display = open ? '' : 'block';
-    sidebar.style.zIndex = '200';
+    sidebar.style.display === 'block' ? closeSidebar() : openSidebar();
   });
-  document.addEventListener('click', (e) => {
-    if (!sidebar.contains(e.target) && e.target !== toggle) {
-      sidebar.style.display = '';
-    }
+  backdrop.addEventListener('click', closeSidebar);
+  // Close sidebar when a link is tapped on mobile
+  sidebar.querySelectorAll('.sidebar-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) closeSidebar();
+    });
   });
 }
 
