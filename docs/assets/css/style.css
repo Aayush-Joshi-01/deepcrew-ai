@@ -1224,3 +1224,108 @@ footer {
   font-family: var(--font-mono);
 }
 .stat-label { font-size: 12px; color: var(--text-dim); }
+
+/* ============================================================
+   HERO — compact variant (features.html, examples.html)
+   ============================================================ */
+.hero--compact {
+  padding: 64px 80px 32px;
+  animation: fadeUp 0.5s ease both;
+}
+.hero--compact h1 {
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text);
+  margin-bottom: 16px;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+.hero--compact h1 em {
+  font-style: normal;
+  color: transparent;
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.hero--compact p {
+  font-size: 16px;
+  color: var(--text-muted);
+  max-width: 600px;
+  line-height: 1.7;
+  margin-bottom: 0;
+  animation: fadeUp 0.5s 0.15s ease both;
+}
+
+/* ============================================================
+   FEATURE CARD — clickable link variant
+   ============================================================ */
+.feature-card--link {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+}
+.feature-card--link:hover h3 { color: #fff; }
+
+/* ============================================================
+   EXAMPLES GRID — quick-nav cards (examples.html hero)
+   ============================================================ */
+.examples-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  margin: 32px 80px 64px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: fadeUp 0.5s 0.25s ease both;
+}
+.ex-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  background: var(--bg-card);
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background var(--transition), color var(--transition);
+  text-align: center;
+}
+.ex-card:hover { background: var(--bg-hover); color: var(--text); }
+.ex-card-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.45; transition: opacity var(--transition); }
+.ex-card:hover .ex-card-icon { opacity: 0.9; }
+
+/* ============================================================
+   SECTION inside overview div (features/examples pages)
+   ============================================================ */
+#overview {
+  position: relative;
+}
+#overview .scanline-wrap {
+  pointer-events: none;
+}
+
+/* Callout tip variant */
+.callout--tip {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ============================================================
+   RESPONSIVE — compact hero + examples grid
+   ============================================================ */
+@media (max-width: 1100px) {
+  .examples-grid { grid-template-columns: repeat(4, 1fr); }
+  .hero--compact { padding: 48px 40px 24px; }
+}
+@media (max-width: 768px) {
+  .examples-grid { grid-template-columns: repeat(3, 1fr); margin: 24px 20px 40px; }
+  .hero--compact { padding: 40px 20px 20px; }
+  .hero--compact h1 { font-size: clamp(24px, 8vw, 36px); }
+}
+@media (max-width: 480px) {
+  .examples-grid { grid-template-columns: repeat(2, 1fr); }
+}
