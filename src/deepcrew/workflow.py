@@ -7,6 +7,7 @@ from typing import Any
 
 from .agent import Agent
 from .exceptions import WorkflowError
+from .observability import ObservabilityConfig, workflow_step_span
 from .runner import run_agent
 from .stream import make_done_event, make_error_event, queue_to_stream
 from .types import AgentResult, EventType, StreamEvent, WorkflowResult
@@ -51,9 +52,10 @@ class WorkflowBuilder:
         print(result.final_output.text)
     """
 
-    def __init__(self) -> None:
+    def __init__(self, observability: ObservabilityConfig | None = None) -> None:
         self._nodes: dict[str, _WorkflowNode] = {}
         self._deps: dict[str, set[str]] = {}
+        self._observability = observability
 
     def add_agent(
         self,
@@ -114,7 +116,7 @@ class WorkflowBuilder:
 
         for level in levels:
             tasks = [
-                _run_node(self._nodes[name], initial_input, outputs)
+                _run_node(self._nodes[name], initial_input, outputs, observability=self._observability)
                 for name in level
             ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -161,7 +163,7 @@ class WorkflowBuilder:
                     await queue.put(StreamEvent(EventType.STEP_START, {"node": name}, name))
 
                 tasks = [
-                    _run_node(self._nodes[name], initial_input, outputs, queue=queue)
+                    _run_node(self._nodes[name], initial_input, outputs, queue=queue, observability=self._observability)
                     for name in level
                 ]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -198,14 +200,17 @@ async def _run_node(
     initial_input: str,
     outputs: dict[str, AgentResult],
     queue: asyncio.Queue[StreamEvent | None] | None = None,
+    observability: ObservabilityConfig | None = None,
 ) -> AgentResult:
     task_str = _resolve_task(node.task_template, initial_input, outputs)
-    return await run_agent(
-        node.agent,
-        [{"role": "user", "content": task_str}],
-        queue=queue,
-        agent_id=node.name,
-    )
+    with workflow_step_span(observability, node.name):
+        return await run_agent(
+            node.agent,
+            [{"role": "user", "content": task_str}],
+            queue=queue,
+            agent_id=node.name,
+            observability=observability,
+        )
 
 
 def _resolve_task(

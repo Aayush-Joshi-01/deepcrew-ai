@@ -8,7 +8,11 @@ from .tools import fn_to_tool_def
 from .types import ToolDef
 
 if TYPE_CHECKING:
+    from .loop import LoopConfig
+    from .memory.base import MemoryProvider
     from .mcp.base import MCPClient
+    from .retry import FallbackChain, RetryPolicy
+    from .skills.base import Skill
 
 
 @dataclass
@@ -39,6 +43,16 @@ class Agent:
         Maximum output tokens. None uses provider default.
     extra_params:
         Any additional kwargs forwarded verbatim to ``litellm.acompletion``.
+    retry_policy:
+        Retry configuration for transient LLM failures.
+    fallback_chain:
+        Ordered list of fallback model strings if all retries fail.
+    memory:
+        Pluggable memory provider for context injection and storage.
+    loop_config:
+        Outer iteration loop configuration (refinement loop over full runs).
+    skills:
+        Higher-level reusable capability bundles exposed to the LLM as tools.
     """
 
     name: str
@@ -50,9 +64,14 @@ class Agent:
     temperature: float | None = None
     max_tokens: int | None = None
     extra_params: dict[str, Any] = field(default_factory=dict)
+    retry_policy: RetryPolicy | None = field(default=None)
+    fallback_chain: FallbackChain | None = field(default=None)
+    memory: MemoryProvider | None = field(default=None)
+    loop_config: LoopConfig | None = field(default=None)
+    skills: list[Skill] = field(default_factory=list)
 
     async def get_tool_defs(self) -> list[ToolDef]:
-        """Discover and merge tools from all attached MCP servers + Python functions."""
+        """Discover and merge tools from all attached MCP servers, Python functions, and skills."""
         defs: list[ToolDef] = []
 
         if self.mcps:
@@ -66,5 +85,8 @@ class Agent:
 
         for fn in self.tools:
             defs.append(fn_to_tool_def(fn))
+
+        for sk in self.skills:
+            defs.append(sk.to_tool_def())
 
         return defs
