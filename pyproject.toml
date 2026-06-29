@@ -7,8 +7,8 @@ packages = ["src/deepcrew"]
 
 [project]
 name = "deepcrew-ai"
-version = "0.1.0"
-description = "Multi-agent spawning library with litellm, MCP tools, and parallel workflows"
+version = "0.2.0"
+description = "Multi-agent spawning library with APEX synthesis, looping, skills, memory, and observability"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
@@ -31,6 +31,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "anyio>=4.4.0",
     "typing-extensions>=4.9.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -39,11 +40,22 @@ dev = [
     "pytest-asyncio>=0.23",
     "respx>=0.21",
 ]
+otel = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+]
+redis = [
+    "redis>=5.0.0",
+]
+
+[project.scripts]
+deepcrew = "deepcrew.cli.main:main"
 
 [project.urls]
-Homepage = "https://github.com/deepcrew-ai/deepcrew-ai"
-Repository = "https://github.com/deepcrew-ai/deepcrew-ai"
-Issues = "https://github.com/deepcrew-ai/deepcrew-ai/issues"
+Homepage = "https://github.com/Aayush-Joshi-01/deepcrew-ai"
+Repository = "https://github.com/Aayush-Joshi-01/deepcrew-ai"
+Issues = "https://github.com/Aayush-Joshi-01/deepcrew-ai/issues"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
