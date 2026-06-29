@@ -20,3 +20,19 @@ class RouterError(DeepCrewError):
 
 class WorkflowError(DeepCrewError):
     """Raised for invalid workflow configurations (e.g. cycles in the DAG)."""
+
+
+class LoopConvergedError(DeepCrewError):
+    """Raised when a loop's stop_condition returns True (successful early exit)."""
+
+    def __init__(self, message: str, result: "Any" = None) -> None:  # noqa: F821
+        super().__init__(message)
+        self.result = result
+
+
+class SkillError(DeepCrewError):
+    """Raised when a skill's execution fails."""
+
+
+class DeepCrewMemoryError(DeepCrewError):
+    """Raised when a memory provider operation fails."""

@@ -17,6 +17,15 @@ class EventType(str, Enum):
     STEP_DONE = "step_done"
     ERROR = "error"
     DONE = "done"
+    # v0.2.0
+    RETRY_ATTEMPT = "retry_attempt"
+    FALLBACK_TRIGGERED = "fallback_triggered"
+    MEMORY_STORE = "memory_store"
+    MEMORY_RETRIEVE = "memory_retrieve"
+    LOOP_ITERATION = "loop_iteration"
+    SPAWN_AGENT = "spawn_agent"
+    APEX_START = "apex_start"
+    APEX_DONE = "apex_done"
 
 
 @dataclass
@@ -57,6 +66,8 @@ class AgentResult:
     input_tokens: int = 0
     output_tokens: int = 0
     model: str = ""
+    confidence: float | None = None
+    loop_iterations: int = 0
 
     @property
     def total_tokens(self) -> int:
