@@ -245,6 +245,28 @@ agent = Agent(
 result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
 ```
 
+#### Branching (self-consistency)
+
+With `branches > 1`, each iteration runs that many parallel candidate continuations
+instead of one, and picks the best via `verifier` score (or merges them with
+`APEXSynthesizer` when no verifier is configured). This multiplies LLM call volume by
+`branches` per iteration — use it deliberately, typically with a low `max_iterations`.
+
+```python
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        branches=3,  # 3x the LLM calls per iteration, in exchange for picking the best
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+```
+
 #### Procedural memory (evolving playbook)
 
 `ProceduralMemory` is an opt-in, durable "the system learns from its own past runs"
@@ -529,7 +551,7 @@ Requires Python 3.11+.
 Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
 - [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
-- [v0.2.3 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
+- [v0.2.4 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
 - [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
 
 ---

@@ -54,6 +54,14 @@ class LoopConfig:
     """Minimum verifier-score delta between iterations to count as still improving."""
     plateau_patience: int = 2
     """Consecutive non-improving iterations tolerated before an adaptive early stop."""
+    branches: int = 1
+    """
+    When > 1, run this many parallel candidate continuations per iteration
+    (self-consistency) instead of a single linear path. The best branch is
+    picked by ``verifier`` score when configured, or merged via
+    ``APEXSynthesizer`` otherwise. Multiplies LLM call volume by ``branches``
+    per iteration -- use deliberately.
+    """
 
 
 @dataclass
@@ -122,13 +130,18 @@ async def run_agent_loop(
                 aid,
             ))
 
-        result = await run_agent(
-            agent,
-            current_messages,
-            tool_defs=fetched_tool_defs,
-            queue=queue,
-            agent_id=aid,
-        )
+        if cfg.branches > 1:
+            result = await _run_branches(
+                agent, current_messages, fetched_tool_defs, queue, aid, cfg, original_query
+            )
+        else:
+            result = await run_agent(
+                agent,
+                current_messages,
+                tool_defs=fetched_tool_defs,
+                queue=queue,
+                agent_id=aid,
+            )
         result.loop_iterations = i + 1
         state.results.append(result)
 
@@ -188,6 +201,67 @@ async def run_agent_loop(
 
     await _curate_if_configured()
     return state.results[-1]
+
+
+async def _run_branches(
+    agent: "Agent",
+    messages: list[dict[str, Any]],
+    tool_defs: list[ToolDef] | None,
+    queue: asyncio.Queue[StreamEvent | None] | None,
+    aid: str,
+    cfg: LoopConfig,
+    original_query: str,
+) -> AgentResult:
+    """
+    Run cfg.branches parallel candidate continuations for one iteration and
+    pick the best (via verifier score) or merge them (via APEXSynthesizer
+    when no verifier is configured).
+    """
+    from .runner import run_agent
+
+    branch_results = await asyncio.gather(*[
+        run_agent(agent, messages, tool_defs=tool_defs, queue=queue, agent_id=aid)
+        for _ in range(cfg.branches)
+    ])
+
+    total_in = sum(r.input_tokens for r in branch_results)
+    total_out = sum(r.output_tokens for r in branch_results)
+
+    if cfg.verifier is not None:
+        feedbacks = await asyncio.gather(*[
+            cfg.verifier.evaluate(original_query, r, default_model=agent.model)
+            for r in branch_results
+        ])
+        winning_index = max(range(len(feedbacks)), key=lambda idx: feedbacks[idx].score)
+        winner = branch_results[winning_index]
+        winner.input_tokens = total_in
+        winner.output_tokens = total_out
+        if queue:
+            await queue.put(StreamEvent(
+                EventType.BRANCH_SELECTED,
+                {
+                    "branch_count": cfg.branches,
+                    "winning_index": winning_index,
+                    "winning_score": feedbacks[winning_index].score,
+                },
+                aid,
+            ))
+        return winner
+
+    from .apex import APEXSynthesizer
+
+    synthesizer = APEXSynthesizer(agent.model)
+    merged = await synthesizer.synthesize(original_query, branch_results, queue=queue)
+    merged.agent_id = aid
+    merged.input_tokens = total_in
+    merged.output_tokens = total_out
+    if queue:
+        await queue.put(StreamEvent(
+            EventType.BRANCH_SELECTED,
+            {"branch_count": cfg.branches, "winning_index": None, "winning_score": merged.confidence},
+            aid,
+        ))
+    return merged
 
 
 def _extract_query(messages: list[dict[str, Any]]) -> str:

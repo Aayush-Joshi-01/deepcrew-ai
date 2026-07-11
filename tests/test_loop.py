@@ -284,3 +284,122 @@ async def test_loop_adaptive_never_exceeds_max_iterations():
 
     assert call_count == 4  # stopped by max_iterations, not by plateau
     assert result.text == "answer4"
+
+
+@pytest.mark.asyncio
+async def test_loop_branching_picks_highest_scored_branch():
+    import asyncio
+
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(max_iterations=1, verifier=Verifier(), branches=3),
+    )
+
+    branch_texts = ["draft A", "draft B", "draft C"]
+    branch_scores = {"draft A": 0.5, "draft B": 0.9, "draft C": 0.3}
+    call_count = 0
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        nonlocal call_count
+        text = branch_texts[call_count]
+        call_count += 1
+        return _agent_result(agent.name, text)
+
+    async def fake_evaluate(query, result, *, default_model):
+        return VerifierFeedback(score=branch_scores[result.text], converged=False)
+
+    queue: asyncio.Queue = asyncio.Queue()
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}], queue=queue)
+
+    assert result.text == "draft B"
+
+    events = []
+    while not queue.empty():
+        events.append(await queue.get())
+    branch_events = [e for e in events if e.event == EventType.BRANCH_SELECTED]
+    assert len(branch_events) == 1
+    assert branch_events[0].data["winning_index"] == 1
+    assert branch_events[0].data["winning_score"] == 0.9
+
+
+@pytest.mark.asyncio
+async def test_loop_branching_no_verifier_uses_apex_synthesis():
+    from deepcrew.apex import APEXSynthesizer
+
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(max_iterations=1, branches=3, convergence_fn=lambda r: True),
+    )
+
+    call_count = 0
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return _agent_result(agent.name, f"draft {call_count}")
+
+    synth_calls: list[list[AgentResult]] = []
+
+    async def fake_synthesize(self, query, results, queue=None, tool_defs=None):
+        synth_calls.append(results)
+        return _agent_result("apex", "merged answer")
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(APEXSynthesizer, "synthesize", new=fake_synthesize):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
+
+    assert result.text == "merged answer"
+    assert len(synth_calls) == 1
+    assert len(synth_calls[0]) == 3
+
+
+@pytest.mark.asyncio
+async def test_loop_branches_one_is_regression_safe():
+    """branches=1 (default) behaves identically to pre-Phase-4 single-path execution."""
+    agent = Agent(
+        name="test",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=5,
+            convergence_fn=lambda r: "done" in r.text,
+        ),
+    )
+
+    call_count = 0
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        text = "not yet" if call_count < 2 else "done"
+        return _agent_result(agent.name, text)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
+
+    assert result.text == "done"
+    assert call_count == 2  # no parallel branch fan-out
+
+
+@pytest.mark.asyncio
+async def test_loop_branching_token_totals_sum_across_branches():
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(max_iterations=1, verifier=Verifier(), branches=3),
+    )
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        return AgentResult(agent_id=agent.name, text="draft", input_tokens=10, output_tokens=5)
+
+    async def fake_evaluate(query, result, *, default_model):
+        return VerifierFeedback(score=0.9, converged=True)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
+
+    assert result.total_tokens == 3 * (10 + 5)

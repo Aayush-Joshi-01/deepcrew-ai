@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.4] — 2026-07-09
+
+### Added
+
+#### Branching (Self-Consistency)
+- `LoopConfig.branches` — when > 1, runs that many parallel candidate continuations per iteration instead of a single linear path; the best branch is picked by `Verifier` score when configured, or merged via `APEXSynthesizer` otherwise
+- `EventType.BRANCH_SELECTED` — emitted after each branched iteration with `{branch_count, winning_index, winning_score}`
+- Token accounting sums input/output tokens across all branches actually run (not just the winner), so cost reporting reflects real spend
+- `branches=1` (the default) is fully regression-safe: no parallel fan-out, byte-identical to pre-0.2.4 behavior
+
 ## [0.2.3] — 2026-07-09
 
 ### Added
