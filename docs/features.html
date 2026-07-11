@@ -62,6 +62,10 @@
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 8A5 5 0 1 1 8 3"/><path d="M13 3v5h-5"/></svg>
       Looping
     </a>
+    <a class="sidebar-link" data-target="verifier">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
+      Verifier
+    </a>
     <a class="sidebar-link" data-target="skills">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 1.5l-1 1 4 4 1-1a2.83 2.83 0 0 0-4-4z"/><path d="M9.5 2.5l-7 7 4 4 7-7"/><path d="M2.5 9.5l-1 4 4-1"/></svg>
       Skills
@@ -73,6 +77,10 @@
     <a class="sidebar-link" data-target="memory">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 7h2M9 7h2M5 10h6"/></svg>
       Memory Providers
+    </a>
+    <a class="sidebar-link" data-target="procedural-memory">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg>
+      Procedural Memory
     </a>
     <a class="sidebar-link" data-target="retry">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8a4 4 0 1 1 1.5 3.1"/><path d="M4 5V2L1 5"/></svg>
@@ -109,7 +117,7 @@
   <section class="hero hero--compact">
     <div class="hero-eyebrow">Released 2026-06-29</div>
     <h1>deepcrew-ai v0.2.2</h1>
-    <p>Eight major features that bring deepcrew-ai to Claude Code parity. Every feature is additive — your v0.1.0 code runs unchanged.</p>
+    <p>Ten major features that bring deepcrew-ai to Claude Code parity — including a self-improving loop with structured verification and an evolving procedural memory. Every feature is additive — your v0.1.0 code runs unchanged.</p>
   </section>
 
   <div class="feature-grid">
@@ -128,6 +136,11 @@
       <h3>Looping</h3>
       <p>Outer iteration loop for iterative search-refine patterns with convergence control.</p>
     </a>
+    <a class="feature-card feature-card--link" href="#verifier">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg></div>
+      <h3>Verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></h3>
+      <p>Structured, LLM-graded critique — score, issues, and a suggestion — drives targeted refinement.</p>
+    </a>
     <a class="feature-card feature-card--link" href="#skills">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-1 1 4 4 1-1a2.83 2.83 0 0 0-4-4z"/><path d="M9.5 2.5l-7 7 4 4 7-7"/><path d="M2.5 9.5l-1 4 4-1"/></svg></div>
       <h3>Skills</h3>
@@ -137,6 +150,11 @@
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 7h2M9 7h2M5 10h6"/></svg></div>
       <h3>Memory Providers</h3>
       <p>Pluggable context stores auto-injected into each LLM call. InMemory and File backends.</p>
+    </a>
+    <a class="feature-card feature-card--link" href="#procedural-memory">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg></div>
+      <h3>Procedural Memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></h3>
+      <p>ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs.</p>
     </a>
     <a class="feature-card feature-card--link" href="#retry">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a4 4 0 1 1 1.5 3.1"/><path d="M4 5V2L1 5"/></svg></div>
@@ -413,25 +431,7 @@ print(f"Iterations: {result.loop_iterations}")</code></pre>
   </div>
 
   <h3>Verifier-driven refinement</h3>
-  <p>A <code>Verifier</code> grades each iteration's answer against the original query and returns <strong>structured</strong> feedback — a score, specific issues, and a concrete suggestion — instead of a boolean. When set, the loop uses this feedback both to decide convergence and to build a targeted refinement prompt, instead of the static <code>refine_prompt</code> string. <code>convergence_fn</code> and <code>verifier</code> can be combined — the loop stops as soon as either is satisfied.</p>
-  <div class="code-block">
-    <div class="code-header"><span class="code-filename">verifier_example.py</span><button class="code-copy">Copy</button></div>
-    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
-
-agent = Agent(
-    name="researcher",
-    model="openai/gpt-4o-mini",
-    tools=[search_web],
-    loop_config=LoopConfig(
-        max_iterations=4,
-        verifier=Verifier(VerifierConfig(threshold=0.85)),
-    ),
-)
-
-result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
-print(result.text)</code></pre>
-  </div>
-  <p>Pass <code>VerifierConfig(evaluate_fn=my_custom_grader)</code> to fully replace the built-in LLM-graded rubric with your own async scoring function — it receives <code>(query, result)</code> and must return a <code>VerifierFeedback</code>.</p>
+  <p>A <code>Verifier</code> grades each iteration's answer with structured feedback — a score, specific issues, and a suggestion — instead of a boolean, and drives a targeted refinement prompt. See the full <a href="#verifier">Verifier feature guide</a> for a showcase of usage patterns, from a basic quality gate to a fully custom grading function.</p>
 
   <h3>run_agent_loop() directly</h3>
   <div class="code-block">
@@ -498,18 +498,6 @@ agent = Agent("reasoner", model="openai/gpt-4o",
     <div class="param-row"><div class="param-cell param-name">verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div><div class="param-cell param-type">Verifier | None</div><div class="param-cell param-desc">Structured critic. When set, its <code>VerifierFeedback</code> (score + issues + suggestion) drives both convergence and the next refinement prompt, replacing the static <code>refine_prompt</code> text.</div></div>
   </div>
 
-  <h3>Verifier reference</h3>
-  <div class="param-table">
-    <div class="param-row"><div class="param-cell param-name">VerifierConfig.model</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">LiteLLM model string used to grade results. Defaults to the looped agent's own model.</div></div>
-    <div class="param-row"><div class="param-cell param-name">VerifierConfig.threshold</div><div class="param-cell param-type">float = 0.8</div><div class="param-cell param-desc">Minimum score for <code>VerifierFeedback.converged</code> to be <code>True</code>.</div></div>
-    <div class="param-row"><div class="param-cell param-name">VerifierConfig.rubric</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Optional task-specific grading criteria appended to the built-in verifier prompt.</div></div>
-    <div class="param-row"><div class="param-cell param-name">VerifierConfig.evaluate_fn</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Full override: an async <code>(query, result) -> VerifierFeedback</code> function that replaces the built-in LLM grader entirely.</div></div>
-    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.score</div><div class="param-cell param-type">float</div><div class="param-cell param-desc">0.0-1.0 quality estimate.</div></div>
-    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.issues</div><div class="param-cell param-type">list[str]</div><div class="param-cell param-desc">Specific problems found in the result.</div></div>
-    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.suggestion</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Actionable next-step guidance, used to build the refinement prompt.</div></div>
-    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.converged</div><div class="param-cell param-type">bool</div><div class="param-cell param-desc"><code>score >= threshold</code>.</div></div>
-  </div>
-
   <h3>Loop events</h3>
   <div class="code-block">
     <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
@@ -525,6 +513,98 @@ while True:
     elif event.event == EventType.VERIFIER_SCORED:  # v0.2.1
         print(f"Verifier score: {event.data['score']} — issues: {event.data['issues']}")</code></pre>
   </div>
+</section>
+
+<!-- ─── VERIFIER ─── -->
+<section class="section" id="verifier" data-section="verifier">
+  <div class="section-eyebrow">Core Engine <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div>
+  <h2>Verifier</h2>
+  <p>A <code>Verifier</code> grades an agent's result against the original query and returns <strong>structured</strong> feedback — a score, specific issues, and a concrete suggestion — instead of a plain boolean. Attached to a <code>LoopConfig</code>, it drives both convergence and a targeted refinement prompt built from its critique, replacing the static default refine message. This page is a showcase of the ways to use it, end to end.</p>
+
+  <h3>How-to: basic quality gate</h3>
+  <p>The simplest use — stop refining once the built-in LLM grader is confident enough.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_basic.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(result.text)</code></pre>
+  </div>
+
+  <h3>How-to: a task-specific rubric</h3>
+  <p>Pass grading criteria specific to your domain so the verifier checks for what actually matters — e.g. code review, not just "is this a complete sentence."</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_rubric.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">code_reviewer = Agent(
+    name="code_reviewer",
+    model="openai/gpt-4o",
+    system_prompt="Review the given diff for bugs, security issues, and style.",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(
+            threshold=0.9,
+            rubric=(
+                "1. Every changed function must be covered by the review.\n"
+                "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
+                "3. Style nits are optional but bugs are not."
+            ),
+        )),
+    ),
+)
+
+result = await run_agent(code_reviewer, [{"role": "user", "content": diff_text}])</code></pre>
+  </div>
+
+  <h3>How-to: fully custom grading (no LLM call)</h3>
+  <p><code>evaluate_fn</code> replaces the built-in LLM grader entirely — useful when you have a deterministic check (schema validation, a unit test, a regex) that's cheaper and more reliable than asking another model.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_custom.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import json
+from deepcrew import VerifierFeedback
+
+async def json_schema_grader(query: str, result) -> VerifierFeedback:
+    try:
+        data = json.loads(result.text)
+    except json.JSONDecodeError:
+        return VerifierFeedback(score=0.0, issues=["Output is not valid JSON"], suggestion="Return valid JSON only.")
+    missing = [k for k in ("summary", "action_items") if k not in data]
+    if missing:
+        return VerifierFeedback(score=0.4, issues=[f"Missing key: {k}" for k in missing], suggestion="Include all required keys.")
+    return VerifierFeedback(score=1.0, converged=True)
+
+agent = Agent(
+    name="extractor",
+    model="openai/gpt-4o-mini",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(evaluate_fn=json_schema_grader)),
+    ),
+)</code></pre>
+  </div>
+
+  <h3>Verifier reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.model</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">LiteLLM model string used to grade results. Defaults to the looped agent's own model.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.threshold</div><div class="param-cell param-type">float = 0.8</div><div class="param-cell param-desc">Minimum score for <code>VerifierFeedback.converged</code> to be <code>True</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.rubric</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Optional task-specific grading criteria appended to the built-in verifier prompt.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.evaluate_fn</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Full override: an async <code>(query, result) -> VerifierFeedback</code> function that replaces the built-in LLM grader entirely.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.score</div><div class="param-cell param-type">float</div><div class="param-cell param-desc">0.0-1.0 quality estimate.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.issues</div><div class="param-cell param-type">list[str]</div><div class="param-cell param-desc">Specific problems found in the result.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.suggestion</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Actionable next-step guidance, used to build the refinement prompt.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.converged</div><div class="param-cell param-type">bool</div><div class="param-cell param-desc"><code>score >= threshold</code>.</div></div>
+  </div>
+
+  <p>See <a href="#looping">Looping</a> for how <code>LoopConfig.verifier</code> integrates with convergence and refinement, and <a href="#procedural-memory">Procedural Memory</a> for how verifier feedback also feeds the evolving playbook.</p>
 </section>
 
 <!-- ─── SKILLS ─── -->
@@ -783,10 +863,20 @@ async for event in run_agent(agent, messages, queue=queue):
     async def clear(self) -> None: ...</code></pre>
   </div>
 
-  <h3>Procedural memory (evolving playbook) <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></h3>
-  <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, inspired by ACE (Agentic Context Engineering, ICLR 2026). It's built <em>on top of</em> any <code>MemoryProvider</code> as its backing store and adds structure: each entry is a "helpful" or "harmful" bullet with a usage count and last-seen score. It's read on every run of an agent it's attached to (looped or single-shot), and curated — incrementally merged, never wholesale rewritten — whenever a loop with a <code>Verifier</code> converges.</p>
+  <h3>Procedural memory (evolving playbook)</h3>
+  <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, built on top of any <code>MemoryProvider</code>. See the full <a href="#procedural-memory">Procedural Memory feature guide</a> for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.</p>
+</section>
+
+<!-- ─── PROCEDURAL MEMORY ─── -->
+<section class="section" id="procedural-memory" data-section="procedural-memory">
+  <div class="section-eyebrow">Infrastructure <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div>
+  <h2>Procedural Memory</h2>
+  <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, inspired by ACE (Agentic Context Engineering, ICLR 2026). It's built <em>on top of</em> any <code>MemoryProvider</code> as its backing store and adds structure: each entry is a "helpful" or "harmful" bullet with a usage count and last-seen score. It's read on every run of an agent it's attached to (looped or single-shot), and curated — incrementally merged, never wholesale rewritten — whenever a loop with a <code>Verifier</code> converges. This page is a showcase of the ways to use it, end to end.</p>
+
+  <h3>How-to: a research agent that gets smarter over time</h3>
+  <p>Same agent, same task type, run repeatedly — each run's high-confidence result and each failure's specific issue become durable strategy bullets injected into the next run's context.</p>
   <div class="code-block">
-    <div class="code-header"><span class="code-filename">procedural_memory_example.py</span><button class="code-copy">Copy</button></div>
+    <div class="code-header"><span class="code-filename">procedural_memory_basic.py</span><button class="code-copy">Copy</button></div>
     <pre><code class="language-python">from deepcrew import (
     Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
     FileMemoryProvider, ProceduralMemory,
@@ -812,6 +902,40 @@ result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
   </div>
   <p>Curation requires a <code>verifier</code> on the same <code>LoopConfig</code> — without one, <code>procedural_memory</code> there is a no-op (there's no <code>VerifierFeedback</code> to grade the run against). Reading the playbook (<code>Agent.procedural_memory</code>) works independently of looping.</p>
 
+  <h3>How-to: a shared playbook across an agent pool</h3>
+  <p>Multiple agents that handle the same kind of task (e.g. every "support_triage" agent spawned by an <code>Orchestrator</code>) can share one <code>ProceduralMemory</code> instance and namespace it with an explicit <code>task_tag</code> instead of the default (which is keyed by <code>agent.name</code>), so lessons pool together regardless of which specific agent instance ran.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">procedural_memory_shared.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">shared_playbook = ProceduralMemory(FileMemoryProvider("support_playbook.json"))
+
+def make_support_agent(name: str) -> Agent:
+    return Agent(
+        name=name,
+        model="openai/gpt-4o-mini",
+        procedural_memory=shared_playbook,
+        loop_config=LoopConfig(
+            verifier=Verifier(VerifierConfig(threshold=0.8)),
+            procedural_memory=shared_playbook,
+            task_tag="support_triage",  # shared namespace, not tied to agent.name
+        ),
+    )
+
+agent_a = make_support_agent("triage_shift_1")
+agent_b = make_support_agent("triage_shift_2")
+# Both read from and write to the same "support_triage" playbook.</code></pre>
+  </div>
+
+  <h3>How-to: inspect the playbook directly</h3>
+  <p>You don't need to run an agent to read or seed a playbook — <code>ProceduralMemory</code> is usable standalone for debugging, exporting, or manual curation.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">procedural_memory_inspect.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">entries = await playbook.load("researcher")
+for e in entries:
+    print(f"[{e.kind}] {e.content} (used {e.uses}x, last score {e.last_score})")
+
+print(playbook.render(entries))  # the exact text block injected into context</code></pre>
+  </div>
+
   <h3>ProceduralMemory reference</h3>
   <div class="param-table">
     <div class="param-row"><div class="param-cell param-name">ProceduralMemory(backend, max_entries=30)</div><div class="param-cell param-type">MemoryProvider, int</div><div class="param-cell param-desc">Wraps any <code>MemoryProvider</code> as the backing store; caps the playbook at <code>max_entries</code>, pruned by usage/score.</div></div>
@@ -829,6 +953,8 @@ async for event in run_agent_loop(agent, messages, queue=queue):
     if event.event == EventType.PLAYBOOK_UPDATED:
         print(f"Playbook now has {event.data['entry_count']} entries")</code></pre>
   </div>
+
+  <p>See <a href="#verifier">Verifier</a> for how <code>VerifierFeedback</code> is produced, and <a href="#looping">Looping</a> for the full outer-loop lifecycle this plugs into.</p>
 </section>
 
 <!-- ─── RETRY ─── -->
