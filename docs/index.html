@@ -886,9 +886,28 @@ class APEXSynthesizer:
     convergence_fn: Callable[[AgentResult], bool] | None = None
     stop_condition: Callable[[AgentResult], bool] | None = None
     refine_prompt: str = "..."
+    verifier: Verifier | None = None  # v0.2.1
 
 async def run_agent_loop(agent, messages, *, tool_defs=None, queue=None, agent_id=None) -> AgentResult
 async def search_loop(query, search_tool, *, agent, max_iterations=3, confidence_threshold=0.8, queue=None) -> AgentResult
+
+# Verifier (v0.2.1)
+class Verifier:
+    def __init__(self, config: VerifierConfig | None = None)
+    async def evaluate(self, query: str, result: AgentResult, *, default_model: str) -> VerifierFeedback
+    async def assess_complexity(self, task: str, *, default_model: str) -> bool
+
+@dataclass class VerifierConfig:
+    model: str | None = None
+    threshold: float = 0.8
+    rubric: str | None = None
+    evaluate_fn: Callable[[str, AgentResult], Awaitable[VerifierFeedback]] | None = None
+
+@dataclass class VerifierFeedback:
+    score: float
+    issues: list[str] = []
+    suggestion: str = ""
+    converged: bool = False
 
 # Memory
 class MemoryProvider(ABC):  # store / retrieve / search / clear

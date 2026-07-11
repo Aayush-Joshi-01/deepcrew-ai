@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from .exceptions import LoopConvergedError
 from .types import AgentResult, EventType, StreamEvent, ToolDef
+from .verifier import Verifier, VerifierFeedback
 
 if TYPE_CHECKING:
     from .agent import Agent
@@ -22,6 +23,14 @@ class LoopConfig:
         "Your previous answer was not yet complete or sufficiently accurate. "
         "Please refine and improve it."
     )
+    verifier: Verifier | None = None
+    """
+    Optional structured critic. When set, its ``VerifierFeedback`` (score +
+    specific issues + a concrete suggestion) drives both convergence and the
+    refinement prompt sent for the next iteration, instead of the static
+    ``refine_prompt`` string. Either ``convergence_fn`` or the verifier
+    reporting ``converged=True`` is sufficient to stop the loop.
+    """
 
 
 @dataclass
@@ -58,6 +67,7 @@ async def run_agent_loop(
     state = LoopState(iteration=0)
     current_messages = list(messages)
     fetched_tool_defs = tool_defs
+    original_query = _extract_query(messages)
 
     for i in range(cfg.max_iterations):
         state.iteration = i
@@ -85,7 +95,22 @@ async def run_agent_loop(
                 result=result,
             )
 
-        if cfg.convergence_fn and cfg.convergence_fn(result):
+        feedback: VerifierFeedback | None = None
+        if cfg.verifier is not None:
+            feedback = await cfg.verifier.evaluate(
+                original_query, result, default_model=agent.model
+            )
+            if queue:
+                await queue.put(StreamEvent(
+                    EventType.VERIFIER_SCORED,
+                    {"iteration": i, "score": feedback.score, "issues": feedback.issues},
+                    aid,
+                ))
+
+        converged = (cfg.convergence_fn and cfg.convergence_fn(result)) or (
+            feedback is not None and feedback.converged
+        )
+        if converged:
             if queue:
                 await queue.put(StreamEvent(
                     EventType.LOOP_ITERATION,
@@ -94,12 +119,35 @@ async def run_agent_loop(
                 ))
             return result
 
+        refine_message = _build_refine_message(cfg.refine_prompt, feedback)
         current_messages = current_messages + [
             {"role": "assistant", "content": result.text},
-            {"role": "user", "content": cfg.refine_prompt},
+            {"role": "user", "content": refine_message},
         ]
 
     return state.results[-1]
+
+
+def _extract_query(messages: list[dict[str, Any]]) -> str:
+    """Return the first user-role message content, used by the verifier."""
+    for m in messages:
+        if m.get("role") == "user" and isinstance(m.get("content"), str):
+            return m["content"]
+    return ""
+
+
+def _build_refine_message(default_prompt: str, feedback: VerifierFeedback | None) -> str:
+    """Build the next refinement prompt from verifier feedback when available."""
+    if feedback is None or (not feedback.issues and not feedback.suggestion):
+        return default_prompt
+
+    parts = ["Your previous answer needs improvement."]
+    if feedback.issues:
+        bullets = "\n".join(f"- {issue}" for issue in feedback.issues)
+        parts.append(f"Specific issues:\n{bullets}")
+    if feedback.suggestion:
+        parts.append(f"Suggestion: {feedback.suggestion}")
+    return "\n\n".join(parts)
 
 
 async def search_loop(

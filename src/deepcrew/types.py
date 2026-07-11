@@ -26,6 +26,8 @@ class EventType(str, Enum):
     SPAWN_AGENT = "spawn_agent"
     APEX_START = "apex_start"
     APEX_DONE = "apex_done"
+    # v0.3.0
+    VERIFIER_SCORED = "verifier_scored"
 
 
 @dataclass

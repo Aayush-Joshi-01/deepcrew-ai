@@ -18,7 +18,7 @@ pip install deepcrew-ai
 |---|---|
 | **APEX Synthesizer** | Intelligent synthesis with confidence scoring and source citation |
 | **Agent Spawning** | Claude Code-style — agents can spawn sub-agents mid-loop with intelligent tool allocation |
-| **Looping** | Outer iteration loop for search-refine patterns with convergence control |
+| **Looping** | Outer iteration loop for search-refine patterns with convergence control, optionally driven by a structured `Verifier` |
 | **Skills** | Higher-level capability bundles: `WebSearchSkill`, `SummarizeSkill`, `CodeExecutionSkill`, `@skill` decorator |
 | **Memory** | Pluggable `InMemoryProvider` and `FileMemoryProvider` — auto-injected into agent context |
 | **Retry & Fallback** | Per-agent `RetryPolicy` + `FallbackChain` for model resilience |
@@ -192,6 +192,33 @@ agent = Agent(
 result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
 print(f"Converged in {result.loop_iterations} iterations")
 ```
+
+#### Verifier-driven refinement
+
+A `Verifier` grades each iteration's answer against the original query and returns
+**structured** feedback — a score, specific issues, and a concrete suggestion — instead
+of a boolean. When set, the loop uses this feedback both to decide convergence and to
+build a targeted refinement prompt, instead of the static `refine_prompt` string.
+
+```python
+from deepcrew import Agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+```
+
+`convergence_fn` and `verifier` can be combined — the loop stops as soon as either one
+is satisfied. Pass `VerifierConfig(evaluate_fn=my_custom_grader)` to fully replace the
+built-in LLM-graded rubric with your own scoring function.
 
 ### Skills
 

@@ -55,6 +55,7 @@ from .orchestrator import Orchestrator
 from .retry import FallbackChain, RetryPolicy
 from .runner import run_agent
 from .skills import FunctionSkill, Skill, SkillRegistry, skill
+from .verifier import Verifier, VerifierConfig, VerifierFeedback
 from .skills.builtin import CodeExecutionSkill, SummarizeSkill, WebSearchSkill
 from .spawner import SpawnRequest, ToolAllocator, make_spawn_tool, spawn_agent
 from .stream import make_done_event, make_error_event, queue_to_stream
@@ -69,7 +70,7 @@ from .types import (
 )
 from .workflow import WorkflowBuilder
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     # Core
@@ -86,6 +87,10 @@ __all__ = [
     "LoopState",
     "run_agent_loop",
     "search_loop",
+    # Verifier
+    "Verifier",
+    "VerifierConfig",
+    "VerifierFeedback",
     # Memory
     "MemoryProvider",
     "InMemoryProvider",

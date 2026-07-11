@@ -412,6 +412,27 @@ print(result.text)
 print(f"Iterations: {result.loop_iterations}")</code></pre>
   </div>
 
+  <h3>Verifier-driven refinement</h3>
+  <p>A <code>Verifier</code> grades each iteration's answer against the original query and returns <strong>structured</strong> feedback — a score, specific issues, and a concrete suggestion — instead of a boolean. When set, the loop uses this feedback both to decide convergence and to build a targeted refinement prompt, instead of the static <code>refine_prompt</code> string. <code>convergence_fn</code> and <code>verifier</code> can be combined — the loop stops as soon as either is satisfied.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(result.text)</code></pre>
+  </div>
+  <p>Pass <code>VerifierConfig(evaluate_fn=my_custom_grader)</code> to fully replace the built-in LLM-graded rubric with your own async scoring function — it receives <code>(query, result)</code> and must return a <code>VerifierFeedback</code>.</p>
+
   <h3>run_agent_loop() directly</h3>
   <div class="code-block">
     <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
@@ -474,6 +495,19 @@ agent = Agent("reasoner", model="openai/gpt-4o",
     <div class="param-row"><div class="param-cell param-name">convergence_fn</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Called with the current <code>AgentResult</code>. Return <code>True</code> to stop. Raise <code>LoopConvergedError(result)</code> for immediate exit with that result.</div></div>
     <div class="param-row"><div class="param-cell param-name">stop_condition</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Alternative to convergence_fn. Raises <code>LoopConvergedError</code> on its own — useful for externalizing early-exit logic.</div></div>
     <div class="param-row"><div class="param-cell param-name">refine_prompt</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Appended to conversation on each non-converged iteration. Default: <code>"Your answer is incomplete. Please search for more information and expand your response."</code></div></div>
+    <div class="param-row"><div class="param-cell param-name">verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div><div class="param-cell param-type">Verifier | None</div><div class="param-cell param-desc">Structured critic. When set, its <code>VerifierFeedback</code> (score + issues + suggestion) drives both convergence and the next refinement prompt, replacing the static <code>refine_prompt</code> text.</div></div>
+  </div>
+
+  <h3>Verifier reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.model</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">LiteLLM model string used to grade results. Defaults to the looped agent's own model.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.threshold</div><div class="param-cell param-type">float = 0.8</div><div class="param-cell param-desc">Minimum score for <code>VerifierFeedback.converged</code> to be <code>True</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.rubric</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Optional task-specific grading criteria appended to the built-in verifier prompt.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.evaluate_fn</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Full override: an async <code>(query, result) -> VerifierFeedback</code> function that replaces the built-in LLM grader entirely.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.score</div><div class="param-cell param-type">float</div><div class="param-cell param-desc">0.0-1.0 quality estimate.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.issues</div><div class="param-cell param-type">list[str]</div><div class="param-cell param-desc">Specific problems found in the result.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.suggestion</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Actionable next-step guidance, used to build the refinement prompt.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.converged</div><div class="param-cell param-type">bool</div><div class="param-cell param-desc"><code>score >= threshold</code>.</div></div>
   </div>
 
   <h3>Loop events</h3>
@@ -487,7 +521,9 @@ while True:
     if event.event == EventType.LOOP_ITERATION:
         i = event.data["iteration"]
         converged = event.data["converged"]
-        print(f"Loop iteration {i} — {'converged' if converged else 'refining...'}")</code></pre>
+        print(f"Loop iteration {i} — {'converged' if converged else 'refining...'}")
+    elif event.event == EventType.VERIFIER_SCORED:  # v0.2.1
+        print(f"Verifier score: {event.data['score']} — issues: {event.data['issues']}")</code></pre>
   </div>
 </section>
 

@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.1] — 2026-07-09
+
+### Added
+
+#### Verifier
+- `Verifier`/`VerifierConfig`/`VerifierFeedback` — structured, LLM-graded refinement feedback (score + specific issues + a concrete suggestion) for the outer loop, replacing the previous boolean-only `convergence_fn` when opted into
+- `LoopConfig.verifier` — when set, drives both convergence (`feedback.converged`, combinable with `convergence_fn`) and the refinement prompt sent for the next iteration, which is now built from the verifier's `issues`/`suggestion` instead of the static default string
+- `VerifierConfig.evaluate_fn` — full override hook to replace the built-in LLM-graded rubric with a custom scoring function
+- `Verifier.assess_complexity()` — lightweight, best-effort pre-execution complexity check, added in preparation for bounded nested agent spawning (Phase 6)
+- `EventType.VERIFIER_SCORED` — emitted after each iteration's verifier evaluation
+
 ## [0.2.0] — 2026-06-29
 
 ### Added
