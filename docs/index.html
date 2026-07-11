@@ -467,6 +467,7 @@ agent = Agent(
     <div class="param-row"><div class="param-cell param-name">retry_policy <span class="badge" style="font-size:10px;padding:1px 5px">v0.2</span></div><div class="param-cell param-type">RetryPolicy | None</div><div class="param-cell param-desc">Retry config: max attempts, backoff, which exceptions to retry on.</div></div>
     <div class="param-row"><div class="param-cell param-name">fallback_chain <span class="badge" style="font-size:10px;padding:1px 5px">v0.2</span></div><div class="param-cell param-type">FallbackChain | None</div><div class="param-cell param-desc">Ordered list of fallback model strings to try when all retries fail.</div></div>
     <div class="param-row"><div class="param-cell param-name">loop_config <span class="badge" style="font-size:10px;padding:1px 5px">v0.2</span></div><div class="param-cell param-type">LoopConfig | None</div><div class="param-cell param-desc">Outer refinement loop: run agent → check convergence → re-prompt → repeat.</div></div>
+    <div class="param-row"><div class="param-cell param-name">procedural_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">ProceduralMemory | None</div><div class="param-cell param-desc">Durable evolving playbook, read-injected into context on every run. Curated only via a loop whose LoopConfig also sets it.</div></div>
     <div class="param-row"><div class="param-cell param-name">max_turns</div><div class="param-cell param-type">int = 10</div><div class="param-cell param-desc">Max LLM→tool→LLM cycles per run. <code>MaxTurnsError</code> raised if exceeded.</div></div>
     <div class="param-row"><div class="param-cell param-name">temperature</div><div class="param-cell param-type">float | None</div><div class="param-cell param-desc">Sampling temperature. <code>None</code> uses the provider default.</div></div>
     <div class="param-row"><div class="param-cell param-name">max_tokens</div><div class="param-cell param-type">int | None</div><div class="param-cell param-desc">Max output tokens. <code>None</code> uses the provider default.</div></div>
@@ -887,6 +888,8 @@ class APEXSynthesizer:
     stop_condition: Callable[[AgentResult], bool] | None = None
     refine_prompt: str = "..."
     verifier: Verifier | None = None  # v0.2.1
+    procedural_memory: ProceduralMemory | None = None  # v0.2.2
+    task_tag: str | None = None  # v0.2.2 — defaults to agent.name
 
 async def run_agent_loop(agent, messages, *, tool_defs=None, queue=None, agent_id=None) -> AgentResult
 async def search_loop(query, search_tool, *, agent, max_iterations=3, confidence_threshold=0.8, queue=None) -> AgentResult
@@ -914,6 +917,19 @@ class MemoryProvider(ABC):  # store / retrieve / search / clear
 class InMemoryProvider(MemoryProvider)
 class FileMemoryProvider(MemoryProvider):
     def __init__(self, path: str | Path)
+
+# Procedural Memory (v0.2.2)
+class ProceduralMemory:
+    def __init__(self, backend: MemoryProvider, max_entries: int = 30)
+    async def load(self, task_tag: str) -> list[PlaybookEntry]
+    def render(self, entries: list[PlaybookEntry]) -> str
+    async def curate(self, task_tag: str, feedback: VerifierFeedback, trajectory: list[AgentResult]) -> int
+
+@dataclass class PlaybookEntry:
+    content: str
+    kind: Literal["helpful", "harmful"]
+    uses: int = 0
+    last_score: float | None = None
 
 # Retry
 @dataclass class RetryPolicy:

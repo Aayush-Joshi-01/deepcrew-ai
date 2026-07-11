@@ -782,6 +782,53 @@ async for event in run_agent(agent, messages, queue=queue):
     @abstractmethod
     async def clear(self) -> None: ...</code></pre>
   </div>
+
+  <h3>Procedural memory (evolving playbook) <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></h3>
+  <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, inspired by ACE (Agentic Context Engineering, ICLR 2026). It's built <em>on top of</em> any <code>MemoryProvider</code> as its backing store and adds structure: each entry is a "helpful" or "harmful" bullet with a usage count and last-seen score. It's read on every run of an agent it's attached to (looped or single-shot), and curated — incrementally merged, never wholesale rewritten — whenever a loop with a <code>Verifier</code> converges.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">procedural_memory_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory,
+)
+
+playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    procedural_memory=playbook,   # read on every run, even single-shot
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        procedural_memory=playbook,  # curated after a converged loop
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+# Run the same agent again later (even a new process, with FileMemoryProvider) and
+# it will already know what worked and what to avoid for this task.</code></pre>
+  </div>
+  <p>Curation requires a <code>verifier</code> on the same <code>LoopConfig</code> — without one, <code>procedural_memory</code> there is a no-op (there's no <code>VerifierFeedback</code> to grade the run against). Reading the playbook (<code>Agent.procedural_memory</code>) works independently of looping.</p>
+
+  <h3>ProceduralMemory reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">ProceduralMemory(backend, max_entries=30)</div><div class="param-cell param-type">MemoryProvider, int</div><div class="param-cell param-desc">Wraps any <code>MemoryProvider</code> as the backing store; caps the playbook at <code>max_entries</code>, pruned by usage/score.</div></div>
+    <div class="param-row"><div class="param-cell param-name">load(task_tag)</div><div class="param-cell param-type">async -> list[PlaybookEntry]</div><div class="param-cell param-desc">Returns all persisted entries for the given namespace.</div></div>
+    <div class="param-row"><div class="param-cell param-name">render(entries)</div><div class="param-cell param-type">list[PlaybookEntry] -> str</div><div class="param-cell param-desc">Formats entries as a compact bullet block for system-prompt injection; empty string for an empty list.</div></div>
+    <div class="param-row"><div class="param-cell param-name">curate(task_tag, feedback, trajectory)</div><div class="param-cell param-type">async -> int</div><div class="param-cell param-desc">Reflector+Curator step: distills new strategies, merges with existing entries (bumping usage on near-duplicates), prunes, and persists. Returns the new entry count.</div></div>
+  </div>
+
+  <h3>Playbook events</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.types import EventType
+
+async for event in run_agent_loop(agent, messages, queue=queue):
+    if event.event == EventType.PLAYBOOK_UPDATED:
+        print(f"Playbook now has {event.data['entry_count']} entries")</code></pre>
+  </div>
 </section>
 
 <!-- ─── RETRY ─── -->

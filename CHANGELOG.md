@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.2] — 2026-07-09
+
+### Added
+
+#### Procedural Memory
+- `ProceduralMemory`/`PlaybookEntry` — an opt-in, durable evolving-playbook memory (ACE-inspired) built on top of any `MemoryProvider`, letting agents accumulate reusable "helpful"/"avoid" strategies across runs instead of starting from scratch every time
+- `Agent.procedural_memory` — read-only playbook injection into context on every run of that agent, looped or single-shot
+- `LoopConfig.procedural_memory` / `LoopConfig.task_tag` — curates (incrementally merges, never rewrites) the playbook after a loop converges; requires `LoopConfig.verifier` to be set, since curation grades the run against a `VerifierFeedback`
+- `EventType.PLAYBOOK_UPDATED` — emitted after curation with the new entry count
+
 ## [0.2.1] — 2026-07-09
 
 ### Added

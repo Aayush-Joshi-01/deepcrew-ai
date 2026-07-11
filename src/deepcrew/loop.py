@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable
 
 from .exceptions import LoopConvergedError
+from .procedural_memory import ProceduralMemory
 from .types import AgentResult, EventType, StreamEvent, ToolDef
 from .verifier import Verifier, VerifierFeedback
 
@@ -31,6 +32,16 @@ class LoopConfig:
     ``refine_prompt`` string. Either ``convergence_fn`` or the verifier
     reporting ``converged=True`` is sufficient to stop the loop.
     """
+    procedural_memory: ProceduralMemory | None = None
+    """
+    Optional durable, evolving playbook (see :class:`ProceduralMemory`). When
+    set, accumulated strategies for ``task_tag`` are read and injected before
+    the first iteration, and curated (merged with new insights) when the loop
+    exits -- but only if ``verifier`` is also configured, since curation needs
+    a ``VerifierFeedback`` to grade the run. With no verifier, this is a no-op.
+    """
+    task_tag: str | None = None
+    """Playbook namespace for ``procedural_memory``. Defaults to ``agent.name``."""
 
 
 @dataclass
@@ -68,6 +79,24 @@ async def run_agent_loop(
     current_messages = list(messages)
     fetched_tool_defs = tool_defs
     original_query = _extract_query(messages)
+    tag = cfg.task_tag or agent.name
+    last_feedback: VerifierFeedback | None = None
+
+    if cfg.procedural_memory is not None:
+        playbook_entries = await cfg.procedural_memory.load(tag)
+        playbook_block = cfg.procedural_memory.render(playbook_entries)
+        if playbook_block:
+            current_messages = [{"role": "system", "content": playbook_block}] + current_messages
+
+    async def _curate_if_configured() -> None:
+        if cfg.procedural_memory is not None and last_feedback is not None:
+            count = await cfg.procedural_memory.curate(tag, last_feedback, state.results)
+            if queue:
+                await queue.put(StreamEvent(
+                    EventType.PLAYBOOK_UPDATED,
+                    {"task_tag": tag, "entry_count": count},
+                    aid,
+                ))
 
     for i in range(cfg.max_iterations):
         state.iteration = i
@@ -90,6 +119,7 @@ async def run_agent_loop(
         state.results.append(result)
 
         if cfg.stop_condition and cfg.stop_condition(result):
+            await _curate_if_configured()
             raise LoopConvergedError(
                 f"Agent {aid!r} loop stopped at iteration {i} by stop_condition",
                 result=result,
@@ -100,6 +130,7 @@ async def run_agent_loop(
             feedback = await cfg.verifier.evaluate(
                 original_query, result, default_model=agent.model
             )
+            last_feedback = feedback
             if queue:
                 await queue.put(StreamEvent(
                     EventType.VERIFIER_SCORED,
@@ -117,6 +148,7 @@ async def run_agent_loop(
                     {"iteration": i, "converged": True},
                     aid,
                 ))
+            await _curate_if_configured()
             return result
 
         refine_message = _build_refine_message(cfg.refine_prompt, feedback)
@@ -125,6 +157,7 @@ async def run_agent_loop(
             {"role": "user", "content": refine_message},
         ]
 
+    await _curate_if_configured()
     return state.results[-1]
 
 

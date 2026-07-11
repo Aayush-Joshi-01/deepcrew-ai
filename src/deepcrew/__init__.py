@@ -52,6 +52,7 @@ from .loop import LoopConfig, LoopState, run_agent_loop, search_loop
 from .memory import FileMemoryProvider, InMemoryProvider, MemoryProvider
 from .observability import ObservabilityConfig
 from .orchestrator import Orchestrator
+from .procedural_memory import PlaybookEntry, ProceduralMemory
 from .retry import FallbackChain, RetryPolicy
 from .runner import run_agent
 from .skills import FunctionSkill, Skill, SkillRegistry, skill
@@ -70,7 +71,7 @@ from .types import (
 )
 from .workflow import WorkflowBuilder
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 __all__ = [
     # Core
@@ -95,6 +96,8 @@ __all__ = [
     "MemoryProvider",
     "InMemoryProvider",
     "FileMemoryProvider",
+    "ProceduralMemory",
+    "PlaybookEntry",
     # Retry / Fallback
     "RetryPolicy",
     "FallbackChain",

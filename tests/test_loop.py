@@ -6,6 +6,8 @@ import pytest
 
 from deepcrew.agent import Agent
 from deepcrew.loop import LoopConfig, run_agent_loop
+from deepcrew.memory.inmemory import InMemoryProvider
+from deepcrew.procedural_memory import ProceduralMemory
 from deepcrew.types import AgentResult, EventType
 from deepcrew.verifier import Verifier, VerifierFeedback
 
@@ -113,3 +115,73 @@ async def test_loop_emits_verifier_scored_event():
     scored = [e for e in events if e.event == EventType.VERIFIER_SCORED]
     assert len(scored) == 1
     assert scored[0].data["score"] == 0.95
+
+
+@pytest.mark.asyncio
+async def test_loop_playbook_injected_on_second_run_with_shared_procedural_memory():
+    backend = InMemoryProvider()
+    pm = ProceduralMemory(backend)
+
+    def make_agent():
+        return Agent(
+            name="researcher",
+            model="openai/gpt-4o",
+            loop_config=LoopConfig(
+                max_iterations=1,
+                verifier=Verifier(),
+                procedural_memory=pm,
+            ),
+        )
+
+    sent_messages: list[list[dict]] = []
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        sent_messages.append(messages)
+        return _agent_result(agent.name, "an answer")
+
+    async def fake_evaluate_high(query, result, *, default_model):
+        return VerifierFeedback(score=0.95, issues=[], suggestion="", converged=True)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate_high)):
+        await run_agent_loop(make_agent(), [{"role": "user", "content": "Explain CRISPR"}])
+        await run_agent_loop(make_agent(), [{"role": "user", "content": "Explain CRISPR again"}])
+
+    # First run: no playbook yet (nothing persisted).
+    first_run_messages = sent_messages[0]
+    assert not any(
+        m.get("role") == "system" and "Known strategies" in str(m.get("content", ""))
+        for m in first_run_messages
+    )
+
+    # Second run: playbook curated from the first run's high-confidence result is injected.
+    second_run_messages = sent_messages[1]
+    assert any(
+        m.get("role") == "system" and "Known strategies" in str(m.get("content", ""))
+        for m in second_run_messages
+    )
+
+
+@pytest.mark.asyncio
+async def test_loop_procedural_memory_without_verifier_is_noop():
+    backend = InMemoryProvider()
+    pm = ProceduralMemory(backend)
+
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=1,
+            convergence_fn=lambda r: True,
+            procedural_memory=pm,
+        ),
+    )
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        return _agent_result(agent.name, "an answer")
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
+
+    assert result.text == "an answer"
+    assert await pm.load("researcher") == []

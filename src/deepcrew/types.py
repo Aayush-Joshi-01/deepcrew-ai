@@ -28,6 +28,7 @@ class EventType(str, Enum):
     APEX_DONE = "apex_done"
     # v0.3.0
     VERIFIER_SCORED = "verifier_scored"
+    PLAYBOOK_UPDATED = "playbook_updated"
 
 
 @dataclass

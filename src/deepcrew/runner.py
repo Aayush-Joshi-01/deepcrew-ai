@@ -98,6 +98,14 @@ async def run_agent(
             memory_block = "\n".join(f"[Memory] {k}: {v}" for k, v in memories)
             history.append({"role": "system", "content": f"Relevant memories:\n{memory_block}"})
 
+    # Procedural memory injection: read-only, works even for non-looped agents.
+    # Writing/curating new strategies only happens via run_agent_loop.
+    if agent.procedural_memory:
+        playbook_entries = await agent.procedural_memory.load(agent_id)
+        playbook_block = agent.procedural_memory.render(playbook_entries)
+        if playbook_block:
+            history.append({"role": "system", "content": playbook_block})
+
     history.extend(messages)
 
     total_in = 0

@@ -21,6 +21,7 @@ pip install deepcrew-ai
 | **Looping** | Outer iteration loop for search-refine patterns with convergence control, optionally driven by a structured `Verifier` |
 | **Skills** | Higher-level capability bundles: `WebSearchSkill`, `SummarizeSkill`, `CodeExecutionSkill`, `@skill` decorator |
 | **Memory** | Pluggable `InMemoryProvider` and `FileMemoryProvider` — auto-injected into agent context |
+| **Procedural Memory** | `ProceduralMemory` — an opt-in, durable evolving playbook of strategies accumulated across runs |
 | **Retry & Fallback** | Per-agent `RetryPolicy` + `FallbackChain` for model resilience |
 | **Observability** | OpenTelemetry spans for every LLM call, tool execution, and workflow step |
 | **CLI** | `deepcrew run workflow.yaml` — declarative workflow execution |
@@ -219,6 +220,42 @@ result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
 `convergence_fn` and `verifier` can be combined — the loop stops as soon as either one
 is satisfied. Pass `VerifierConfig(evaluate_fn=my_custom_grader)` to fully replace the
 built-in LLM-graded rubric with your own scoring function.
+
+#### Procedural memory (evolving playbook)
+
+`ProceduralMemory` is an opt-in, durable "the system learns from its own past runs"
+store, inspired by ACE (Agentic Context Engineering). It's built on top of any
+`MemoryProvider` and accumulates a structured playbook of "helpful"/"avoid" strategy
+bullets across runs — read on every run (looped or single-shot) and curated
+(incrementally merged, not rewritten) whenever a loop with a `verifier` converges.
+
+```python
+from deepcrew import (
+    Agent, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory,
+)
+
+playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    procedural_memory=playbook,   # read on every run, even single-shot
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        procedural_memory=playbook,  # curated after a converged loop
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+# Run the same agent again later (even a new process, with FileMemoryProvider) and
+# it will already know what worked and what to avoid for this task.
+```
+
+Curation requires a `verifier` — without one, `procedural_memory` on `LoopConfig` is a
+no-op (there's no `VerifierFeedback` to grade the run against).
 
 ### Skills
 

@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from .loop import LoopConfig
     from .memory.base import MemoryProvider
     from .mcp.base import MCPClient
+    from .procedural_memory import ProceduralMemory
     from .retry import FallbackChain, RetryPolicy
     from .skills.base import Skill
 
@@ -53,6 +54,12 @@ class Agent:
         Outer iteration loop configuration (refinement loop over full runs).
     skills:
         Higher-level reusable capability bundles exposed to the LLM as tools.
+    procedural_memory:
+        Optional durable, evolving playbook (see ``ProceduralMemory``). When
+        set, accumulated strategies are read and injected into context on
+        every run of this agent (single-shot or looped). Writing/curating
+        new strategies only happens via a loop whose ``LoopConfig`` also has
+        ``procedural_memory`` configured (typically the same instance).
     """
 
     name: str
@@ -69,6 +76,7 @@ class Agent:
     memory: MemoryProvider | None = field(default=None)
     loop_config: LoopConfig | None = field(default=None)
     skills: list[Skill] = field(default_factory=list)
+    procedural_memory: ProceduralMemory | None = field(default=None)
 
     async def get_tool_defs(self) -> list[ToolDef]:
         """Discover and merge tools from all attached MCP servers, Python functions, and skills."""
