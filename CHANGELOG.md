@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.6] — 2026-07-09
+
+### Added
+
+#### Bounded Nested Agent Spawning
+- `SpawnRequest.depth` — tracks the nesting depth a spawn happens at
+- `spawn_agent()`/`make_spawn_tool()` gain `max_depth` (hard, never-exceeded ceiling on nesting depth, default 2) and `complexity_check` (optional `Verifier` gating whether a nested spawn tool is worth attaching below the cap)
+- `Orchestrator(max_spawn_depth=..., spawn_complexity_check=...)` — a spawned sub-agent can now itself spawn further sub-agents up to the depth cap; beyond it, the sub-agent simply has no `spawn_agent` tool to call
+- A defense-in-depth check inside the spawn tool itself returns a plain string ("Maximum nesting depth reached...") rather than raising, for any caller that bypasses the normal attach logic
+- This is depth-bounded only, not fan-out-bounded — each level can still spawn as many sibling sub-agents as it wants
+
 ## [0.2.5] — 2026-07-09
 
 ### Added

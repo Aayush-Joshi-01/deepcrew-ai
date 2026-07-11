@@ -15,6 +15,7 @@ from .runner import run_agent, _tool_def_to_litellm
 from .spawner import ToolAllocator, make_spawn_tool
 from .stream import make_done_event, make_error_event, queue_to_stream
 from .types import AgentResult, EventType, OrchestratorResult, StreamEvent, ToolDef
+from .verifier import Verifier
 
 litellm.drop_params = True
 
@@ -98,6 +99,14 @@ class Orchestrator:
     enable_spawn:
         When True, inject a ``spawn_agent`` meta-tool into every running agent
         so it can dynamically spawn sub-agents mid-loop.
+    max_spawn_depth:
+        Hard, never-exceeded ceiling on nesting depth for recursive spawning
+        (a spawned sub-agent spawning its own sub-agent, and so on). Only
+        relevant when ``enable_spawn=True``. Defaults to 2 (one nested level).
+    spawn_complexity_check:
+        Optional ``Verifier`` whose ``assess_complexity()`` gates whether a
+        newly-spawned sub-agent is worth giving its own nested spawn tool to,
+        below the hard ``max_spawn_depth`` cap.
     """
 
     def __init__(
@@ -112,6 +121,8 @@ class Orchestrator:
         max_parallel_agents: int = 5,
         global_tools: list[ToolDef] | None = None,
         enable_spawn: bool = False,
+        max_spawn_depth: int = 2,
+        spawn_complexity_check: Verifier | None = None,
     ) -> None:
         self.agents: dict[str, Agent] = {a.name: a for a in agents}
         self.router_model = router_model
@@ -125,6 +136,8 @@ class Orchestrator:
         self.max_parallel_agents = max_parallel_agents
         self._global_tools: list[ToolDef] = global_tools or []
         self._enable_spawn = enable_spawn
+        self._max_spawn_depth = max_spawn_depth
+        self._spawn_complexity_check = spawn_complexity_check
         self._apex = APEXSynthesizer(self._apex_model, apex_config)
 
     async def run(self, query: str, context: dict[str, Any] | None = None) -> OrchestratorResult:
@@ -193,7 +206,13 @@ class Orchestrator:
             spawn_tool: ToolDef | None = None
             if self._enable_spawn and self._global_tools:
                 spawn_tool = make_spawn_tool(
-                    self._global_tools, queue, self.router_model, "orchestrator"
+                    self._global_tools,
+                    queue,
+                    self.router_model,
+                    "orchestrator",
+                    current_depth=0,
+                    max_depth=self._max_spawn_depth,
+                    complexity_check=self._spawn_complexity_check,
                 )
 
             if routing["route"] == "single":

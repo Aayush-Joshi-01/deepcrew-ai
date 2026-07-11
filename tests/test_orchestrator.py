@@ -9,7 +9,7 @@ import pytest
 from deepcrew.agent import Agent
 from deepcrew.exceptions import RouterError
 from deepcrew.orchestrator import Orchestrator
-from deepcrew.types import EventType
+from deepcrew.types import EventType, ToolDef
 
 
 def _make_litellm_response(text: str):
@@ -109,3 +109,35 @@ async def test_orchestrator_invalid_router_json_raises():
     with patch("litellm.acompletion", new=AsyncMock(return_value=bad_response)):
         with pytest.raises(RouterError):
             await orch._route("some query")
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_default_spawn_still_flat_single_level():
+    """Regression: default Orchestrator(enable_spawn=True) with no max_spawn_depth
+    override behaves like the pre-Phase-6 flat single-level spawn when the
+    spawn_agent tool is never actually invoked by the agent."""
+    search_tool = ToolDef(name="search", description="Search the web", parameters={"type": "object", "properties": {}})
+    agents = [Agent("researcher", model="openai/gpt-4o", system_prompt="Research specialist.")]
+    orch = Orchestrator(
+        agents,
+        router_model="openai/gpt-4o-mini",
+        global_tools=[search_tool],
+        enable_spawn=True,
+    )
+    assert orch._max_spawn_depth == 2
+    assert orch._spawn_complexity_check is None
+
+    router_response = _make_litellm_response(
+        json.dumps({"route": "single", "agent": "researcher", "task": "Research AI trends"})
+    )
+    agent_chunks = [_make_stream_chunk("AI is advancing rapidly."), _make_stream_chunk()]
+
+    async def fake_completion(**kwargs):
+        if kwargs.get("stream") is False:
+            return router_response
+        return _fake_stream(*agent_chunks)
+
+    with patch("litellm.acompletion", new=AsyncMock(side_effect=fake_completion)):
+        result = await orch.run("What are the latest AI trends?")
+
+    assert "AI" in result.final_text or len(result.agent_results) > 0

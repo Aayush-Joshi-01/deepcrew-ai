@@ -172,6 +172,34 @@ orch = Orchestrator(
 # The master_agent can now call spawn_agent(task="...", model="...") mid-loop
 ```
 
+#### Nested spawning (bounded)
+
+A spawned sub-agent can itself spawn further sub-agents — useful when a delegated
+sub-task is still too large to handle directly — but this is strictly **depth**-bounded,
+never sibling/fan-out-bounded: each level can still spawn as many sub-agents as it
+wants, but nesting depth is capped by `max_spawn_depth`. Below that hard cap, an
+optional `spawn_complexity_check` (a `Verifier`) can gate whether decomposing further
+is actually warranted, so agents don't nest "just because they can."
+
+```python
+from deepcrew import Agent, Orchestrator, Verifier, tool
+
+orch = Orchestrator(
+    agents=[master_agent],
+    global_tools=[search_web, read_file],
+    enable_spawn=True,
+    max_spawn_depth=3,                      # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),       # optional: skip nesting for simple sub-tasks
+)
+```
+
+When a sub-agent tries to spawn beyond `max_spawn_depth`, it simply has no
+`spawn_agent` tool to call — there's nothing to invoke, so it completes the task
+directly. A defense-in-depth check inside the tool itself also returns "Maximum
+nesting depth reached; complete this task directly without further delegation." as a
+plain string result for any caller that bypasses the normal attach logic — never an
+exception.
+
 ### Looping
 
 Outer iteration loop for search-refine patterns.
@@ -587,7 +615,7 @@ Requires Python 3.11+.
 Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
 - [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
-- [v0.2.5 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
+- [v0.2.6 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
 - [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
 
 ---

@@ -23,12 +23,12 @@
   </a>
   <ul class="nav-links">
     <li><a href="index.html">Docs</a></li>
-    <li><a href="features.html" class="active">v0.2.5 Features</a></li>
+    <li><a href="features.html" class="active">v0.2.6 Features</a></li>
     <li><a href="examples.html">Examples</a></li>
     <li><a href="index.html#api-reference">API</a></li>
   </ul>
   <div class="nav-right">
-    <span class="badge">v0.2.5</span>
+    <span class="badge">v0.2.6</span>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
       GitHub
@@ -41,7 +41,7 @@
 <div class="page-layout">
 <aside>
   <div class="sidebar-section">
-    <span class="sidebar-label">v0.2.5 Features</span>
+    <span class="sidebar-label">v0.2.6 Features</span>
     <a class="sidebar-link active" data-target="overview">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L15 5V11L8 15L1 11V5L8 1Z"/></svg>
       Overview
@@ -379,7 +379,24 @@ print([t.name for t in relevant_tools])</code></pre>
     <div class="param-row"><div class="param-cell param-name">model</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Model string for the sub-agent. Defaults to the parent agent's model.</div></div>
     <div class="param-row"><div class="param-cell param-name">system_prompt</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Optional system prompt override for the sub-agent.</div></div>
     <div class="param-row"><div class="param-cell param-name">max_turns</div><div class="param-cell param-type">int = 5</div><div class="param-cell param-desc">Max tool-call cycles for the sub-agent.</div></div>
+    <div class="param-row"><div class="param-cell param-name">depth <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.6</span></div><div class="param-cell param-type">int = 0</div><div class="param-cell param-desc">Nesting depth this spawn happens at. Set automatically by the <code>spawn_agent</code> tool wrapper; rarely set by hand.</div></div>
   </div>
+
+  <h3>How-to: bounded nested spawning <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.6</span></h3>
+  <p>A spawned sub-agent can itself spawn further sub-agents — useful when a delegated sub-task is still too large to handle directly. This is strictly <strong>depth</strong>-bounded, never sibling/fan-out-bounded: each level can still spawn as many sub-agents as it wants, but nesting depth is capped by <code>max_spawn_depth</code>. Below that hard cap, an optional <code>spawn_complexity_check</code> gate can skip attaching a nested spawn tool when the sub-task doesn't look worth decomposing further.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">nested_spawning.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, Orchestrator, Verifier
+
+orch = Orchestrator(
+    agents=[master_agent],
+    global_tools=[search_web, read_file],
+    enable_spawn=True,
+    max_spawn_depth=3,                    # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),     # optional: skip nesting for simple sub-tasks
+)</code></pre>
+  </div>
+  <p>When a sub-agent tries to spawn beyond <code>max_spawn_depth</code>, it simply has no <code>spawn_agent</code> tool available — nothing to invoke, so it completes the task directly instead. A defense-in-depth check inside the tool itself also returns <code>"Maximum nesting depth reached; complete this task directly without further delegation."</code> as a plain string result for any caller that bypasses the normal attach logic — never an exception.</p>
 </section>
 
 <!-- ─── LOOPING ─── -->
@@ -1352,7 +1369,7 @@ deepcrew agents list --config workflow.yaml</code></pre>
 
 <footer>
   <div class="footer-left">
-    Built with ♥ — <strong>deepcrew-ai</strong> v0.2.5 — MIT License
+    Built with ♥ — <strong>deepcrew-ai</strong> v0.2.6 — MIT License
   </div>
   <div class="footer-links">
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>

@@ -8,6 +8,7 @@ from typing import Any
 import litellm
 
 from .types import AgentResult, EventType, StreamEvent, ToolDef
+from .verifier import Verifier
 
 
 @dataclass
@@ -19,6 +20,11 @@ class SpawnRequest:
     model: str | None = None
     system_prompt: str | None = None
     max_turns: int = 5
+    depth: int = 0
+    """
+    Nesting depth this spawn happens at (0 = a top-level spawn). Used to decide
+    whether the newly-created sub-agent itself gets a spawn_agent tool.
+    """
 
 
 class ToolAllocator:
@@ -81,11 +87,19 @@ async def spawn_agent(
     parent_queue: asyncio.Queue[StreamEvent | None] | None = None,
     router_model: str = "openai/gpt-4o-mini",
     parent_agent_id: str = "parent",
+    max_depth: int = 2,
+    complexity_check: Verifier | None = None,
 ) -> AgentResult:
     """
     Dynamically create and run a sub-agent with intelligently allocated tools.
 
     Emits a SPAWN_AGENT event before the sub-agent starts.
+
+    If ``request.depth + 1 < max_depth``, the new sub-agent is itself given a
+    spawn_agent tool so it can recursively decompose the task further --
+    unless *complexity_check* is provided and its ``assess_complexity()``
+    judges the task not worth decomposing. ``max_depth`` is a hard,
+    never-exceeded ceiling on nesting depth (not on sibling fan-out).
     """
     from .agent import Agent
     from .runner import run_agent
@@ -93,7 +107,7 @@ async def spawn_agent(
     if parent_queue:
         await parent_queue.put(StreamEvent(
             EventType.SPAWN_AGENT,
-            {"task": request.task[:200], "requested_tools": request.tools},
+            {"task": request.task[:200], "requested_tools": request.tools, "depth": request.depth},
             parent_agent_id,
         ))
 
@@ -112,6 +126,25 @@ async def spawn_agent(
         max_turns=request.max_turns,
     )
 
+    next_depth = request.depth + 1
+    if next_depth < max_depth:
+        should_nest = True
+        if complexity_check is not None:
+            should_nest = await complexity_check.assess_complexity(
+                request.task, default_model=router_model
+            )
+        if should_nest:
+            nested_tool = make_spawn_tool(
+                all_tool_defs,
+                parent_queue,
+                router_model,
+                f"spawned_{parent_agent_id}",
+                current_depth=next_depth,
+                max_depth=max_depth,
+                complexity_check=complexity_check,
+            )
+            allocated = allocated + [nested_tool]
+
     return await run_agent(
         sub_agent,
         [{"role": "user", "content": request.task}],
@@ -126,20 +159,33 @@ def make_spawn_tool(
     parent_queue: asyncio.Queue[StreamEvent | None] | None,
     router_model: str,
     parent_agent_id: str,
+    *,
+    current_depth: int = 0,
+    max_depth: int = 2,
+    complexity_check: Verifier | None = None,
 ) -> ToolDef:
     """
     Return a ToolDef named 'spawn_agent' that the LLM can call to create
     a sub-agent dynamically. The tool is backed by a closure over spawn_agent().
+
+    *current_depth* is the nesting depth this specific tool instance lives at
+    (0 for a top-level tool). It is normally only attached to sub-agents when
+    there's still depth budget (see ``spawn_agent``'s attach logic), but the
+    ``current_depth >= max_depth`` check below is kept as defense-in-depth for
+    any direct caller that bypasses that attach logic.
     """
     async def _spawn(
         task: str,
         model: str = "",
         system_prompt: str = "",
     ) -> str:
+        if current_depth >= max_depth:
+            return "Maximum nesting depth reached; complete this task directly without further delegation."
         req = SpawnRequest(
             task=task,
             model=model or None,
             system_prompt=system_prompt or None,
+            depth=current_depth,
         )
         result = await spawn_agent(
             req,
@@ -147,6 +193,8 @@ def make_spawn_tool(
             parent_queue=parent_queue,
             router_model=router_model,
             parent_agent_id=parent_agent_id,
+            max_depth=max_depth,
+            complexity_check=complexity_check,
         )
         return result.text
 
