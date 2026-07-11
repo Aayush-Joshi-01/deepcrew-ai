@@ -49,7 +49,25 @@
   </div>
 
   <div class="sidebar-section">
-    <span class="sidebar-label">Core Engine</span>
+    <span class="sidebar-label">Self-Improving Loop</span>
+    <a class="sidebar-link" data-target="looping">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 8A5 5 0 1 1 8 3"/><path d="M13 3v5h-5"/></svg>
+      Looping
+    </a>
+    <a class="sidebar-sublink" href="#adaptive-budget">Adaptive budget</a>
+    <a class="sidebar-sublink" href="#branching">Branching</a>
+    <a class="sidebar-link" data-target="verifier">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
+      Verifier
+    </a>
+    <a class="sidebar-link" data-target="procedural-memory">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg>
+      Procedural Memory
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label">Orchestration</span>
     <a class="sidebar-link" data-target="apex">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5h5l-4 3 1.5 5L8 11l-4.5 3L5 9 1 6h5z"/></svg>
       APEX Synthesizer
@@ -58,18 +76,16 @@
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5v3M5.3 11.2L6.8 9M10.7 11.2L9.2 9"/></svg>
       Agent Spawning
     </a>
-    <a class="sidebar-link" data-target="looping">
-      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 8A5 5 0 1 1 8 3"/><path d="M13 3v5h-5"/></svg>
-      Looping
-    </a>
-    <a class="sidebar-link" data-target="verifier">
-      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
-      Verifier
-    </a>
+    <a class="sidebar-sublink" href="#nested-spawning">Nested spawning</a>
+  </div>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label">Extensibility</span>
     <a class="sidebar-link" data-target="skills">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 1.5l-1 1 4 4 1-1a2.83 2.83 0 0 0-4-4z"/><path d="M9.5 2.5l-7 7 4 4 7-7"/><path d="M2.5 9.5l-1 4 4-1"/></svg>
       Skills
     </a>
+    <a class="sidebar-sublink" href="#self-evolving-skills">Self-evolving skills</a>
   </div>
 
   <div class="sidebar-section">
@@ -77,10 +93,6 @@
     <a class="sidebar-link" data-target="memory">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 7h2M9 7h2M5 10h6"/></svg>
       Memory Providers
-    </a>
-    <a class="sidebar-link" data-target="procedural-memory">
-      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg>
-      Procedural Memory
     </a>
     <a class="sidebar-link" data-target="retry">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8a4 4 0 1 1 1.5 3.1"/><path d="M4 5V2L1 5"/></svg>
@@ -120,6 +132,26 @@
     <p>Ten major features across two releases — a self-improving loop (verifier, adaptive budget, branching, skill distillation, procedural memory) plus bounded nested agent spawning. Every feature is additive — your v0.1.0 code runs unchanged.</p>
   </section>
 
+  <div class="feature-section-label">Self-Improving Loop</div>
+  <div class="feature-grid">
+    <a class="feature-card feature-card--link" href="#looping">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8A5 5 0 1 1 8 3"/><path d="M13 3v5h-5"/></svg></div>
+      <h3>Looping</h3>
+      <p>Outer iteration loop for search-refine patterns. Now also: adaptive budget and branching.</p>
+    </a>
+    <a class="feature-card feature-card--link" href="#verifier">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg></div>
+      <h3>Verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></h3>
+      <p>Structured, LLM-graded critique — score, issues, and a suggestion — drives targeted refinement.</p>
+    </a>
+    <a class="feature-card feature-card--link" href="#procedural-memory">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg></div>
+      <h3>Procedural Memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></h3>
+      <p>ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs.</p>
+    </a>
+  </div>
+
+  <div class="feature-section-label">Orchestration</div>
   <div class="feature-grid">
     <a class="feature-card feature-card--link" href="#apex">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1l2 5h5l-4 3 1.5 5L8 11l-4.5 3L5 9 1 6h5z"/></svg></div>
@@ -129,32 +161,21 @@
     <a class="feature-card feature-card--link" href="#spawning">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5v3M5.3 11.2L6.8 9M10.7 11.2L9.2 9"/></svg></div>
       <h3>Agent Spawning</h3>
-      <p>Claude Code-style: any agent can spawn sub-agents mid-loop with smart tool allocation.</p>
+      <p>Claude Code-style spawning, now with bounded nested delegation and smart tool allocation.</p>
     </a>
-    <a class="feature-card feature-card--link" href="#looping">
-      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8A5 5 0 1 1 8 3"/><path d="M13 3v5h-5"/></svg></div>
-      <h3>Looping</h3>
-      <p>Outer iteration loop for iterative search-refine patterns with convergence control.</p>
-    </a>
-    <a class="feature-card feature-card--link" href="#verifier">
-      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg></div>
-      <h3>Verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></h3>
-      <p>Structured, LLM-graded critique — score, issues, and a suggestion — drives targeted refinement.</p>
-    </a>
+  </div>
+
+  <div class="feature-section-label">Extensibility &amp; Infrastructure</div>
+  <div class="feature-grid">
     <a class="feature-card feature-card--link" href="#skills">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 1.5l-1 1 4 4 1-1a2.83 2.83 0 0 0-4-4z"/><path d="M9.5 2.5l-7 7 4 4 7-7"/><path d="M2.5 9.5l-1 4 4-1"/></svg></div>
       <h3>Skills</h3>
-      <p>Reusable capability bundles. Built-ins: WebSearch, Summarize, CodeExecution.</p>
+      <p>Reusable capability bundles, now self-evolving from converged loop runs.</p>
     </a>
     <a class="feature-card feature-card--link" href="#memory">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 7h2M9 7h2M5 10h6"/></svg></div>
       <h3>Memory Providers</h3>
       <p>Pluggable context stores auto-injected into each LLM call. InMemory and File backends.</p>
-    </a>
-    <a class="feature-card feature-card--link" href="#procedural-memory">
-      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg></div>
-      <h3>Procedural Memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></h3>
-      <p>ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs.</p>
     </a>
     <a class="feature-card feature-card--link" href="#retry">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a4 4 0 1 1 1.5 3.1"/><path d="M4 5V2L1 5"/></svg></div>
@@ -176,7 +197,7 @@
 
 <!-- ─── APEX ─── -->
 <section class="section" id="apex" data-section="apex">
-  <div class="section-eyebrow">Core Engine</div>
+  <div class="section-eyebrow">Orchestration</div>
   <h2>APEX Synthesizer</h2>
   <p>APEX replaces the original plain synthesizer with an intelligent synthesis engine. It produces a confidence score (0.0–1.0) on every result, optionally cites which agent contributed each fact, and can even call tools mid-synthesis for verification.</p>
 
@@ -266,7 +287,7 @@ async for event in orch.stream("..."):
 
 <!-- ─── SPAWNING ─── -->
 <section class="section" id="spawning" data-section="spawning">
-  <div class="section-eyebrow">Core Engine</div>
+  <div class="section-eyebrow">Orchestration</div>
   <h2>Agent Spawning</h2>
   <p>deepcrew-ai v0.2.0 introduces Claude Code-style dynamic agent spawning. Any running agent can call a built-in <code>spawn_agent</code> tool to create a sub-agent mid-loop, with tools automatically selected from a global pool by the <code>ToolAllocator</code>.</p>
 
@@ -382,6 +403,7 @@ print([t.name for t in relevant_tools])</code></pre>
     <div class="param-row"><div class="param-cell param-name">depth <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.6</span></div><div class="param-cell param-type">int = 0</div><div class="param-cell param-desc">Nesting depth this spawn happens at. Set automatically by the <code>spawn_agent</code> tool wrapper; rarely set by hand.</div></div>
   </div>
 
+  <span class="anchor" id="nested-spawning"></span>
   <h3>How-to: bounded nested spawning <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.6</span></h3>
   <p>A spawned sub-agent can itself spawn further sub-agents — useful when a delegated sub-task is still too large to handle directly. This is strictly <strong>depth</strong>-bounded, never sibling/fan-out-bounded: each level can still spawn as many sub-agents as it wants, but nesting depth is capped by <code>max_spawn_depth</code>. Below that hard cap, an optional <code>spawn_complexity_check</code> gate can skip attaching a nested spawn tool when the sub-task doesn't look worth decomposing further.</p>
   <div class="code-block">
@@ -401,7 +423,7 @@ orch = Orchestrator(
 
 <!-- ─── LOOPING ─── -->
 <section class="section" id="looping" data-section="looping">
-  <div class="section-eyebrow">Core Engine</div>
+  <div class="section-eyebrow">Self-Improving Loop</div>
   <h2>Looping Methodology</h2>
   <p>The outer iteration loop is distinct from the inner per-turn <code>max_turns</code> cycle. The loop runs the entire agent (including all its tool calls) and re-runs it if the result doesn't meet a convergence criterion — ideal for search-refine, draft-critique, and iterative research patterns.</p>
 
@@ -523,6 +545,7 @@ agent = Agent("reasoner", model="openai/gpt-4o",
     <div class="param-row"><div class="param-cell param-name">skill_confidence_threshold <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></div><div class="param-cell param-type">float = 0.85</div><div class="param-cell param-desc">Minimum quality signal (verifier score, or <code>AgentResult.confidence</code>) required to distill a skill.</div></div>
   </div>
 
+  <span class="anchor" id="branching"></span>
   <h3>How-to: self-consistency branching <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.4</span></h3>
   <p>Instead of one linear refinement path, run several candidate continuations per iteration in parallel and keep the best — a lightweight tree-search/self-consistency pattern. Each parallel call already samples independently from the model, so branches naturally diverge without any extra seeding logic. This costs <code>branches</code>× the LLM calls per iteration, so pair it with a low <code>max_iterations</code>.</p>
   <div class="code-block">
@@ -567,7 +590,7 @@ while True:
 
 <!-- ─── VERIFIER ─── -->
 <section class="section" id="verifier" data-section="verifier">
-  <div class="section-eyebrow">Core Engine <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div>
+  <div class="section-eyebrow">Self-Improving Loop <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div>
   <h2>Verifier</h2>
   <p>A <code>Verifier</code> grades an agent's result against the original query and returns <strong>structured</strong> feedback — a score, specific issues, and a concrete suggestion — instead of a plain boolean. Attached to a <code>LoopConfig</code>, it drives both convergence and a targeted refinement prompt built from its critique, replacing the static default refine message. This page is a showcase of the ways to use it, end to end.</p>
 
@@ -642,6 +665,7 @@ agent = Agent(
 )</code></pre>
   </div>
 
+  <span class="anchor" id="adaptive-budget"></span>
   <h3>How-to: adaptive compute budget <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></h3>
   <p>By default the loop always runs <code>max_iterations</code> times unless it converges early. With <code>adaptive=True</code>, it also tracks the verifier score across iterations and stops as soon as improvement plateaus — saving compute once refinement stops paying off. <code>max_iterations</code> is still a hard ceiling; adaptive can only shorten the loop, never lengthen it.</p>
   <div class="code-block">
@@ -681,7 +705,7 @@ print(f"Stopped after {result.loop_iterations} iterations (cap was 8)")</code></
 
 <!-- ─── SKILLS ─── -->
 <section class="section" id="skills" data-section="skills">
-  <div class="section-eyebrow">Core Engine</div>
+  <div class="section-eyebrow">Extensibility</div>
   <h2>Skills</h2>
   <p>Skills are higher-level capability bundles. They look identical to tools from the LLM's perspective (both become <code>ToolDef</code>), but can wrap multi-step logic, sub-agents, or external APIs internally. Three built-ins are included; you can also create custom skills with the <code>@skill</code> decorator.</p>
 
@@ -818,6 +842,7 @@ for skill in SkillRegistry.list_all():
     </table>
   </div>
 
+  <span class="anchor" id="self-evolving-skills"></span>
   <h3>How-to: self-evolving skills (auto_extract_skill) <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></h3>
   <p>With <code>LoopConfig.auto_extract_skill=True</code>, a loop run that genuinely converges (via <code>convergence_fn</code> or <code>verifier</code>) with a quality signal at or above <code>skill_confidence_threshold</code> is distilled into a reusable, <em>replayable</em> <code>Skill</code> and registered in <code>SkillRegistry</code> — Voyager-style. The distilled skill doesn't just memoize the one answer; it re-runs the original agent's <code>system_prompt</code>/<code>tools</code>/<code>mcps</code> against whatever new task text it's called with, so it generalizes to similar future tasks. This never triggers on plain <code>max_iterations</code> exhaustion without real convergence, and is off by default.</p>
   <div class="code-block">
@@ -967,7 +992,7 @@ async for event in run_agent(agent, messages, queue=queue):
 
 <!-- ─── PROCEDURAL MEMORY ─── -->
 <section class="section" id="procedural-memory" data-section="procedural-memory">
-  <div class="section-eyebrow">Infrastructure <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div>
+  <div class="section-eyebrow">Self-Improving Loop <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div>
   <h2>Procedural Memory</h2>
   <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, inspired by ACE (Agentic Context Engineering, ICLR 2026). It's built <em>on top of</em> any <code>MemoryProvider</code> as its backing store and adds structure: each entry is a "helpful" or "harmful" bullet with a usage count and last-seen score. It's read on every run of an agent it's attached to (looped or single-shot), and curated — incrementally merged, never wholesale rewritten — whenever a loop with a <code>Verifier</code> converges. This page is a showcase of the ways to use it, end to end.</p>
 

@@ -278,6 +278,19 @@ aside {
 }
 .sidebar-link .icon { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
 .sidebar-link.active .icon { opacity: 1; }
+.sidebar-sublink {
+  display: block;
+  padding: 4px 16px 4px 38px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-left: 2px solid transparent;
+  transition: color var(--transition), background var(--transition);
+}
+.sidebar-sublink:hover {
+  color: var(--text-muted);
+  background: var(--accent-glow);
+  border-left-color: var(--border-bright);
+}
 
 /* ============================================================
    MAIN CONTENT
@@ -658,16 +671,25 @@ main {
 /* ============================================================
    FEATURE CARDS
    ============================================================ */
+.feature-section-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 32px 80px 12px;
+}
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
-  margin: 0 80px 80px;
+  margin: 0 80px 32px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   animation: fadeUp 0.5s 0.35s ease both;
 }
+.feature-grid:last-of-type { margin-bottom: 80px; }
 .feature-card {
   background: var(--bg-card);
   padding: 28px;
@@ -1138,7 +1160,8 @@ footer {
   .stat-item:nth-child(4) { border-bottom: none; }
 
   /* Feature grid */
-  .feature-grid { grid-template-columns: 1fr; margin: 0 20px 48px; }
+  .feature-grid { grid-template-columns: 1fr; margin: 0 20px 32px; }
+  .feature-section-label { margin: 24px 20px 12px; }
 
   /* Sections */
   .section { padding: 40px 20px; }

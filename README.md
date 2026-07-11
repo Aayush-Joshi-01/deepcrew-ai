@@ -10,6 +10,39 @@ pip install deepcrew-ai
 [![Python](https://img.shields.io/pypi/pyversions/deepcrew-ai)](https://pypi.org/project/deepcrew-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+📖 **Full docs:** [deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev) · [Features guide](https://deepcrew-ai.aayushjoshi.dev/features.html) · [Examples](https://deepcrew-ai.aayushjoshi.dev/examples.html)
+
+---
+
+<details>
+<summary><strong>Table of contents</strong></summary>
+
+- [What's new in v0.3.0 — Self-Improving Loop](#whats-new-in-v030--self-improving-loop)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Orchestration Modes](#orchestration-modes)
+  - [Workflow Builder — explicit DAG](#workflow-builder--explicit-dag)
+  - [Orchestrator — automated AI routing with APEX](#orchestrator--automated-ai-routing-with-apex)
+- [Feature Guide (v0.2.0 – v0.3.0)](#feature-guide-v020--v030)
+  - [APEX Synthesizer](#apex-synthesizer)
+  - [Agent Spawning](#agent-spawning) — incl. [nested spawning](#nested-spawning-bounded)
+  - [Looping](#looping) — incl. [verifier](#verifier-driven-refinement), [adaptive budget](#adaptive-iteration-budget), [branching](#branching-self-consistency)
+  - [Skills](#skills) — incl. [self-evolving skills](#self-evolving-skills-voyager-inspired)
+  - [Memory Providers](#memory-providers) — incl. [procedural memory](#procedural-memory-evolving-playbook)
+  - [Retry & Fallback](#retry--fallback)
+  - [Observability (OpenTelemetry)](#observability-opentelemetry)
+  - [CLI](#cli)
+- [Composing v0.3.0 Features](#composing-v030-features)
+- [MCP Tools](#mcp-tools)
+- [Provider Examples](#provider-examples)
+- [Streaming with FastAPI](#streaming-with-fastapi)
+- [Stream Events](#stream-events)
+- [Installation](#installation)
+- [Documentation](#documentation)
+- [License](#license)
+
+</details>
+
 ---
 
 ## What's new in v0.3.0 — Self-Improving Loop

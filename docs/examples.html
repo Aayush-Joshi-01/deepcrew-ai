@@ -49,6 +49,22 @@
   </div>
 
   <div class="sidebar-section">
+    <span class="sidebar-label">v0.3.0 · Self-Improving Loop</span>
+    <a class="sidebar-link" data-target="ex-selfimproving">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
+      Self-Improving Research
+    </a>
+    <a class="sidebar-link" data-target="ex-consensus">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="12" r="1.6"/><circle cx="13" cy="12" r="1.6"/><path d="M8 4.6V9M4.3 10.8L7 9M11.7 10.8L9 9"/></svg>
+      Consensus Code Review
+    </a>
+    <a class="sidebar-link" data-target="ex-autoplan">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><path d="M8 4.6V8M3 9.6V13M13 9.6V13"/></svg>
+      Autonomous Task Planning
+    </a>
+  </div>
+
+  <div class="sidebar-section">
     <span class="sidebar-label">Domain Examples</span>
     <a class="sidebar-link" data-target="ex-research">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/></svg>
@@ -117,10 +133,22 @@
   <section class="hero hero--compact">
     <div class="hero-eyebrow">Examples Library</div>
     <h1>Real-world examples<br/><em>across every domain.</em></h1>
-    <p>Complete, runnable examples for legal, financial, medical, DevOps, e-commerce, and more — using OpenAI, Anthropic, Gemini, Bedrock, Azure, and local Ollama models.</p>
+    <p>Complete, runnable examples for legal, financial, medical, DevOps, e-commerce, and more — using OpenAI, Anthropic, Gemini, Bedrock, Azure, and local Ollama models. New in v0.3.0: three examples built around the self-improving loop.</p>
   </section>
 
   <div class="examples-grid">
+    <a class="ex-card" href="#ex-selfimproving">
+      <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
+      <span>Self-Improving Research</span>
+    </a>
+    <a class="ex-card" href="#ex-consensus">
+      <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="12" r="1.6"/><circle cx="13" cy="12" r="1.6"/><path d="M8 4.6V9M4.3 10.8L7 9M11.7 10.8L9 9"/></svg>
+      <span>Consensus Code Review</span>
+    </a>
+    <a class="ex-card" href="#ex-autoplan">
+      <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><path d="M8 4.6V8M3 9.6V13M13 9.6V13"/></svg>
+      <span>Autonomous Task Planning</span>
+    </a>
     <a class="ex-card" href="#ex-research">
       <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
       <span>Research</span>
@@ -251,6 +279,228 @@ Agent("a", model="ollama/mistral")</code></pre>
         <tr><td>Ollama</td><td>Fully local, air-gapped, no cost</td><td>None</td></tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<!-- ─── SELF-IMPROVING RESEARCH ─── -->
+<section class="section" id="ex-selfimproving" data-section="ex-selfimproving">
+  <div class="section-eyebrow">v0.3.0 · Verifier + Adaptive Budget + Procedural Memory</div>
+  <h2>Self-Improving Research Agent</h2>
+  <p>A research agent that grades its own answers with a task-specific rubric, stops refining as soon as quality plateaus instead of always burning the full iteration budget, and persists what worked (and what to avoid) to disk — so the <em>next</em> run on a similar question starts smarter than the last.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">self_improving_research.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">"""
+Self-improving research agent: Verifier + adaptive budget + procedural memory.
+Run this script twice — the second run's system prompt already carries lessons
+learned from the first (see the injected "Known strategies" block it prints).
+"""
+import asyncio
+from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory, tool,
+)
+
+@tool
+def search_web(query: str) -> str:
+    """Search the web for information.
+
+    Args:
+        query (str): Search query.
+    """
+    import httpx
+    resp = httpx.get("https://api.duckduckgo.com/", params={"q": query, "format": "json"})
+    data = resp.json()
+    return data.get("AbstractText") or "No summary available; try a more specific query."
+
+# Persists to disk — survives across script runs, not just within one process.
+playbook = ProceduralMemory(FileMemoryProvider("research_playbook.json"), max_entries=20)
+
+verifier = Verifier(VerifierConfig(
+    threshold=0.85,
+    rubric=(
+        "1. Every non-obvious claim must be traceable to a search result.\n"
+        "2. The answer must directly address the question, not a related tangent.\n"
+        "3. Vague hedging ('some sources suggest...') without specifics is a failure."
+    ),
+))
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a meticulous researcher. Cite what you find; never guess.",
+    tools=[search_web],
+    procedural_memory=playbook,        # read on every run, even outside a loop
+    loop_config=LoopConfig(
+        max_iterations=6,
+        verifier=verifier,
+        procedural_memory=playbook,     # curated after a converged loop
+        adaptive=True,                  # stop once refinement stops paying off
+        min_improvement=0.03,
+        plateau_patience=2,
+    ),
+)
+
+async def main():
+    result = await run_agent(researcher, [
+        {"role": "user", "content": "What caused the 2024-2025 surge in room-temperature superconductor claims?"}
+    ])
+    print(result.text)
+    print(f"\nConverged in {result.loop_iterations} iterations (cap was 6)")
+
+    entries = await playbook.load("researcher")
+    print(f"Playbook now has {len(entries)} strategies for next time:")
+    for e in entries[:5]:
+        print(f"  [{e.kind}] {e.content[:80]}")
+
+asyncio.run(main())</code></pre>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">💡</span>
+    <div>Delete <code>research_playbook.json</code> and run again to see the "cold start" behavior — without it, the agent has no prior strategies injected and typically takes more iterations to converge.</div>
+  </div>
+</section>
+
+<!-- ─── CONSENSUS CODE REVIEW ─── -->
+<section class="section" id="ex-consensus" data-section="ex-consensus">
+  <div class="section-eyebrow">v0.3.0 · Branching + Self-Evolving Skills</div>
+  <h2>Consensus Code Review</h2>
+  <p>Instead of one linear review pass, this reviewer runs three independent review candidates per iteration in parallel (a lightweight self-consistency / tree-search pattern) and keeps whichever one the verifier scores highest. Once it lands on a review that scores high enough, the approach is distilled into a reusable <code>Skill</code> that other agents can call directly.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">consensus_review.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">"""
+Consensus code review: branching (self-consistency) + skill distillation.
+"""
+import asyncio
+from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig, SkillRegistry, tool,
+)
+
+@tool
+def read_diff(path: str) -> str:
+    """Read a git diff file from disk.
+
+    Args:
+        path (str): Path to a .diff or .patch file.
+    """
+    return open(path).read()
+
+reviewer = Agent(
+    name="code_reviewer",
+    model="openai/gpt-4o",
+    system_prompt=(
+        "Review the given diff for bugs, security issues, and missed edge cases. "
+        "Be specific: cite line numbers and explain the failure scenario."
+    ),
+    tools=[read_diff],
+    loop_config=LoopConfig(
+        max_iterations=2,
+        verifier=Verifier(VerifierConfig(
+            threshold=0.9,
+            rubric=(
+                "1. Every changed function must be addressed.\n"
+                "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
+                "3. A generic 'looks good to me' with no specifics is an automatic failure."
+            ),
+        )),
+        branches=3,                    # 3 parallel review candidates per iteration
+        auto_extract_skill=True,       # distill a reusable Skill once it nails a review
+        skill_confidence_threshold=0.9,
+    ),
+)
+
+async def main():
+    result = await run_agent(reviewer, [
+        {"role": "user", "content": "Review the diff at ./payment_handler.diff"}
+    ])
+    print(result.text)
+
+    # If the loop converged with a high enough score, a skill now exists —
+    # any other agent can reuse the proven review approach directly.
+    distilled = [s for s in SkillRegistry.list_all() if s.name.startswith("code_reviewer_")]
+    if distilled:
+        print(f"\nDistilled skill available for reuse: {distilled[0].name}")
+
+asyncio.run(main())</code></pre>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">⚠️</span>
+    <div><code>branches=3</code> triples the LLM calls made per iteration. Reserve branching for reviews where getting it right matters more than the extra cost — a security-sensitive diff, not a typo fix.</div>
+  </div>
+</section>
+
+<!-- ─── AUTONOMOUS TASK PLANNING ─── -->
+<section class="section" id="ex-autoplan" data-section="ex-autoplan">
+  <div class="section-eyebrow">v0.3.0 · Bounded Nested Spawning</div>
+  <h2>Autonomous Task Planning</h2>
+  <p>A coordinator agent breaks a large project into sub-tasks by spawning sub-agents — and each of <em>those</em> sub-agents can itself spawn further sub-agents if its slice is still too big, up to a hard depth cap. A <code>Verifier</code> gates each nested spawn so agents only decompose further when the sub-task genuinely warrants it, instead of nesting reflexively.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">autonomous_planning.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">"""
+Autonomous task planning: bounded nested agent spawning.
+"""
+import asyncio
+from deepcrew import Agent, Orchestrator, Verifier, tool
+
+@tool
+def write_file(path: str, content: str) -> str:
+    """Write content to a file.
+
+    Args:
+        path (str): File path to write.
+        content (str): File content.
+    """
+    with open(path, "w") as f:
+        f.write(content)
+    return f"Wrote {len(content)} chars to {path}"
+
+@tool
+def list_directory(path: str = ".") -> list[str]:
+    """List files in a directory.
+
+    Args:
+        path (str): Directory path.
+    """
+    import os
+    return os.listdir(path)
+
+coordinator = Agent(
+    name="project_coordinator",
+    model="openai/gpt-4o",
+    system_prompt=(
+        "You are a project coordinator. Break large tasks into sub-tasks and use "
+        "spawn_agent to delegate each one. If a delegated sub-task is still too "
+        "large for a single agent, spawn_agent is available to that sub-agent too "
+        "(up to the configured depth) — delegate further rather than doing it all yourself."
+    ),
+)
+
+orch = Orchestrator(
+    agents=[coordinator],
+    router_model="openai/gpt-4o-mini",
+    global_tools=[write_file, list_directory],
+    enable_spawn=True,
+    max_spawn_depth=3,                       # coordinator -> sub-agent -> sub-sub-agent
+    spawn_complexity_check=Verifier(),        # skip nesting for sub-tasks that don't need it
+)
+
+async def main():
+    result = await orch.run(
+        "Plan and scaffold a new microservice: API design, database schema, "
+        "Docker setup, and a CI pipeline config. Write each artifact to disk."
+    )
+    print(result.final_text)
+
+asyncio.run(main())</code></pre>
+  </div>
+
+  <div class="callout">
+    <span class="callout-icon">💡</span>
+    <div>This is depth-bounded, not fan-out-bounded — each level can still spawn as many sibling sub-agents as it needs. A sub-agent that hits <code>max_spawn_depth</code> simply has no <code>spawn_agent</code> tool available and completes its slice directly instead of delegating further.</div>
   </div>
 </section>
 
