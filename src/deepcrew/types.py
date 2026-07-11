@@ -30,6 +30,7 @@ class EventType(str, Enum):
     VERIFIER_SCORED = "verifier_scored"
     PLAYBOOK_UPDATED = "playbook_updated"
     BRANCH_SELECTED = "branch_selected"
+    SKILL_EXTRACTED = "skill_extracted"
 
 
 @dataclass

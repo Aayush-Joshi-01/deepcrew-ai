@@ -8,8 +8,17 @@ from deepcrew.agent import Agent
 from deepcrew.loop import LoopConfig, run_agent_loop
 from deepcrew.memory.inmemory import InMemoryProvider
 from deepcrew.procedural_memory import ProceduralMemory
+from deepcrew.skills import SkillRegistry
 from deepcrew.types import AgentResult, EventType
 from deepcrew.verifier import Verifier, VerifierConfig, VerifierFeedback
+
+
+@pytest.fixture(autouse=True)
+def _clear_skill_registry():
+    """SkillRegistry is a class-level registry -- isolate it between tests."""
+    SkillRegistry.clear()
+    yield
+    SkillRegistry.clear()
 
 
 def _agent_result(agent_id: str, text: str) -> AgentResult:
@@ -403,3 +412,116 @@ async def test_loop_branching_token_totals_sum_across_branches():
         result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
 
     assert result.total_tokens == 3 * (10 + 5)
+
+
+@pytest.mark.asyncio
+async def test_loop_auto_extract_skill_registers_skill_above_threshold():
+    import asyncio
+
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=1,
+            verifier=Verifier(),
+            auto_extract_skill=True,
+            skill_confidence_threshold=0.85,
+        ),
+    )
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        return _agent_result(agent.name, "a great answer")
+
+    async def fake_evaluate(query, result, *, default_model):
+        return VerifierFeedback(score=0.9, converged=True)
+
+    queue: asyncio.Queue = asyncio.Queue()
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}], queue=queue)
+
+    registered = SkillRegistry.list_all()
+    assert len(registered) == 1
+    assert SkillRegistry.get(registered[0].name) is not None
+
+    events = []
+    while not queue.empty():
+        events.append(await queue.get())
+    extracted = [e for e in events if e.event == EventType.SKILL_EXTRACTED]
+    assert len(extracted) == 1
+    assert extracted[0].data["score"] == 0.9
+
+
+@pytest.mark.asyncio
+async def test_loop_auto_extract_skill_below_threshold_skips():
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=1,
+            verifier=Verifier(),
+            auto_extract_skill=True,
+            skill_confidence_threshold=0.85,
+        ),
+    )
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        return _agent_result(agent.name, "a mediocre answer")
+
+    async def fake_evaluate(query, result, *, default_model):
+        return VerifierFeedback(score=0.7, converged=True)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}])
+
+    assert SkillRegistry.list_all() == []
+
+
+@pytest.mark.asyncio
+async def test_loop_auto_extract_skill_disabled_by_default():
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(max_iterations=1, verifier=Verifier()),
+    )
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        return _agent_result(agent.name, "a great answer")
+
+    async def fake_evaluate(query, result, *, default_model):
+        return VerifierFeedback(score=0.99, converged=True)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}])
+
+    assert SkillRegistry.list_all() == []
+
+
+@pytest.mark.asyncio
+async def test_loop_auto_extract_skill_not_triggered_on_max_iterations_exhaustion():
+    """Plain exhaustion without convergence must never distill a skill."""
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=2,
+            verifier=Verifier(),
+            auto_extract_skill=True,
+            skill_confidence_threshold=0.85,
+        ),
+    )
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        return _agent_result(agent.name, "still not quite there")
+
+    async def fake_evaluate(query, result, *, default_model):
+        # High score but never actually converged.
+        return VerifierFeedback(score=0.95, converged=False)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}])
+
+    assert SkillRegistry.list_all() == []

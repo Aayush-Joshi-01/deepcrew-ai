@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.5] — 2026-07-09
+
+### Added
+
+#### Self-Evolving Skill Distillation
+- `LoopConfig.auto_extract_skill` — automatically distills a reusable, replayable `Skill` from a genuinely converged (not merely max-iterations-exhausted) high-confidence loop run and registers it in `SkillRegistry` for future reuse by any agent (Voyager-inspired)
+- `LoopConfig.skill_confidence_threshold` — minimum quality signal (verifier score, or `AgentResult.confidence` as a fallback) required to distill a skill
+- The distilled skill is replayable, not memoized: it re-runs the original agent's `system_prompt`/`tools`/`mcps` against whatever new task text it's invoked with, so it generalizes rather than freezing one answer
+- `EventType.SKILL_EXTRACTED` — emitted when a new skill is registered, with `{skill_name, score}`
+- Never triggers on plain `max_iterations` exhaustion without real convergence; fully opt-in (off by default)
+
 ## [0.2.4] — 2026-07-09
 
 ### Added

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable
 
 from .exceptions import LoopConvergedError
 from .procedural_memory import ProceduralMemory
+from .skills import FunctionSkill, SkillRegistry
 from .types import AgentResult, EventType, StreamEvent, ToolDef
 from .verifier import Verifier, VerifierFeedback
 
@@ -62,6 +65,16 @@ class LoopConfig:
     ``APEXSynthesizer`` otherwise. Multiplies LLM call volume by ``branches``
     per iteration -- use deliberately.
     """
+    auto_extract_skill: bool = False
+    """
+    When True, a loop run that genuinely converges (via ``convergence_fn`` or
+    ``verifier``) with a quality signal >= ``skill_confidence_threshold`` is
+    distilled into a reusable, replayable ``Skill`` and registered in
+    ``SkillRegistry`` (Voyager-inspired). Never triggers on plain
+    ``max_iterations`` exhaustion without convergence.
+    """
+    skill_confidence_threshold: float = 0.85
+    """Minimum quality signal (verifier score, or AgentResult.confidence) to distill a skill."""
 
 
 @dataclass
@@ -120,6 +133,26 @@ async def run_agent_loop(
                     aid,
                 ))
 
+    async def _extract_skill_if_configured(
+        converged_result: AgentResult, converged_feedback: VerifierFeedback | None
+    ) -> None:
+        if not cfg.auto_extract_skill:
+            return
+        quality = converged_feedback.score if converged_feedback is not None else converged_result.confidence
+        if quality is None or quality < cfg.skill_confidence_threshold:
+            return
+
+        skill_name = _distilled_skill_name(tag, original_query)
+        skill_description = _distilled_skill_description(original_query)
+        distilled = _make_distilled_skill(agent, skill_name, skill_description)
+        SkillRegistry.register(distilled)
+        if queue:
+            await queue.put(StreamEvent(
+                EventType.SKILL_EXTRACTED,
+                {"skill_name": skill_name, "score": quality},
+                aid,
+            ))
+
     for i in range(cfg.max_iterations):
         state.iteration = i
 
@@ -177,6 +210,7 @@ async def run_agent_loop(
                     aid,
                 ))
             await _curate_if_configured()
+            await _extract_skill_if_configured(result, feedback)
             return result
 
         if cfg.adaptive and len(scores) >= 2:
@@ -262,6 +296,62 @@ async def _run_branches(
             aid,
         ))
     return merged
+
+
+def _distilled_skill_name(tag: str, original_query: str) -> str:
+    """Deterministic skill name: sanitized task_tag/agent name + a short query hash."""
+    digest = hashlib.sha1(original_query.encode("utf-8")).hexdigest()[:8]
+    safe_tag = re.sub(r"[^a-zA-Z0-9_]+", "_", tag).strip("_") or "agent"
+    return f"{safe_tag}_{digest}"
+
+
+def _distilled_skill_description(original_query: str) -> str:
+    """Cheap, deterministic description built from the original query (no LLM call)."""
+    snippet = original_query.strip().replace("\n", " ")[:150]
+    return f"Reuses a proven approach that successfully handled: {snippet}"
+
+
+def _make_distilled_skill(agent: "Agent", name: str, description: str) -> FunctionSkill:
+    """
+    Build a replayable Skill: it re-runs the original agent (same system_prompt,
+    tools, mcps, skills) against a new task, rather than memoizing one frozen
+    answer -- so the distilled skill generalizes to similar future tasks.
+    """
+    from .agent import Agent as AgentClass
+
+    async def _replay(task: str) -> str:
+        from .runner import run_agent
+
+        replay_agent = AgentClass(
+            name=agent.name,
+            model=agent.model,
+            system_prompt=agent.system_prompt,
+            mcps=agent.mcps,
+            tools=agent.tools,
+            max_turns=agent.max_turns,
+            temperature=agent.temperature,
+            max_tokens=agent.max_tokens,
+            extra_params=agent.extra_params,
+            skills=agent.skills,
+        )
+        result = await run_agent(replay_agent, [{"role": "user", "content": task}])
+        return result.text
+
+    return FunctionSkill(
+        _fn=_replay,
+        _name=name,
+        _description=description,
+        _parameters={
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "The specific task to complete using this proven approach.",
+                },
+            },
+            "required": ["task"],
+        },
+    )
 
 
 def _extract_query(messages: list[dict[str, Any]]) -> str:

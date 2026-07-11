@@ -267,6 +267,10 @@ agent = Agent(
 result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
 ```
 
+See also: [Self-evolving skills](#self-evolving-skills-voyager-inspired) —
+`LoopConfig.auto_extract_skill` distills a converged loop run into a reusable `Skill`
+for other agents to retrieve later.
+
 #### Procedural memory (evolving playbook)
 
 `ProceduralMemory` is an opt-in, durable "the system learns from its own past runs"
@@ -333,6 +337,38 @@ from deepcrew import skill
 async def translate(text: str, target_language: str) -> str:
     # your implementation
     return translated_text
+```
+
+#### Self-evolving skills (Voyager-inspired)
+
+With `LoopConfig.auto_extract_skill=True`, a loop run that genuinely converges (via
+`convergence_fn` or `verifier`) with a quality signal at or above
+`skill_confidence_threshold` is automatically distilled into a reusable, replayable
+`Skill` and registered in `SkillRegistry` — so a *different* agent, later, can retrieve
+and reuse the proven approach instead of re-deriving it from scratch. This never
+triggers on plain `max_iterations` exhaustion without real convergence, and is fully
+opt-in (off by default, no surprise side effects).
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig, SkillRegistry
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,
+    ),
+)
+
+result = await run_agent(researcher, [{"role": "user", "content": "Explain CRISPR"}])
+
+# Later, a completely different agent can reuse the distilled skill by name.
+distilled = [s for s in SkillRegistry.list_all() if s.name.startswith("researcher_")][0]
+writer = Agent(name="writer", model="openai/gpt-4o-mini", skills=[distilled])
 ```
 
 ### Memory Providers
@@ -551,7 +587,7 @@ Requires Python 3.11+.
 Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
 - [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
-- [v0.2.4 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
+- [v0.2.5 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
 - [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
 
 ---

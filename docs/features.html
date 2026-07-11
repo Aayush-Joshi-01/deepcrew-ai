@@ -23,12 +23,12 @@
   </a>
   <ul class="nav-links">
     <li><a href="index.html">Docs</a></li>
-    <li><a href="features.html" class="active">v0.2.4 Features</a></li>
+    <li><a href="features.html" class="active">v0.2.5 Features</a></li>
     <li><a href="examples.html">Examples</a></li>
     <li><a href="index.html#api-reference">API</a></li>
   </ul>
   <div class="nav-right">
-    <span class="badge">v0.2.4</span>
+    <span class="badge">v0.2.5</span>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
       GitHub
@@ -41,7 +41,7 @@
 <div class="page-layout">
 <aside>
   <div class="sidebar-section">
-    <span class="sidebar-label">v0.2.4 Features</span>
+    <span class="sidebar-label">v0.2.5 Features</span>
     <a class="sidebar-link active" data-target="overview">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L15 5V11L8 15L1 11V5L8 1Z"/></svg>
       Overview
@@ -502,6 +502,8 @@ agent = Agent("reasoner", model="openai/gpt-4o",
     <div class="param-row"><div class="param-cell param-name">min_improvement <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">float = 0.02</div><div class="param-cell param-desc">Minimum verifier-score delta between iterations to count as still improving.</div></div>
     <div class="param-row"><div class="param-cell param-name">plateau_patience <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">int = 2</div><div class="param-cell param-desc">Consecutive non-improving iterations tolerated before an adaptive early stop.</div></div>
     <div class="param-row"><div class="param-cell param-name">branches <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.4</span></div><div class="param-cell param-type">int = 1</div><div class="param-cell param-desc">When &gt; 1, run this many parallel candidates per iteration (self-consistency). Best picked by <code>verifier</code> score, or merged via <code>APEXSynthesizer</code> when no verifier is set. Multiplies LLM calls per iteration.</div></div>
+    <div class="param-row"><div class="param-cell param-name">auto_extract_skill <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></div><div class="param-cell param-type">bool = False</div><div class="param-cell param-desc">Distills a genuinely converged run into a reusable <code>Skill</code> registered in <code>SkillRegistry</code> — see the <a href="#skills">Skills guide</a>. Never triggers on plain <code>max_iterations</code> exhaustion.</div></div>
+    <div class="param-row"><div class="param-cell param-name">skill_confidence_threshold <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></div><div class="param-cell param-type">float = 0.85</div><div class="param-cell param-desc">Minimum quality signal (verifier score, or <code>AgentResult.confidence</code>) required to distill a skill.</div></div>
   </div>
 
   <h3>How-to: self-consistency branching <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.4</span></h3>
@@ -540,7 +542,9 @@ while True:
     elif event.event == EventType.VERIFIER_SCORED:  # v0.2.1
         print(f"Verifier score: {event.data['score']} — issues: {event.data['issues']}")
     elif event.event == EventType.BRANCH_SELECTED:  # v0.2.4
-        print(f"Branch {event.data['winning_index']} won with score {event.data['winning_score']}")</code></pre>
+        print(f"Branch {event.data['winning_index']} won with score {event.data['winning_score']}")
+    elif event.event == EventType.SKILL_EXTRACTED:  # v0.2.5
+        print(f"Distilled new skill: {event.data['skill_name']} (score {event.data['score']})")</code></pre>
   </div>
 </section>
 
@@ -796,6 +800,32 @@ for skill in SkillRegistry.list_all():
       </tbody>
     </table>
   </div>
+
+  <h3>How-to: self-evolving skills (auto_extract_skill) <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></h3>
+  <p>With <code>LoopConfig.auto_extract_skill=True</code>, a loop run that genuinely converges (via <code>convergence_fn</code> or <code>verifier</code>) with a quality signal at or above <code>skill_confidence_threshold</code> is distilled into a reusable, <em>replayable</em> <code>Skill</code> and registered in <code>SkillRegistry</code> — Voyager-style. The distilled skill doesn't just memoize the one answer; it re-runs the original agent's <code>system_prompt</code>/<code>tools</code>/<code>mcps</code> against whatever new task text it's called with, so it generalizes to similar future tasks. This never triggers on plain <code>max_iterations</code> exhaustion without real convergence, and is off by default.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">skill_distillation.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig, SkillRegistry
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,
+    ),
+)
+
+result = await run_agent(researcher, [{"role": "user", "content": "Explain CRISPR"}])
+
+# Later, a completely different agent can reuse the distilled skill by name.
+distilled = [s for s in SkillRegistry.list_all() if s.name.startswith("researcher_")][0]
+writer = Agent(name="writer", model="openai/gpt-4o-mini", skills=[distilled])</code></pre>
+  </div>
+  <p>Listen for <code>EventType.SKILL_EXTRACTED</code> (<code>{"skill_name": ..., "score": ...}</code>) to know when a new skill was registered. See <a href="#looping">Looping</a> and <a href="#verifier">Verifier</a> for how convergence and scoring feed into this.</p>
 </section>
 
 <!-- ─── MEMORY ─── -->
@@ -1322,7 +1352,7 @@ deepcrew agents list --config workflow.yaml</code></pre>
 
 <footer>
   <div class="footer-left">
-    Built with ♥ — <strong>deepcrew-ai</strong> v0.2.4 — MIT License
+    Built with ♥ — <strong>deepcrew-ai</strong> v0.2.5 — MIT License
   </div>
   <div class="footer-links">
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
