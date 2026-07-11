@@ -54,6 +54,7 @@ deepcrew = "deepcrew.cli.main:main"
 
 [project.urls]
 Homepage = "https://github.com/Aayush-Joshi-01/deepcrew-ai"
+Documentation = "https://deepcrew-ai.aayushjoshi.dev"
 Repository = "https://github.com/Aayush-Joshi-01/deepcrew-ai"
 Issues = "https://github.com/Aayush-Joshi-01/deepcrew-ai/issues"
 

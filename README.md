@@ -526,11 +526,11 @@ Requires Python 3.11+.
 
 ## Documentation
 
-Full documentation at **[Aayush-Joshi-01.github.io/deepcrew-ai](https://Aayush-Joshi-01.github.io/deepcrew-ai)**
+Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
-- [Getting Started](https://Aayush-Joshi-01.github.io/deepcrew-ai)
-- [v0.2.0 Features](https://Aayush-Joshi-01.github.io/deepcrew-ai/features.html)
-- [Examples Library](https://Aayush-Joshi-01.github.io/deepcrew-ai/examples.html)
+- [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
+- [v0.2.3 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
+- [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
 
 ---
 
