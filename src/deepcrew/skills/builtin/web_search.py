@@ -10,7 +10,8 @@ class WebSearchSkill(Skill):
 
     name = "web_search"
     description = "Search the web for information about a topic."
-    parameters: dict[str, Any] = {
+    # Class-level default satisfying the Skill instance annotation (shared, never mutated)
+    parameters: dict[str, Any] = {  # noqa: RUF012
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "The search query"},
@@ -23,7 +24,7 @@ class WebSearchSkill(Skill):
         "required": ["query"],
     }
 
-    async def execute(self, query: str, max_results: int = 5, **_: Any) -> str:
+    async def execute(self, query: str, max_results: int = 5, **_: Any) -> str:  # type: ignore[override]
         try:
             import httpx
         except ImportError:

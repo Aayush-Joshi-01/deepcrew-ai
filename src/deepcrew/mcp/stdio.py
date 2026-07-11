@@ -132,7 +132,7 @@ class StdioMCP(MCPClient):
                 if self._proc.stdin:
                     self._proc.stdin.close()
                 await asyncio.wait_for(self._proc.wait(), timeout=5.0)
-            except (asyncio.TimeoutError, Exception):
+            except (TimeoutError, Exception):
                 self._proc.kill()
             finally:
                 self._proc = None

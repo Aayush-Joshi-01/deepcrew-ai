@@ -62,8 +62,10 @@ async def main():
         elif event.event == EventType.TEXT_DELTA:
             print(event.data["chunk"], end="", flush=True)
         elif event.event == EventType.AGENT_DONE:
-            print(f"\n[-] Agent done: {event.agent_id} "
-                  f"({event.data['input_tokens']}in/{event.data['output_tokens']}out)")
+            print(
+                f"\n[-] Agent done: {event.agent_id} "
+                f"({event.data['input_tokens']}in/{event.data['output_tokens']}out)"
+            )
         elif event.event == EventType.DONE:
             print("\n\n=== Final Answer ===")
             print(event.data.get("final_text", ""))

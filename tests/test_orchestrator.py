@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -106,9 +105,11 @@ async def test_orchestrator_invalid_router_json_raises():
 
     bad_response = _make_litellm_response("not json at all @@##")
 
-    with patch("litellm.acompletion", new=AsyncMock(return_value=bad_response)):
-        with pytest.raises(RouterError):
-            await orch._route("some query")
+    with (
+        patch("litellm.acompletion", new=AsyncMock(return_value=bad_response)),
+        pytest.raises(RouterError),
+    ):
+        await orch._route("some query")
 
 
 @pytest.mark.asyncio
@@ -116,7 +117,9 @@ async def test_orchestrator_default_spawn_still_flat_single_level():
     """Regression: default Orchestrator(enable_spawn=True) with no max_spawn_depth
     override behaves like the pre-Phase-6 flat single-level spawn when the
     spawn_agent tool is never actually invoked by the agent."""
-    search_tool = ToolDef(name="search", description="Search the web", parameters={"type": "object", "properties": {}})
+    search_tool = ToolDef(
+        name="search", description="Search the web", parameters={"type": "object", "properties": {}}
+    )
     agents = [Agent("researcher", model="openai/gpt-4o", system_prompt="Research specialist.")]
     orch = Orchestrator(
         agents,

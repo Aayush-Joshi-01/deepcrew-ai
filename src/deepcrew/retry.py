@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any
 
 from .types import EventType, StreamEvent
 
@@ -29,7 +30,7 @@ class FallbackChain:
 
 async def with_retry_and_fallback(
     coro_factory: Callable[[str], Coroutine[Any, Any, Any]],
-    agent: "Agent",
+    agent: Agent,
     queue: asyncio.Queue[StreamEvent | None] | None,
     agent_id: str,
 ) -> Any:
@@ -47,27 +48,33 @@ async def with_retry_and_fallback(
 
     for model_idx, model in enumerate(models_to_try):
         if model_idx > 0 and queue:
-            await queue.put(StreamEvent(
-                EventType.FALLBACK_TRIGGERED,
-                {"from_model": models_to_try[model_idx - 1], "to_model": model},
-                agent_id,
-            ))
+            await queue.put(
+                StreamEvent(
+                    EventType.FALLBACK_TRIGGERED,
+                    {"from_model": models_to_try[model_idx - 1], "to_model": model},
+                    agent_id,
+                )
+            )
 
         policy = agent.retry_policy
         max_attempts = (policy.max_retries + 1) if policy else 1
 
         for attempt in range(max_attempts):
             if attempt > 0:
+                # attempt > 0 implies max_attempts > 1, which requires a retry policy
+                assert policy is not None
                 retry_on = policy.retry_on if policy else (Exception,)
                 if not isinstance(last_exc, tuple(retry_on)):
                     break
                 delay = policy.backoff_seconds * (2 ** (attempt - 1) if policy.exponential else 1)
                 if queue:
-                    await queue.put(StreamEvent(
-                        EventType.RETRY_ATTEMPT,
-                        {"attempt": attempt, "model": model, "delay": delay},
-                        agent_id,
-                    ))
+                    await queue.put(
+                        StreamEvent(
+                            EventType.RETRY_ATTEMPT,
+                            {"attempt": attempt, "model": model, "delay": delay},
+                            agent_id,
+                        )
+                    )
                 await asyncio.sleep(delay)
 
             try:

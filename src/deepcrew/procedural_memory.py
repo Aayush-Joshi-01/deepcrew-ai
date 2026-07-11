@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ class ProceduralMemory:
     "context collapse" failure mode of naive full-context-rewrite approaches.
     """
 
-    def __init__(self, backend: "MemoryProvider", max_entries: int = 30) -> None:
+    def __init__(self, backend: MemoryProvider, max_entries: int = 30) -> None:
         self._backend = backend
         self._max_entries = max_entries
 
@@ -73,8 +73,8 @@ class ProceduralMemory:
     async def curate(
         self,
         task_tag: str,
-        feedback: "VerifierFeedback",
-        trajectory: list["AgentResult"],
+        feedback: VerifierFeedback,
+        trajectory: list[AgentResult],
     ) -> int:
         """
         Reflector + Curator step: distill new strategy candidates from
@@ -91,14 +91,18 @@ class ProceduralMemory:
             content = issue.strip()
             if content:
                 candidates.append(
-                    PlaybookEntry(content=f"Avoid: {content}", kind="harmful", last_score=feedback.score)
+                    PlaybookEntry(
+                        content=f"Avoid: {content}", kind="harmful", last_score=feedback.score
+                    )
                 )
 
         if feedback.score >= 0.8 and trajectory:
             summary = trajectory[-1].text.strip().replace("\n", " ")[:200]
             if summary:
                 candidates.append(
-                    PlaybookEntry(content=f"Worked well: {summary}", kind="helpful", last_score=feedback.score)
+                    PlaybookEntry(
+                        content=f"Worked well: {summary}", kind="helpful", last_score=feedback.score
+                    )
                 )
 
         merged = list(existing)

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Callable
+from enum import StrEnum
+from typing import Any
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     AGENT_START = "agent_start"
     TEXT_DELTA = "text_delta"
     THINKING_DELTA = "thinking_delta"

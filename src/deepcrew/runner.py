@@ -67,6 +67,7 @@ async def run_agent(
     # Delegate to outer loop if loop_config is set
     if agent.loop_config is not None:
         from .loop import run_agent_loop
+
         return await run_agent_loop(
             agent, messages, tool_defs=tool_defs, queue=queue, agent_id=agent_id
         )
@@ -90,11 +91,13 @@ async def run_agent(
         memories = await agent.memory.search(query_text)
         if memories:
             if queue:
-                await queue.put(StreamEvent(
-                    EventType.MEMORY_RETRIEVE,
-                    {"count": len(memories)},
-                    agent_id,
-                ))
+                await queue.put(
+                    StreamEvent(
+                        EventType.MEMORY_RETRIEVE,
+                        {"count": len(memories)},
+                        agent_id,
+                    )
+                )
             memory_block = "\n".join(f"[Memory] {k}: {v}" for k, v in memories)
             history.append({"role": "system", "content": f"Relevant memories:\n{memory_block}"})
 
@@ -139,12 +142,11 @@ async def run_agent(
             with llm_span(obs, agent.model, agent_id):
                 if agent.retry_policy or agent.fallback_chain:
                     from .retry import with_retry_and_fallback
-                    response = await with_retry_and_fallback(
-                        lambda model: litellm.acompletion(**{**kwargs, "model": model}),
-                        agent,
-                        queue,
-                        agent_id,
-                    )
+
+                    def _call_model(model: str, _kw: dict[str, Any] = kwargs) -> Any:
+                        return litellm.acompletion(**{**_kw, "model": model})
+
+                    response = await with_retry_and_fallback(_call_model, agent, queue, agent_id)
                 else:
                     response = await litellm.acompletion(**kwargs)
 
@@ -158,14 +160,18 @@ async def run_agent(
                     if delta.content:
                         text_parts.append(delta.content)
                         if queue:
-                            await queue.put(StreamEvent(
-                                EventType.TEXT_DELTA,
-                                {"chunk": delta.content},
-                                agent_id,
-                            ))
+                            await queue.put(
+                                StreamEvent(
+                                    EventType.TEXT_DELTA,
+                                    {"chunk": delta.content},
+                                    agent_id,
+                                )
+                            )
                     if delta.tool_calls:
                         for tc in delta.tool_calls:
-                            buf = tc_buffers.setdefault(tc.index, {"id": "", "name": "", "args": ""})
+                            buf = tc_buffers.setdefault(
+                                tc.index, {"id": "", "name": "", "args": ""}
+                            )
                             if tc.id:
                                 buf["id"] = tc.id
                             if tc.function and tc.function.name:
@@ -191,27 +197,31 @@ async def run_agent(
                 parsed_tcs.append({"id": buf["id"], "name": buf["name"], "args": args})
                 all_tool_calls.append({"tool": buf["name"], "args": args, "agent_id": agent_id})
                 if queue:
-                    await queue.put(StreamEvent(
-                        EventType.TOOL_CALL,
-                        {"tool": buf["name"], "args": args},
-                        agent_id,
-                    ))
+                    await queue.put(
+                        StreamEvent(
+                            EventType.TOOL_CALL,
+                            {"tool": buf["name"], "args": args},
+                            agent_id,
+                        )
+                    )
 
-            history.append({
-                "role": "assistant",
-                "content": turn_text or None,
-                "tool_calls": [
-                    {
-                        "id": tc["id"],
-                        "type": "function",
-                        "function": {
-                            "name": tc["name"],
-                            "arguments": json.dumps(tc["args"]),
-                        },
-                    }
-                    for tc in parsed_tcs
-                ],
-            })
+            history.append(
+                {
+                    "role": "assistant",
+                    "content": turn_text or None,
+                    "tool_calls": [
+                        {
+                            "id": tc["id"],
+                            "type": "function",
+                            "function": {
+                                "name": tc["name"],
+                                "arguments": json.dumps(tc["args"]),
+                            },
+                        }
+                        for tc in parsed_tcs
+                    ],
+                }
+            )
 
             with tool_span(obs, ",".join(tc["name"] for tc in parsed_tcs), agent_id):
                 tool_results = await asyncio.gather(
@@ -219,33 +229,39 @@ async def run_agent(
                     return_exceptions=True,
                 )
 
-            for tc, result in zip(parsed_tcs, tool_results):
-                if isinstance(result, Exception):
+            for tc, result in zip(parsed_tcs, tool_results, strict=False):
+                if isinstance(result, BaseException):
                     content = f"Error executing tool '{tc['name']}': {result}"
                 else:
                     content = result
                 if queue:
-                    await queue.put(StreamEvent(
-                        EventType.TOOL_RESULT,
-                        {"tool": tc["name"], "result": content},
-                        agent_id,
-                    ))
-                history.append({
-                    "role": "tool",
-                    "tool_call_id": tc["id"],
-                    "content": content,
-                })
+                    await queue.put(
+                        StreamEvent(
+                            EventType.TOOL_RESULT,
+                            {"tool": tc["name"], "result": content},
+                            agent_id,
+                        )
+                    )
+                history.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "content": content,
+                    }
+                )
 
                 # Store notable tool results in memory
-                if agent.memory and not isinstance(result, Exception):
+                if agent.memory and not isinstance(result, BaseException):
                     mem_key = f"tool:{tc['name']}:{agent_id}"
                     await agent.memory.store(mem_key, str(result)[:500])
                     if queue:
-                        await queue.put(StreamEvent(
-                            EventType.MEMORY_STORE,
-                            {"key": mem_key},
-                            agent_id,
-                        ))
+                        await queue.put(
+                            StreamEvent(
+                                EventType.MEMORY_STORE,
+                                {"key": mem_key},
+                                agent_id,
+                            )
+                        )
         else:
             raise MaxTurnsError(
                 f"Agent {agent_id!r} reached max_turns={agent.max_turns} without finishing"
@@ -260,11 +276,13 @@ async def run_agent(
         model=agent.model,
     )
     if queue:
-        await queue.put(StreamEvent(
-            EventType.AGENT_DONE,
-            {"input_tokens": total_in, "output_tokens": total_out},
-            agent_id,
-        ))
+        await queue.put(
+            StreamEvent(
+                EventType.AGENT_DONE,
+                {"input_tokens": total_in, "output_tokens": total_out},
+                agent_id,
+            )
+        )
     return agent_result
 
 

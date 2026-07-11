@@ -13,7 +13,9 @@ async def test_curate_persists_entries_retrievable_via_load():
     backend = InMemoryProvider()
     pm = ProceduralMemory(backend)
 
-    feedback = VerifierFeedback(score=0.9, issues=["forgot to cite sources"], suggestion="", converged=True)
+    feedback = VerifierFeedback(
+        score=0.9, issues=["forgot to cite sources"], suggestion="", converged=True
+    )
     trajectory = [AgentResult(agent_id="a", text="A great, well-researched answer about CRISPR.")]
 
     await pm.curate("research", feedback, trajectory)
@@ -29,7 +31,9 @@ async def test_curate_twice_with_overlapping_issue_bumps_existing_entry():
     backend = InMemoryProvider()
     pm = ProceduralMemory(backend)
 
-    feedback = VerifierFeedback(score=0.5, issues=["missing citations"], suggestion="", converged=False)
+    feedback = VerifierFeedback(
+        score=0.5, issues=["missing citations"], suggestion="", converged=False
+    )
     trajectory = [AgentResult(agent_id="a", text="answer")]
 
     await pm.curate("research", feedback, trajectory)

@@ -10,7 +10,8 @@ class SummarizeSkill(Skill):
 
     name = "summarize"
     description = "Summarize a block of text into a shorter form."
-    parameters: dict[str, Any] = {
+    # Class-level default satisfying the Skill instance annotation (shared, never mutated)
+    parameters: dict[str, Any] = {  # noqa: RUF012
         "type": "object",
         "properties": {
             "text": {"type": "string", "description": "The text to summarize"},
@@ -26,7 +27,7 @@ class SummarizeSkill(Skill):
     def __init__(self, model: str = "openai/gpt-4o-mini") -> None:
         self._model = model
 
-    async def execute(self, text: str, max_words: int = 200, **_: Any) -> str:
+    async def execute(self, text: str, max_words: int = 200, **_: Any) -> str:  # type: ignore[override]
         import litellm
 
         prompt = (

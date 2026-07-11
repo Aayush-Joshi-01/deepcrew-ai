@@ -28,9 +28,7 @@ class FileMemoryProvider(MemoryProvider):
 
     def _flush(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_fd, tmp_path = tempfile.mkstemp(
-            dir=self._path.parent, prefix=".deepcrew_mem_"
-        )
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=self._path.parent, prefix=".deepcrew_mem_")
         try:
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2)
@@ -51,10 +49,7 @@ class FileMemoryProvider(MemoryProvider):
     async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]:
         self._load()
         q = query.lower()
-        matches = [
-            (k, v) for k, v in self._data.items()
-            if q in k.lower() or q in v.lower()
-        ]
+        matches = [(k, v) for k, v in self._data.items() if q in k.lower() or q in v.lower()]
         return sorted(matches, key=lambda kv: kv[0])[:top_k]
 
     async def clear(self) -> None:

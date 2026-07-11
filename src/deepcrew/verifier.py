@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 import litellm
 
@@ -14,7 +15,8 @@ You are a strict quality verifier for an AI agent's answer.
 Grade how well the answer addresses the original query.
 {rubric_section}
 Respond with ONLY valid JSON, exactly in this form:
-{{"score": <float 0.0-1.0>, "issues": ["<specific problem>", ...], "suggestion": "<concrete next step to improve the answer>"}}
+{{"score": <float 0.0-1.0>, "issues": ["<specific problem>", ...], \
+"suggestion": "<concrete next step to improve the answer>"}}
 
 If the answer is already excellent, return an empty "issues" list and a score close to 1.0.
 """
@@ -86,8 +88,8 @@ class Verifier:
             data = {}
 
         score = self._coerce_score(data.get("score"))
-        issues = data.get("issues") if isinstance(data.get("issues"), list) else []
-        issues = [str(i) for i in issues]
+        issues_raw = data.get("issues")
+        issues = [str(i) for i in issues_raw] if isinstance(issues_raw, list) else []
         suggestion = str(data.get("suggestion") or "")
 
         return VerifierFeedback(

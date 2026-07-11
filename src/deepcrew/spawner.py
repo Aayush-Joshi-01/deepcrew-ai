@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass, field
-from typing import Any
 
 import litellm
 
@@ -46,14 +45,12 @@ class ToolAllocator:
         if not all_tools:
             return []
 
-        tool_descriptions = "\n".join(
-            f"- {td.name}: {td.description}" for td in all_tools
-        )
+        tool_descriptions = "\n".join(f"- {td.name}: {td.description}" for td in all_tools)
         prompt = (
             f"Task: {task}\n\n"
             f"Available tools:\n{tool_descriptions}\n\n"
             "Select the most relevant tools for this task. "
-            "Return ONLY a JSON array of tool names, e.g. [\"tool_a\", \"tool_b\"]."
+            'Return ONLY a JSON array of tool names, e.g. ["tool_a", "tool_b"].'
         )
 
         try:
@@ -67,9 +64,7 @@ class ToolAllocator:
             # The model may return {"tools": [...]} or a bare array
             parsed = json.loads(raw)
             if isinstance(parsed, dict):
-                names = next(
-                    (v for v in parsed.values() if isinstance(v, list)), []
-                )
+                names = next((v for v in parsed.values() if isinstance(v, list)), [])
             else:
                 names = parsed if isinstance(parsed, list) else []
         except Exception:
@@ -105,11 +100,17 @@ async def spawn_agent(
     from .runner import run_agent
 
     if parent_queue:
-        await parent_queue.put(StreamEvent(
-            EventType.SPAWN_AGENT,
-            {"task": request.task[:200], "requested_tools": request.tools, "depth": request.depth},
-            parent_agent_id,
-        ))
+        await parent_queue.put(
+            StreamEvent(
+                EventType.SPAWN_AGENT,
+                {
+                    "task": request.task[:200],
+                    "requested_tools": request.tools,
+                    "depth": request.depth,
+                },
+                parent_agent_id,
+            )
+        )
 
     allocator = ToolAllocator(router_model)
     allocated = await allocator.allocate(request.task, all_tool_defs)
@@ -122,7 +123,8 @@ async def spawn_agent(
     sub_agent = Agent(
         name=f"spawned_{parent_agent_id}",
         model=request.model or router_model,
-        system_prompt=request.system_prompt or "You are a helpful sub-agent. Complete the given task.",
+        system_prompt=request.system_prompt
+        or "You are a helpful sub-agent. Complete the given task.",
         max_turns=request.max_turns,
     )
 
@@ -143,7 +145,7 @@ async def spawn_agent(
                 max_depth=max_depth,
                 complexity_check=complexity_check,
             )
-            allocated = allocated + [nested_tool]
+            allocated = [*allocated, nested_tool]
 
     return await run_agent(
         sub_agent,
@@ -174,13 +176,17 @@ def make_spawn_tool(
     ``current_depth >= max_depth`` check below is kept as defense-in-depth for
     any direct caller that bypasses that attach logic.
     """
+
     async def _spawn(
         task: str,
         model: str = "",
         system_prompt: str = "",
     ) -> str:
         if current_depth >= max_depth:
-            return "Maximum nesting depth reached; complete this task directly without further delegation."
+            return (
+                "Maximum nesting depth reached; "
+                "complete this task directly without further delegation."
+            )
         req = SpawnRequest(
             task=task,
             model=model or None,

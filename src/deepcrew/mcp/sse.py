@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Any
 from urllib.parse import urljoin
@@ -80,9 +79,7 @@ class SSEMCP(MCPClient):
     async def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
         if self._http is None or self._post_url is None:
             raise MCPError("SSEMCP is not connected. Call connect() first.")
-        resp = await self._http.post(
-            self._post_url, json=payload, headers=self._extra_headers
-        )
+        resp = await self._http.post(self._post_url, json=payload, headers=self._extra_headers)
         resp.raise_for_status()
         try:
             return resp.json()

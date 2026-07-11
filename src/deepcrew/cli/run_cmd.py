@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 
@@ -8,6 +7,7 @@ def _load_builtin_tools() -> dict[str, Any]:
     """Return a registry of built-in tool-name → Skill instance."""
     try:
         from ..skills.builtin import CodeExecutionSkill, SummarizeSkill, WebSearchSkill
+
         return {
             "web_search": WebSearchSkill(),
             "summarize": SummarizeSkill(),
@@ -25,17 +25,17 @@ async def run_workflow_file(
     """Load a YAML workflow file, validate it, and execute it."""
     try:
         import yaml
-    except ImportError:
+    except ImportError as exc:
         raise ImportError(
-            "pyyaml is required to run workflow files. "
-            "Install it with: pip install deepcrew-ai"
-        )
+            "pyyaml is required to run workflow files. Install it with: pip install deepcrew-ai"
+        ) from exc
 
     from ..agent import Agent
     from ..workflow import WorkflowBuilder
     from .yaml_schema import WorkflowYAML
 
-    with open(path, encoding="utf-8") as f:
+    # Startup-time config read; blocking is acceptable before the workflow runs.
+    with open(path, encoding="utf-8") as f:  # noqa: ASYNC230
         raw = yaml.safe_load(f)
 
     spec = WorkflowYAML.model_validate(raw)

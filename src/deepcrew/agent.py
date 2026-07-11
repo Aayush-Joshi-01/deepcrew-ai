@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from .tools import fn_to_tool_def
 from .types import ToolDef
 
 if TYPE_CHECKING:
     from .loop import LoopConfig
-    from .memory.base import MemoryProvider
     from .mcp.base import MCPClient
+    from .memory.base import MemoryProvider
     from .procedural_memory import ProceduralMemory
     from .retry import FallbackChain, RetryPolicy
     from .skills.base import Skill

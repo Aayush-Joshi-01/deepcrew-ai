@@ -65,7 +65,9 @@ async def test_loop_verifier_drives_convergence_and_refine_message():
     )
 
     feedback_sequence = [
-        VerifierFeedback(score=0.4, issues=["missing citations"], suggestion="add sources", converged=False),
+        VerifierFeedback(
+            score=0.4, issues=["missing citations"], suggestion="add sources", converged=False
+        ),
         VerifierFeedback(score=0.9, issues=[], suggestion="", converged=True),
     ]
     eval_call_count = 0
@@ -81,8 +83,10 @@ async def test_loop_verifier_drives_convergence_and_refine_message():
         eval_call_count += 1
         return fb
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         result = await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}])
 
     assert result.text == "answer v2"
@@ -113,8 +117,10 @@ async def test_loop_emits_verifier_scored_event():
         return VerifierFeedback(score=0.95, converged=True)
 
     queue: asyncio.Queue = asyncio.Queue()
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         await run_agent_loop(agent, [{"role": "user", "content": "hi"}], queue=queue)
 
     events = []
@@ -151,8 +157,10 @@ async def test_loop_playbook_injected_on_second_run_with_shared_procedural_memor
     async def fake_evaluate_high(query, result, *, default_model):
         return VerifierFeedback(score=0.95, issues=[], suggestion="", converged=True)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate_high)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate_high)),
+    ):
         await run_agent_loop(make_agent(), [{"role": "user", "content": "Explain CRISPR"}])
         await run_agent_loop(make_agent(), [{"role": "user", "content": "Explain CRISPR again"}])
 
@@ -224,8 +232,10 @@ async def test_loop_adaptive_stops_early_on_plateau():
         idx = call_count - 1
         return VerifierFeedback(score=score_sequence[idx], converged=False)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
 
     assert call_count == 4  # stopped well short of max_iterations=10
@@ -287,8 +297,10 @@ async def test_loop_adaptive_never_exceeds_max_iterations():
         # Keeps improving by 0.1 each time -- never plateaus, never converges.
         return VerifierFeedback(score=0.1 * call_count, converged=False)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
 
     assert call_count == 4  # stopped by max_iterations, not by plateau
@@ -319,8 +331,10 @@ async def test_loop_branching_picks_highest_scored_branch():
         return VerifierFeedback(score=branch_scores[result.text], converged=False)
 
     queue: asyncio.Queue = asyncio.Queue()
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         result = await run_agent_loop(agent, [{"role": "user", "content": "go"}], queue=queue)
 
     assert result.text == "draft B"
@@ -357,8 +371,10 @@ async def test_loop_branching_no_verifier_uses_apex_synthesis():
         synth_calls.append(results)
         return _agent_result("apex", "merged answer")
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(APEXSynthesizer, "synthesize", new=fake_synthesize):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(APEXSynthesizer, "synthesize", new=fake_synthesize),
+    ):
         result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
 
     assert result.text == "merged answer"
@@ -407,8 +423,10 @@ async def test_loop_branching_token_totals_sum_across_branches():
     async def fake_evaluate(query, result, *, default_model):
         return VerifierFeedback(score=0.9, converged=True)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
 
     assert result.total_tokens == 3 * (10 + 5)
@@ -436,8 +454,10 @@ async def test_loop_auto_extract_skill_registers_skill_above_threshold():
         return VerifierFeedback(score=0.9, converged=True)
 
     queue: asyncio.Queue = asyncio.Queue()
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}], queue=queue)
 
     registered = SkillRegistry.list_all()
@@ -471,8 +491,10 @@ async def test_loop_auto_extract_skill_below_threshold_skips():
     async def fake_evaluate(query, result, *, default_model):
         return VerifierFeedback(score=0.7, converged=True)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}])
 
     assert SkillRegistry.list_all() == []
@@ -492,8 +514,10 @@ async def test_loop_auto_extract_skill_disabled_by_default():
     async def fake_evaluate(query, result, *, default_model):
         return VerifierFeedback(score=0.99, converged=True)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}])
 
     assert SkillRegistry.list_all() == []
@@ -520,8 +544,10 @@ async def test_loop_auto_extract_skill_not_triggered_on_max_iterations_exhaustio
         # High score but never actually converged.
         return VerifierFeedback(score=0.95, converged=False)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)),
+    ):
         await run_agent_loop(agent, [{"role": "user", "content": "Explain CRISPR"}])
 
     assert SkillRegistry.list_all() == []

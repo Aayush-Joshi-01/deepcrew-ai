@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-import json
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from deepcrew.agent import Agent
-from deepcrew.exceptions import MaxTurnsError, ToolError
+from deepcrew.exceptions import ToolError
 from deepcrew.runner import _execute_tool, _tool_def_to_litellm, run_agent
 from deepcrew.tools import fn_to_tool_def, tool
-from deepcrew.types import EventType, StreamEvent, ToolDef
+from deepcrew.types import EventType, ToolDef
 
 
 def _make_chunk(content: str | None = None, tool_calls=None, usage=None, finish_reason=None):
@@ -30,9 +28,11 @@ def _make_chunk(content: str | None = None, tool_calls=None, usage=None, finish_
 
 def _make_stream(*chunks):
     """Return an async generator that yields the given chunks."""
+
     async def _gen():
         for c in chunks:
             yield c
+
     return _gen()
 
 
@@ -80,7 +80,11 @@ def test_tool_def_to_litellm():
     td = ToolDef(
         name="search",
         description="Search the web",
-        parameters={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
+        parameters={
+            "type": "object",
+            "properties": {"query": {"type": "string"}},
+            "required": ["query"],
+        },
     )
     schema = _tool_def_to_litellm(td)
     assert schema["type"] == "function"

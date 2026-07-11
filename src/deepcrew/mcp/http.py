@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 from typing import Any
 
@@ -89,14 +90,12 @@ class HTTPMCP(MCPClient):
 
         # Send notifications/initialized (fire-and-forget)
         if self._http:
-            try:
+            with contextlib.suppress(Exception):
                 await self._http.post(
                     self.url,
                     json={"jsonrpc": "2.0", "method": "notifications/initialized"},
                     headers=self._headers(),
                 )
-            except Exception:
-                pass
 
     async def _raw_post(
         self, payload: dict[str, Any], skip_session: bool = False
@@ -136,7 +135,9 @@ class HTTPMCP(MCPClient):
         if self._tool_cache is not None:
             return self._tool_cache
         self._msg_id += 1
-        body = await self._post({"jsonrpc": "2.0", "id": self._msg_id, "method": "tools/list", "params": {}})
+        body = await self._post(
+            {"jsonrpc": "2.0", "id": self._msg_id, "method": "tools/list", "params": {}}
+        )
         if "error" in body:
             raise MCPError(f"tools/list failed: {body['error']}")
         raw_tools: list[dict] = body.get("result", {}).get("tools", [])

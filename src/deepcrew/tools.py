@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import inspect
 import re
-from typing import Any, Callable, Literal, Union, get_args, get_origin, get_type_hints
+from collections.abc import Callable
+from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
 
 from .types import ToolDef
 
@@ -29,9 +30,9 @@ def tool(
     """
 
     def decorator(f: Callable) -> Callable:
-        f._is_tool = True
-        f._tool_name = name or f.__name__
-        f._tool_description = description or _first_docline(f)
+        f._is_tool = True  # type: ignore[attr-defined]
+        f._tool_name = name or f.__name__  # type: ignore[attr-defined]
+        f._tool_description = description or _first_docline(f)  # type: ignore[attr-defined]
         return f
 
     if fn is not None:
@@ -79,6 +80,7 @@ def fn_to_tool_def(fn: Callable) -> ToolDef:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _first_docline(fn: Callable) -> str:
     return (fn.__doc__ or "").strip().split("\n")[0].strip()
 
@@ -111,9 +113,8 @@ def _type_to_jsonschema(hint: Any) -> dict[str, Any]:
                 existing = schema.get("type")
                 if existing and isinstance(existing, str):
                     schema["type"] = [existing, "null"]
-                elif existing and isinstance(existing, list):
-                    if "null" not in existing:
-                        schema["type"] = existing + ["null"]
+                elif existing and isinstance(existing, list) and "null" not in existing:
+                    schema["type"] = [*existing, "null"]
             return schema
         return {"anyOf": [_type_to_jsonschema(a) for a in args]}
 

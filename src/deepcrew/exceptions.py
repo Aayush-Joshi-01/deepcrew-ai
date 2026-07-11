@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import Any
+
+
 class DeepCrewError(Exception):
     """Base exception for all deepcrew errors."""
 
@@ -25,7 +30,7 @@ class WorkflowError(DeepCrewError):
 class LoopConvergedError(DeepCrewError):
     """Raised when a loop's stop_condition returns True (successful early exit)."""
 
-    def __init__(self, message: str, result: "Any" = None) -> None:  # noqa: F821
+    def __init__(self, message: str, result: Any = None) -> None:
         super().__init__(message)
         self.result = result
 

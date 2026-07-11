@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ..types import ToolDef
 
@@ -58,7 +59,7 @@ def skill(
     """
     import inspect
 
-    def _make_skill(func: Callable[..., Any]) -> "FunctionSkill":
+    def _make_skill(func: Callable[..., Any]) -> FunctionSkill:
         skill_name = name or func.__name__
         skill_desc = description or (func.__doc__ or "").strip().split("\n")[0]
 

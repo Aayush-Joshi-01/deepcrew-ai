@@ -17,10 +17,7 @@ class InMemoryProvider(MemoryProvider):
 
     async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]:
         q = query.lower()
-        matches = [
-            (k, v) for k, v in self._store.items()
-            if q in k.lower() or q in v.lower()
-        ]
+        matches = [(k, v) for k, v in self._store.items() if q in k.lower() or q in v.lower()]
         return sorted(matches, key=lambda kv: kv[0])[:top_k]
 
     async def clear(self) -> None:

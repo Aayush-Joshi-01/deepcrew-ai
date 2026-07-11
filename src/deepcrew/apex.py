@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 import litellm
 
@@ -129,16 +127,19 @@ class APEXSynthesizer:
         )
 
         if queue:
-            await queue.put(StreamEvent(
-                EventType.APEX_DONE,
-                {"confidence": confidence},
-                "apex",
-            ))
+            await queue.put(
+                StreamEvent(
+                    EventType.APEX_DONE,
+                    {"confidence": confidence},
+                    "apex",
+                )
+            )
 
         return apex_result
 
     def _extract_confidence(self, text: str) -> float:
         import re
+
         m = re.search(r"CONFIDENCE:\s*([\d.]+)", text)
         if m:
             try:
@@ -150,15 +151,17 @@ class APEXSynthesizer:
 
     def _strip_confidence_line(self, text: str) -> str:
         import re
+
         return re.sub(r"\nCONFIDENCE:\s*[\d.]+\s*$", "", text).rstrip()
 
     def build_citations(self, results: list[AgentResult], synthesis: str) -> list[ApexCitation]:
         """Extract inline [source: agent_name] citations from the synthesis text."""
         import re
+
         citations: list[ApexCitation] = []
         for match in re.finditer(r"\[source:\s*(\w+)\]", synthesis):
             agent_id = match.group(1)
             start = max(0, match.start() - 120)
-            claim = synthesis[start:match.start()].strip().split(".")[-1].strip()
+            claim = synthesis[start : match.start()].strip().split(".")[-1].strip()
             citations.append(ApexCitation(agent_id=agent_id, claim=claim, confidence=0.9))
         return citations

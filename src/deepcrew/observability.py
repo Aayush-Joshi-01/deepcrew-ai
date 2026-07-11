@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import Any, Generator, Literal
+from typing import Any, Literal
 
 
 @dataclass
@@ -22,11 +23,10 @@ def get_tracer(config: ObservabilityConfig) -> Any:
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
-    except ImportError:
+    except ImportError as exc:
         raise ImportError(
-            "OpenTelemetry SDK is not installed. "
-            "Install it with: pip install deepcrew-ai[otel]"
-        )
+            "OpenTelemetry SDK is not installed. Install it with: pip install deepcrew-ai[otel]"
+        ) from exc
 
     resource = Resource.create({"service.name": config.service_name})
     provider = TracerProvider(resource=resource)
@@ -43,11 +43,11 @@ def get_tracer(config: ObservabilityConfig) -> Any:
                 )
             exporter = OTLPSpanExporter(endpoint=config.otel_endpoint)
             provider.add_span_processor(BatchSpanProcessor(exporter))
-        except ImportError:
+        except ImportError as exc:
             raise ImportError(
                 "OpenTelemetry OTLP exporter not installed. "
                 "Install it with: pip install deepcrew-ai[otel]"
-            )
+            ) from exc
 
     trace.set_tracer_provider(provider)
     return trace.get_tracer(config.service_name)
@@ -64,7 +64,7 @@ def agent_span(
         return
 
     tracer = get_tracer(config)
-    with tracer.start_as_current_span(f"agent.run") as span:
+    with tracer.start_as_current_span("agent.run") as span:
         span.set_attribute("agent.id", agent_id)
         span.set_attribute("agent.model", model)
         yield span

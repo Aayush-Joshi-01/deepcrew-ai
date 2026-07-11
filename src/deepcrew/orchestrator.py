@@ -9,11 +9,11 @@ from typing import Any
 import litellm
 
 from .agent import Agent
-from .apex import APEXSynthesizer, ApexConfig
+from .apex import ApexConfig, APEXSynthesizer
 from .exceptions import RouterError
-from .runner import run_agent, _tool_def_to_litellm
+from .runner import run_agent
 from .spawner import ToolAllocator, make_spawn_tool
-from .stream import make_done_event, make_error_event, queue_to_stream
+from .stream import make_error_event, queue_to_stream
 from .types import AgentResult, EventType, OrchestratorResult, StreamEvent, ToolDef
 from .verifier import Verifier
 
@@ -165,13 +165,15 @@ class Orchestrator:
                 text_parts.setdefault(ev.agent_id, []).append(ev.data.get("chunk", ""))
             elif ev.event == EventType.AGENT_DONE:
                 text = "".join(text_parts.get(ev.agent_id, []))
-                agent_results.append(AgentResult(
-                    agent_id=ev.agent_id,
-                    text=text,
-                    input_tokens=ev.data.get("input_tokens", 0),
-                    output_tokens=ev.data.get("output_tokens", 0),
-                    model=current_agent.get(ev.agent_id, ""),
-                ))
+                agent_results.append(
+                    AgentResult(
+                        agent_id=ev.agent_id,
+                        text=text,
+                        input_tokens=ev.data.get("input_tokens", 0),
+                        output_tokens=ev.data.get("output_tokens", 0),
+                        model=current_agent.get(ev.agent_id, ""),
+                    )
+                )
                 total_in += ev.data.get("input_tokens", 0)
                 total_out += ev.data.get("output_tokens", 0)
             elif ev.event == EventType.DONE:
@@ -221,7 +223,7 @@ class Orchestrator:
                 task_override = routing.get("task", query)
                 extra_tools = await self._get_allocated_tools(routing, agent_name)
                 if spawn_tool:
-                    extra_tools = [spawn_tool] + extra_tools
+                    extra_tools = [spawn_tool, *extra_tools]
                 result = await run_agent(
                     agent,
                     [{"role": "user", "content": task_override}],
@@ -239,7 +241,7 @@ class Orchestrator:
                     agent = self._get_agent(spec["name"])
                     extra_tools = await self._get_allocated_tools(spec, spec["name"])
                     if spawn_tool:
-                        extra_tools = [spawn_tool] + extra_tools
+                        extra_tools = [spawn_tool, *extra_tools]
                     if extra_tools:
                         base_tools = await agent.get_tool_defs()
                         merged = base_tools + extra_tools
@@ -261,7 +263,7 @@ class Orchestrator:
                 )
 
                 for r in parallel_results:
-                    if isinstance(r, Exception):
+                    if isinstance(r, BaseException):
                         await queue.put(make_error_event("orchestrator", str(r)))
                     else:
                         agent_results.append(r)
@@ -312,11 +314,9 @@ class Orchestrator:
                     return json.loads(m.group())
                 except json.JSONDecodeError:
                     pass
-            raise RouterError(f"Router returned invalid JSON: {raw!r}")
+            raise RouterError(f"Router returned invalid JSON: {raw!r}") from None
 
-    async def _get_allocated_tools(
-        self, spec: dict[str, Any], agent_name: str
-    ) -> list[ToolDef]:
+    async def _get_allocated_tools(self, spec: dict[str, Any], agent_name: str) -> list[ToolDef]:
         """Return globally-allocated tools for a routing spec entry."""
         if not self._global_tools:
             return []

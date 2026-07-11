@@ -10,13 +10,16 @@ from deepcrew.verifier import Verifier
 
 
 def _search_tool() -> ToolDef:
-    return ToolDef(name="search", description="Search the web", parameters={"type": "object", "properties": {}})
+    return ToolDef(
+        name="search", description="Search the web", parameters={"type": "object", "properties": {}}
+    )
 
 
 async def _fake_run_agent_factory(sink: list):
     async def fake_run_agent(agent, messages, *, tool_defs=None, queue=None, agent_id=None):
         sink.append(tool_defs or [])
         return AgentResult(agent_id=agent_id or agent.name, text="done")
+
     return fake_run_agent
 
 
@@ -25,8 +28,10 @@ async def test_spawn_agent_max_depth_1_no_nested_tool():
     received: list[list[ToolDef]] = []
     fake_run_agent = await _fake_run_agent_factory(received)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))),
+    ):
         req = SpawnRequest(task="do X")
         await spawn_agent(req, [_search_tool()], max_depth=1)
 
@@ -39,8 +44,10 @@ async def test_spawn_agent_max_depth_2_first_level_gets_nested_tool_which_termin
     received: list[list[ToolDef]] = []
     fake_run_agent = await _fake_run_agent_factory(received)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))),
+    ):
         req = SpawnRequest(task="do X")
         await spawn_agent(req, [_search_tool()], max_depth=2)
 
@@ -69,9 +76,11 @@ async def test_spawn_agent_complexity_check_gates_nested_tool():
     fake_run_agent = await _fake_run_agent_factory(received)
     gate = Verifier()
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))), \
-         patch.object(Verifier, "assess_complexity", new=AsyncMock(return_value=False)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))),
+        patch.object(Verifier, "assess_complexity", new=AsyncMock(return_value=False)),
+    ):
         req = SpawnRequest(task="a trivially simple task")
         await spawn_agent(req, [_search_tool()], max_depth=3, complexity_check=gate)
 
@@ -85,9 +94,11 @@ async def test_spawn_agent_complexity_check_allows_nested_tool_when_true():
     fake_run_agent = await _fake_run_agent_factory(received)
     gate = Verifier()
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))), \
-         patch.object(Verifier, "assess_complexity", new=AsyncMock(return_value=True)):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))),
+        patch.object(Verifier, "assess_complexity", new=AsyncMock(return_value=True)),
+    ):
         req = SpawnRequest(task="a genuinely complex multi-part task")
         await spawn_agent(req, [_search_tool()], max_depth=3, complexity_check=gate)
 
@@ -102,8 +113,10 @@ async def test_spawn_agent_default_max_depth_matches_flat_regression():
     received: list[list[ToolDef]] = []
     fake_run_agent = await _fake_run_agent_factory(received)
 
-    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
-         patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))):
+    with (
+        patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)),
+        patch("litellm.acompletion", new=AsyncMock(side_effect=Exception("no allocator needed"))),
+    ):
         req = SpawnRequest(task="do X")
         result = await spawn_agent(req, [_search_tool()])
 

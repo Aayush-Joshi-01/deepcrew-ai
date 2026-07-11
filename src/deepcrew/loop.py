@@ -3,8 +3,9 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from .exceptions import LoopConvergedError
 from .procedural_memory import ProceduralMemory
@@ -86,7 +87,7 @@ class LoopState:
 
 
 async def run_agent_loop(
-    agent: "Agent",
+    agent: Agent,
     messages: list[dict[str, Any]],
     *,
     tool_defs: list[ToolDef] | None = None,
@@ -121,24 +122,30 @@ async def run_agent_loop(
         playbook_entries = await cfg.procedural_memory.load(tag)
         playbook_block = cfg.procedural_memory.render(playbook_entries)
         if playbook_block:
-            current_messages = [{"role": "system", "content": playbook_block}] + current_messages
+            current_messages = [{"role": "system", "content": playbook_block}, *current_messages]
 
     async def _curate_if_configured() -> None:
         if cfg.procedural_memory is not None and last_feedback is not None:
             count = await cfg.procedural_memory.curate(tag, last_feedback, state.results)
             if queue:
-                await queue.put(StreamEvent(
-                    EventType.PLAYBOOK_UPDATED,
-                    {"task_tag": tag, "entry_count": count},
-                    aid,
-                ))
+                await queue.put(
+                    StreamEvent(
+                        EventType.PLAYBOOK_UPDATED,
+                        {"task_tag": tag, "entry_count": count},
+                        aid,
+                    )
+                )
 
     async def _extract_skill_if_configured(
         converged_result: AgentResult, converged_feedback: VerifierFeedback | None
     ) -> None:
         if not cfg.auto_extract_skill:
             return
-        quality = converged_feedback.score if converged_feedback is not None else converged_result.confidence
+        quality = (
+            converged_feedback.score
+            if converged_feedback is not None
+            else converged_result.confidence
+        )
         if quality is None or quality < cfg.skill_confidence_threshold:
             return
 
@@ -147,21 +154,25 @@ async def run_agent_loop(
         distilled = _make_distilled_skill(agent, skill_name, skill_description)
         SkillRegistry.register(distilled)
         if queue:
-            await queue.put(StreamEvent(
-                EventType.SKILL_EXTRACTED,
-                {"skill_name": skill_name, "score": quality},
-                aid,
-            ))
+            await queue.put(
+                StreamEvent(
+                    EventType.SKILL_EXTRACTED,
+                    {"skill_name": skill_name, "score": quality},
+                    aid,
+                )
+            )
 
     for i in range(cfg.max_iterations):
         state.iteration = i
 
         if queue:
-            await queue.put(StreamEvent(
-                EventType.LOOP_ITERATION,
-                {"iteration": i, "converged": False},
-                aid,
-            ))
+            await queue.put(
+                StreamEvent(
+                    EventType.LOOP_ITERATION,
+                    {"iteration": i, "converged": False},
+                    aid,
+                )
+            )
 
         if cfg.branches > 1:
             result = await _run_branches(
@@ -193,22 +204,26 @@ async def run_agent_loop(
             last_feedback = feedback
             scores.append(feedback.score)
             if queue:
-                await queue.put(StreamEvent(
-                    EventType.VERIFIER_SCORED,
-                    {"iteration": i, "score": feedback.score, "issues": feedback.issues},
-                    aid,
-                ))
+                await queue.put(
+                    StreamEvent(
+                        EventType.VERIFIER_SCORED,
+                        {"iteration": i, "score": feedback.score, "issues": feedback.issues},
+                        aid,
+                    )
+                )
 
         converged = (cfg.convergence_fn and cfg.convergence_fn(result)) or (
             feedback is not None and feedback.converged
         )
         if converged:
             if queue:
-                await queue.put(StreamEvent(
-                    EventType.LOOP_ITERATION,
-                    {"iteration": i, "converged": True},
-                    aid,
-                ))
+                await queue.put(
+                    StreamEvent(
+                        EventType.LOOP_ITERATION,
+                        {"iteration": i, "converged": True},
+                        aid,
+                    )
+                )
             await _curate_if_configured()
             await _extract_skill_if_configured(result, feedback)
             return result
@@ -217,18 +232,21 @@ async def run_agent_loop(
             delta = scores[-1] - scores[-2]
             plateau_count = 0 if delta >= cfg.min_improvement else plateau_count + 1
             if plateau_count >= cfg.plateau_patience:
-                best_result = max(zip(scores, state.results), key=lambda p: p[0])[1]
+                best_result = max(zip(scores, state.results, strict=False), key=lambda p: p[0])[1]
                 if queue:
-                    await queue.put(StreamEvent(
-                        EventType.LOOP_ITERATION,
-                        {"iteration": i, "converged": False, "early_stop": "plateau"},
-                        aid,
-                    ))
+                    await queue.put(
+                        StreamEvent(
+                            EventType.LOOP_ITERATION,
+                            {"iteration": i, "converged": False, "early_stop": "plateau"},
+                            aid,
+                        )
+                    )
                 await _curate_if_configured()
                 return best_result
 
         refine_message = _build_refine_message(cfg.refine_prompt, feedback)
-        current_messages = current_messages + [
+        current_messages = [
+            *current_messages,
             {"role": "assistant", "content": result.text},
             {"role": "user", "content": refine_message},
         ]
@@ -238,7 +256,7 @@ async def run_agent_loop(
 
 
 async def _run_branches(
-    agent: "Agent",
+    agent: Agent,
     messages: list[dict[str, Any]],
     tool_defs: list[ToolDef] | None,
     queue: asyncio.Queue[StreamEvent | None] | None,
@@ -253,33 +271,39 @@ async def _run_branches(
     """
     from .runner import run_agent
 
-    branch_results = await asyncio.gather(*[
-        run_agent(agent, messages, tool_defs=tool_defs, queue=queue, agent_id=aid)
-        for _ in range(cfg.branches)
-    ])
+    branch_results = await asyncio.gather(
+        *[
+            run_agent(agent, messages, tool_defs=tool_defs, queue=queue, agent_id=aid)
+            for _ in range(cfg.branches)
+        ]
+    )
 
     total_in = sum(r.input_tokens for r in branch_results)
     total_out = sum(r.output_tokens for r in branch_results)
 
     if cfg.verifier is not None:
-        feedbacks = await asyncio.gather(*[
-            cfg.verifier.evaluate(original_query, r, default_model=agent.model)
-            for r in branch_results
-        ])
+        feedbacks = await asyncio.gather(
+            *[
+                cfg.verifier.evaluate(original_query, r, default_model=agent.model)
+                for r in branch_results
+            ]
+        )
         winning_index = max(range(len(feedbacks)), key=lambda idx: feedbacks[idx].score)
         winner = branch_results[winning_index]
         winner.input_tokens = total_in
         winner.output_tokens = total_out
         if queue:
-            await queue.put(StreamEvent(
-                EventType.BRANCH_SELECTED,
-                {
-                    "branch_count": cfg.branches,
-                    "winning_index": winning_index,
-                    "winning_score": feedbacks[winning_index].score,
-                },
-                aid,
-            ))
+            await queue.put(
+                StreamEvent(
+                    EventType.BRANCH_SELECTED,
+                    {
+                        "branch_count": cfg.branches,
+                        "winning_index": winning_index,
+                        "winning_score": feedbacks[winning_index].score,
+                    },
+                    aid,
+                )
+            )
         return winner
 
     from .apex import APEXSynthesizer
@@ -290,11 +314,17 @@ async def _run_branches(
     merged.input_tokens = total_in
     merged.output_tokens = total_out
     if queue:
-        await queue.put(StreamEvent(
-            EventType.BRANCH_SELECTED,
-            {"branch_count": cfg.branches, "winning_index": None, "winning_score": merged.confidence},
-            aid,
-        ))
+        await queue.put(
+            StreamEvent(
+                EventType.BRANCH_SELECTED,
+                {
+                    "branch_count": cfg.branches,
+                    "winning_index": None,
+                    "winning_score": merged.confidence,
+                },
+                aid,
+            )
+        )
     return merged
 
 
@@ -311,7 +341,7 @@ def _distilled_skill_description(original_query: str) -> str:
     return f"Reuses a proven approach that successfully handled: {snippet}"
 
 
-def _make_distilled_skill(agent: "Agent", name: str, description: str) -> FunctionSkill:
+def _make_distilled_skill(agent: Agent, name: str, description: str) -> FunctionSkill:
     """
     Build a replayable Skill: it re-runs the original agent (same system_prompt,
     tools, mcps, skills) against a new task, rather than memoizing one frozen
@@ -380,7 +410,7 @@ async def search_loop(
     query: str,
     search_tool: Callable[..., Any],
     *,
-    agent: "Agent",
+    agent: Agent,
     max_iterations: int = 3,
     confidence_threshold: float = 0.8,
     queue: asyncio.Queue[StreamEvent | None] | None = None,

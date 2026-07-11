@@ -22,9 +22,7 @@ def _make_litellm_response(text: str):
 @pytest.mark.asyncio
 async def test_evaluate_parses_well_formed_json():
     verifier = Verifier(VerifierConfig(threshold=0.8))
-    response = _make_litellm_response(
-        json.dumps({"score": 0.9, "issues": [], "suggestion": ""})
-    )
+    response = _make_litellm_response(json.dumps({"score": 0.9, "issues": [], "suggestion": ""}))
     result = AgentResult(agent_id="a", text="A great answer.")
 
     with patch("litellm.acompletion", new=AsyncMock(return_value=response)):
@@ -74,7 +72,9 @@ async def test_evaluate_uses_evaluate_fn_override():
     verifier = Verifier(VerifierConfig(evaluate_fn=fake_evaluate))
     result = AgentResult(agent_id="a", text="An answer.")
 
-    with patch("litellm.acompletion", new=AsyncMock(side_effect=AssertionError("should not be called"))):
+    with patch(
+        "litellm.acompletion", new=AsyncMock(side_effect=AssertionError("should not be called"))
+    ):
         feedback = await verifier.evaluate("What is X?", result, default_model="openai/gpt-4o-mini")
 
     assert feedback.score == 1.0
