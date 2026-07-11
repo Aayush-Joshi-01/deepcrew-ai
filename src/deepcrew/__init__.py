@@ -71,7 +71,7 @@ from .types import (
 )
 from .workflow import WorkflowBuilder
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 __all__ = [
     # Core

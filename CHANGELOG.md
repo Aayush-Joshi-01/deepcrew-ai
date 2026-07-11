@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.3] — 2026-07-09
+
+### Added
+
+#### Adaptive Compute Budget
+- `LoopConfig.adaptive` — plateau-detection early exit for the outer loop: tracks the verifier score across iterations and stops as soon as improvement falls below `min_improvement` for `plateau_patience` consecutive iterations, instead of always running `max_iterations`
+- `LoopConfig.min_improvement` / `LoopConfig.plateau_patience` — tunable plateau-detection thresholds
+- On an adaptive early stop, the loop returns the highest-scoring result seen so far (not necessarily the last one) and emits a `LOOP_ITERATION` event with `{"early_stop": "plateau"}`
+- Requires `LoopConfig.verifier` to be set (there's no score to track otherwise); `max_iterations` remains a hard, never-exceeded ceiling
+
 ## [0.2.2] — 2026-07-09
 
 ### Added

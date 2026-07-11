@@ -7,7 +7,7 @@ packages = ["src/deepcrew"]
 
 [project]
 name = "deepcrew-ai"
-version = "0.2.2"
+version = "0.2.3"
 description = "Multi-agent spawning library with APEX synthesis, looping, skills, memory, and observability"
 readme = "README.md"
 license = { text = "MIT" }

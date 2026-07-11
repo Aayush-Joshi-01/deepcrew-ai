@@ -42,6 +42,18 @@ class LoopConfig:
     """
     task_tag: str | None = None
     """Playbook namespace for ``procedural_memory``. Defaults to ``agent.name``."""
+    adaptive: bool = False
+    """
+    When True, track the verifier score across iterations and stop early once
+    improvement plateaus (see ``min_improvement``/``plateau_patience``),
+    instead of always running ``max_iterations``. Requires ``verifier`` to be
+    set -- with no verifier there is no score to track, so this is a no-op.
+    Can only shorten the loop; ``max_iterations`` remains a hard ceiling.
+    """
+    min_improvement: float = 0.02
+    """Minimum verifier-score delta between iterations to count as still improving."""
+    plateau_patience: int = 2
+    """Consecutive non-improving iterations tolerated before an adaptive early stop."""
 
 
 @dataclass
@@ -81,6 +93,8 @@ async def run_agent_loop(
     original_query = _extract_query(messages)
     tag = cfg.task_tag or agent.name
     last_feedback: VerifierFeedback | None = None
+    scores: list[float] = []
+    plateau_count = 0
 
     if cfg.procedural_memory is not None:
         playbook_entries = await cfg.procedural_memory.load(tag)
@@ -131,6 +145,7 @@ async def run_agent_loop(
                 original_query, result, default_model=agent.model
             )
             last_feedback = feedback
+            scores.append(feedback.score)
             if queue:
                 await queue.put(StreamEvent(
                     EventType.VERIFIER_SCORED,
@@ -150,6 +165,20 @@ async def run_agent_loop(
                 ))
             await _curate_if_configured()
             return result
+
+        if cfg.adaptive and len(scores) >= 2:
+            delta = scores[-1] - scores[-2]
+            plateau_count = 0 if delta >= cfg.min_improvement else plateau_count + 1
+            if plateau_count >= cfg.plateau_patience:
+                best_result = max(zip(scores, state.results), key=lambda p: p[0])[1]
+                if queue:
+                    await queue.put(StreamEvent(
+                        EventType.LOOP_ITERATION,
+                        {"iteration": i, "converged": False, "early_stop": "plateau"},
+                        aid,
+                    ))
+                await _curate_if_configured()
+                return best_result
 
         refine_message = _build_refine_message(cfg.refine_prompt, feedback)
         current_messages = current_messages + [

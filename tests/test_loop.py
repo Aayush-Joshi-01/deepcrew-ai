@@ -9,7 +9,7 @@ from deepcrew.loop import LoopConfig, run_agent_loop
 from deepcrew.memory.inmemory import InMemoryProvider
 from deepcrew.procedural_memory import ProceduralMemory
 from deepcrew.types import AgentResult, EventType
-from deepcrew.verifier import Verifier, VerifierFeedback
+from deepcrew.verifier import Verifier, VerifierConfig, VerifierFeedback
 
 
 def _agent_result(agent_id: str, text: str) -> AgentResult:
@@ -185,3 +185,102 @@ async def test_loop_procedural_memory_without_verifier_is_noop():
 
     assert result.text == "an answer"
     assert await pm.load("researcher") == []
+
+
+@pytest.mark.asyncio
+async def test_loop_adaptive_stops_early_on_plateau():
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=10,
+            verifier=Verifier(),
+            adaptive=True,
+            min_improvement=0.02,
+            plateau_patience=2,
+        ),
+    )
+
+    # deltas: 0.1, 0.01, 0.005 -- last two are below min_improvement=0.02,
+    # so plateau_count hits plateau_patience=2 on the 4th score.
+    score_sequence = [0.5, 0.6, 0.61, 0.615]
+    call_count = 0
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return _agent_result(agent.name, f"answer{call_count}")
+
+    async def fake_evaluate(query, result, *, default_model):
+        idx = call_count - 1
+        return VerifierFeedback(score=score_sequence[idx], converged=False)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
+
+    assert call_count == 4  # stopped well short of max_iterations=10
+    assert result.text == "answer4"  # highest-scoring (0.615) result returned
+
+
+@pytest.mark.asyncio
+async def test_loop_adaptive_without_verifier_is_noop_regression():
+    """adaptive=True with no verifier behaves identically to adaptive=False."""
+    agent = Agent(
+        name="test",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=5,
+            convergence_fn=lambda r: "done" in r.text,
+            adaptive=True,
+        ),
+    )
+
+    call_count = 0
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        text = "not yet" if call_count < 2 else "done"
+        return _agent_result(agent.name, text)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
+
+    assert result.text == "done"
+    assert result.loop_iterations == 2
+    assert call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_loop_adaptive_never_exceeds_max_iterations():
+    """Monotonically-improving scores that never plateau still stop at the cap."""
+    agent = Agent(
+        name="researcher",
+        model="openai/gpt-4o",
+        loop_config=LoopConfig(
+            max_iterations=4,
+            verifier=Verifier(VerifierConfig(threshold=0.999)),
+            adaptive=True,
+            min_improvement=0.02,
+            plateau_patience=2,
+        ),
+    )
+
+    call_count = 0
+
+    async def fake_run_agent(agent, messages, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return _agent_result(agent.name, f"answer{call_count}")
+
+    async def fake_evaluate(query, result, *, default_model):
+        # Keeps improving by 0.1 each time -- never plateaus, never converges.
+        return VerifierFeedback(score=0.1 * call_count, converged=False)
+
+    with patch("deepcrew.runner.run_agent", new=AsyncMock(side_effect=fake_run_agent)), \
+         patch.object(Verifier, "evaluate", new=AsyncMock(side_effect=fake_evaluate)):
+        result = await run_agent_loop(agent, [{"role": "user", "content": "go"}])
+
+    assert call_count == 4  # stopped by max_iterations, not by plateau
+    assert result.text == "answer4"

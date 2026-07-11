@@ -221,6 +221,30 @@ result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
 is satisfied. Pass `VerifierConfig(evaluate_fn=my_custom_grader)` to fully replace the
 built-in LLM-graded rubric with your own scoring function.
 
+#### Adaptive iteration budget
+
+With `adaptive=True`, the loop tracks the verifier score across iterations and stops
+early once improvement plateaus, instead of always running `max_iterations`. This is
+still bounded by `max_iterations` — adaptive can only shorten the loop, never lengthen
+it. Requires `verifier` to be set (there's no score to track otherwise).
+
+```python
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=8,
+        verifier=Verifier(VerifierConfig(threshold=0.9)),
+        adaptive=True,
+        min_improvement=0.02,   # minimum score delta to still count as "improving"
+        plateau_patience=2,     # stop after this many non-improving iterations in a row
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+```
+
 #### Procedural memory (evolving playbook)
 
 `ProceduralMemory` is an opt-in, durable "the system learns from its own past runs"
