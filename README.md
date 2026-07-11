@@ -12,16 +12,25 @@ pip install deepcrew-ai
 
 ---
 
-## What's new in v0.2.0
+## What's new in v0.3.0 — Self-Improving Loop
+
+v0.3.0 turns the outer refinement loop (`LoopConfig`) from a simple "re-run until a
+boolean says stop" mechanism into a genuinely self-improving one, and gives agent
+spawning bounded recursion. Every addition is opt-in and fully backward compatible.
 
 | Feature | Description |
 |---|---|
 | **APEX Synthesizer** | Intelligent synthesis with confidence scoring and source citation |
 | **Agent Spawning** | Claude Code-style — agents can spawn sub-agents mid-loop with intelligent tool allocation |
-| **Looping** | Outer iteration loop for search-refine patterns with convergence control, optionally driven by a structured `Verifier` |
+| **Nested Spawning** | A spawned sub-agent can itself spawn further sub-agents up to a hard, bounded depth cap |
+| **Looping** | Outer iteration loop for search-refine patterns with convergence control |
+| **Verifier** | Structured, LLM-graded critique (score + issues + suggestion) driving targeted refinement |
+| **Adaptive Budget** | Plateau-detection early exit — stop once refinement stops paying off, bounded by `max_iterations` |
+| **Branching** | Parallel self-consistency candidates per iteration, scored by `Verifier` or merged via APEX |
 | **Skills** | Higher-level capability bundles: `WebSearchSkill`, `SummarizeSkill`, `CodeExecutionSkill`, `@skill` decorator |
+| **Self-Evolving Skills** | A converged, high-confidence loop run is distilled into a reusable, replayable `Skill` |
 | **Memory** | Pluggable `InMemoryProvider` and `FileMemoryProvider` — auto-injected into agent context |
-| **Procedural Memory** | `ProceduralMemory` — an opt-in, durable evolving playbook of strategies accumulated across runs |
+| **Procedural Memory** | An opt-in, durable evolving playbook of strategies accumulated across runs (ACE-inspired) |
 | **Retry & Fallback** | Per-agent `RetryPolicy` + `FallbackChain` for model resilience |
 | **Observability** | OpenTelemetry spans for every LLM call, tool execution, and workflow step |
 | **CLI** | `deepcrew run workflow.yaml` — declarative workflow execution |
@@ -127,7 +136,7 @@ print(result.final_text)
 
 ---
 
-## v0.2.0 Features
+## Feature Guide (v0.2.0 – v0.3.0)
 
 ### APEX Synthesizer
 
@@ -492,6 +501,58 @@ workflow:
 
 ---
 
+## Composing v0.3.0 Features
+
+The six self-improving-loop additions aren't just usable in isolation — they compose.
+A single agent can be configured with a verifier-driven, adaptive, branching,
+skill-distilling, procedural-memory-backed loop, orchestrated by a coordinator that
+allows bounded nested delegation:
+
+```python
+from deepcrew import (
+    Agent, Orchestrator, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory,
+)
+
+verifier = Verifier(VerifierConfig(threshold=0.85))
+playbook = ProceduralMemory(FileMemoryProvider("researcher_playbook.json"))
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    procedural_memory=playbook,          # read on every run
+    loop_config=LoopConfig(
+        max_iterations=6,
+        verifier=verifier,                # structured critique drives refinement
+        procedural_memory=playbook,        # curated after convergence
+        adaptive=True,                     # stop early once improvement plateaus
+        min_improvement=0.02,
+        plateau_patience=2,
+        branches=2,                        # 2 parallel candidates per iteration
+        auto_extract_skill=True,           # distill a reusable Skill on success
+        skill_confidence_threshold=0.85,
+    ),
+)
+
+orch = Orchestrator(
+    agents=[researcher],
+    router_model="openai/gpt-4o-mini",
+    global_tools=[search_web, read_file],
+    enable_spawn=True,
+    max_spawn_depth=2,                    # bounded recursive delegation
+    spawn_complexity_check=verifier,       # reuse the same verifier as a complexity gate
+)
+
+result = await orch.run("Research and summarize the current state of fusion energy")
+print(result.final_text)
+```
+
+Every feature here defaults off — this example opts into all six deliberately to show
+how they fit together, not as a recommended baseline configuration.
+
+---
+
 ## MCP Tools
 
 ```python
@@ -581,7 +642,11 @@ All events have `event` (EventType), `agent_id` (str), and `data` (dict).
 | `apex_start` | `agents` | APEX synthesis begins |
 | `apex_done` | `confidence` | APEX synthesis complete |
 | `loop_iteration` | `iteration`, `converged` | Each outer loop iteration |
-| `spawn_agent` | `task`, `requested_tools` | Sub-agent spawned |
+| `verifier_scored` | `iteration`, `score`, `issues` | Verifier grades an iteration |
+| `playbook_updated` | `task_tag`, `entry_count` | Procedural memory curated |
+| `branch_selected` | `branch_count`, `winning_index`, `winning_score` | Best/merged branch chosen |
+| `skill_extracted` | `skill_name`, `score` | A converged run distilled into a Skill |
+| `spawn_agent` | `task`, `requested_tools`, `depth` | Sub-agent spawned |
 | `memory_retrieve` | `count` | Memories injected into context |
 | `memory_store` | `key` | Tool result stored to memory |
 | `retry_attempt` | `attempt`, `model`, `delay` | Before a retry |
@@ -615,7 +680,7 @@ Requires Python 3.11+.
 Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
 - [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
-- [v0.2.6 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
+- [v0.3.0 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
 - [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
 
 ---

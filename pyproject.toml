@@ -7,8 +7,8 @@ packages = ["src/deepcrew"]
 
 [project]
 name = "deepcrew-ai"
-version = "0.2.6"
-description = "Multi-agent spawning library with APEX synthesis, looping, skills, memory, and observability"
+version = "0.3.0"
+description = "Multi-agent spawning library with a self-improving loop (verifier, adaptive budget, branching, skill distillation, procedural memory), APEX synthesis, bounded nested spawning, and observability"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"

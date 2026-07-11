@@ -7,6 +7,31 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.3.0] — 2026-07-09 — Self-Improving Loop
+
+The outer refinement loop (`LoopConfig`/`run_agent_loop`, introduced in v0.2.0) grows
+from a simple "re-run until a boolean says stop" mechanism into a genuinely
+self-improving one, plus the spawning system gains bounded recursion. All six
+additions are opt-in and fully backward compatible — an unconfigured `LoopConfig` or
+`Orchestrator` behaves exactly as it did in v0.2.0. Released incrementally as
+`0.2.1`–`0.2.6`; full details for each are in their own dated sections below.
+
+- **Verifier** (`0.2.1`) — structured, LLM-graded critique (score + issues + a
+  suggestion) replacing the boolean-only `convergence_fn`, driving targeted
+  refinement instead of a static message.
+- **Procedural Memory** (`0.2.2`) — an ACE-inspired, opt-in evolving playbook that
+  lets agents accumulate reusable strategies across runs, persisted via any
+  `MemoryProvider`.
+- **Adaptive Compute Budget** (`0.2.3`) — plateau-detection early exit based on
+  verifier score deltas, always bounded by `max_iterations`.
+- **Branching** (`0.2.4`) — parallel self-consistency candidates per iteration,
+  scored by the verifier or merged via `APEXSynthesizer`.
+- **Self-Evolving Skill Distillation** (`0.2.5`) — a genuinely converged,
+  high-confidence loop run is distilled into a reusable, replayable `Skill`
+  (Voyager-inspired).
+- **Bounded Nested Agent Spawning** (`0.2.6`) — a spawned sub-agent can itself spawn
+  further sub-agents up to a hard depth cap, optionally gated by a complexity check.
+
 ## [0.2.6] — 2026-07-09
 
 ### Added
@@ -212,5 +237,6 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - 37 unit tests; all passing on Python 3.13
 - 4 runnable examples
 
+[0.3.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/releases/tag/v0.1.0
