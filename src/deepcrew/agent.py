@@ -9,6 +9,9 @@ from .tools import fn_to_tool_def
 from .types import ToolDef
 
 if TYPE_CHECKING:
+    from pydantic import BaseModel
+
+    from .hooks import AgentHooks
     from .loop import LoopConfig
     from .mcp.base import MCPClient
     from .memory.base import MemoryProvider
@@ -61,6 +64,16 @@ class Agent:
         every run of this agent (single-shot or looped). Writing/curating
         new strategies only happens via a loop whose ``LoopConfig`` also has
         ``procedural_memory`` configured (typically the same instance).
+    response_model:
+        Optional pydantic model. When set, the agent's final (non-tool-call)
+        text is validated against this schema and made available as
+        ``AgentResult.parsed``. One automatic repair attempt is made if the
+        first response isn't valid JSON matching the schema; if that also
+        fails, ``OutputParseError`` is raised.
+    hooks:
+        Optional lifecycle hooks (see ``AgentHooks``) for human-in-the-loop
+        control, e.g. approving or denying individual tool calls. Distinct
+        from the observe-only event stream: hooks can alter execution.
     """
 
     name: str
@@ -78,6 +91,8 @@ class Agent:
     loop_config: LoopConfig | None = field(default=None)
     skills: list[Skill] = field(default_factory=list)
     procedural_memory: ProceduralMemory | None = field(default=None)
+    response_model: type[BaseModel] | None = field(default=None)
+    hooks: AgentHooks | None = field(default=None)
 
     async def get_tool_defs(self) -> list[ToolDef]:
         """Discover and merge tools from all attached MCP servers, Python functions, and skills."""
