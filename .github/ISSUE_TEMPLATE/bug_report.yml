@@ -1,0 +1,68 @@
+name: Bug report
+description: Report something that isn't working as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. A minimal reproduction is by far
+        the most useful thing you can include.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect to happen, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: >
+        The smallest snippet that reproduces the issue. Please redact API keys.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Traceback / logs
+      description: Full traceback if there is one.
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: deepcrew-ai version
+      description: "`python -c \"import deepcrew; print(deepcrew.__version__)\"`"
+      placeholder: "0.4.0"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "3.12.4"
+    validations:
+      required: true
+
+  - type: input
+    id: provider
+    attributes:
+      label: Model / provider
+      description: The LiteLLM model string, e.g. `openai/gpt-4o`. Never include your API key.
+      placeholder: "openai/gpt-4o"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this hasn't been reported
+          required: true
+        - label: I've redacted all API keys and secrets from the above
+          required: true
