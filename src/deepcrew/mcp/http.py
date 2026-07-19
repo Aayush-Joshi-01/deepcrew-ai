@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 from typing import Any
 
 import httpx
@@ -10,6 +11,8 @@ import httpx
 from ..exceptions import MCPError
 from ..types import ToolDef
 from .base import MCPClient, _parse_mcp_tool
+
+logger = logging.getLogger(__name__)
 
 
 class HTTPMCP(MCPClient):
@@ -65,6 +68,7 @@ class HTTPMCP(MCPClient):
         return h
 
     async def connect(self) -> None:
+        logger.info("HTTPMCP connecting: %s", self.url)
         self._http = httpx.AsyncClient(timeout=self._timeout)
         await self._initialize()
 
@@ -86,6 +90,7 @@ class HTTPMCP(MCPClient):
         self._session_id = resp.headers.get("mcp-session-id") or resp.headers.get("Mcp-Session-Id")
         body = resp.json()
         if "error" in body:
+            logger.error("HTTPMCP initialize error: %s", body["error"])
             raise MCPError(f"MCP initialize error: {body['error']}")
 
         # Send notifications/initialized (fire-and-forget)
@@ -124,11 +129,13 @@ class HTTPMCP(MCPClient):
             if attempt < self._retries:
                 await asyncio.sleep(2**attempt)
                 return await self._post(payload, attempt + 1)
+            logger.error("HTTPMCP request failed after retries: %s", exc)
             raise MCPError(f"HTTPMCP request failed: {exc}") from exc
         except httpx.RequestError as exc:
             if attempt < self._retries:
                 await asyncio.sleep(2**attempt)
                 return await self._post(payload, attempt + 1)
+            logger.error("HTTPMCP connection error after retries: %s", exc)
             raise MCPError(f"HTTPMCP connection error: {exc}") from exc
 
     async def list_tools(self) -> list[ToolDef]:
@@ -139,6 +146,7 @@ class HTTPMCP(MCPClient):
             {"jsonrpc": "2.0", "id": self._msg_id, "method": "tools/list", "params": {}}
         )
         if "error" in body:
+            logger.error("HTTPMCP tools/list failed: %s", body["error"])
             raise MCPError(f"tools/list failed: {body['error']}")
         raw_tools: list[dict] = body.get("result", {}).get("tools", [])
         self._tool_cache = [_parse_mcp_tool(t, self) for t in raw_tools]
@@ -155,6 +163,7 @@ class HTTPMCP(MCPClient):
             }
         )
         if "error" in body:
+            logger.error("HTTPMCP tool %r call failed: %s", name, body["error"])
             raise MCPError(f"Tool {name!r} call failed: {body['error']}")
         result = body.get("result", {})
         if isinstance(result, dict) and "content" in result:
