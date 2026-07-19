@@ -7,6 +7,81 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.0] — 2026-07-12 — Production Readiness & Streaming-First
+
+Focused on making deepcrew-ai a production-ready, streaming-first library: multimodal input,
+selectable streaming visibility, an optional FastAPI integration, structured output,
+human-in-the-loop tool approval, a Redis memory provider, and the trust signals (CI, typing,
+logging) a library needs before teams adopt it in real systems.
+
+### Added
+
+#### Multimodal Input
+- `image()`, `pdf()`, `user_message()`, `extract_text()`, `describe_attachments()` in the new
+  `deepcrew.content` module — build OpenAI-format content blocks from a URL, a `data:` URI, a
+  local file path, or raw bytes.
+- `TextPart`, `ImagePart`, `DocumentPart`, `ContentPart` — the underlying content-block types.
+- `Orchestrator.run()`/`.stream()` accept `attachments=`; the router sees only a text summary of
+  how many attachments exist, never the raw content.
+- New `ContentError` exception for invalid, oversized, or unsupported attachments.
+
+#### Streaming — `StreamPolicy`
+- `StreamPolicy` with `chat()`/`standard()`/`verbose()` presets and custom `include`/`exclude`
+  sets, plus `filter_stream()`. Filtering is a pure view over the event stream — it never affects
+  execution, logging, or OpenTelemetry spans. Terminal `done`/`error` events always pass presets.
+- `Orchestrator.stream()` and `WorkflowBuilder.stream()` accept `policy=`.
+- New `EventType.TOOL_DENIED` for hook-denied tool calls.
+- `EventType.THINKING_DELTA` is now actually emitted, from `reasoning_content` on streamed deltas.
+
+#### Optional FastAPI Integration
+- `deepcrew.integrations.fastapi.create_stream_router()` — turns an `Agent`, `Orchestrator`, or
+  `WorkflowBuilder` into an SSE streaming endpoint (`POST {path}`) plus a non-streaming
+  `POST {path}/complete`. Requires the new `fastapi` extra; never imported unless used.
+
+#### Structured Output & Human-in-the-Loop
+- `Agent.response_model` — validates the agent's final text against a pydantic schema, with one
+  automatic repair attempt on invalid JSON. Result lands on `AgentResult.parsed`. New
+  `OutputParseError` on a second failure.
+- `AgentHooks` (`on_agent_start`, `on_tool_start`, `on_tool_end`, `approve_tool`) — per-agent
+  lifecycle hooks; `approve_tool` returning `False` denies a tool call before it runs.
+
+#### Memory
+- `RedisMemoryProvider` — persistent `MemoryProvider` backed by Redis, mirroring
+  `InMemoryProvider`'s search semantics exactly. Requires the `redis` extra; lazily imported.
+
+#### Trust & Engineering
+- `py.typed` marker; ruff + mypy configuration; `.github/workflows/ci.yml` (lint + test matrix on
+  Python 3.11/3.12/3.13, version-consistency check) and `.github/workflows/publish.yml`
+  (build sdist/wheel, `twine check` + `twine upload` on tag, and a GitHub Release with the wheel
+  and sdist attached as assets).
+- `logging` throughout the library (`NullHandler` at the package root, module loggers elsewhere).
+- `CLAUDE.md` and a `.claude/skills/deepcrew/SKILL.md` integration skill.
+- New test suites: `test_content.py`, `test_stream_policy.py`, `test_fastapi.py`,
+  `test_structured_output.py`, `test_hooks.py`, `test_memory.py`, `test_apex.py`, `test_retry.py`,
+  `test_stream.py`, `test_cli.py`, `test_skills_builtin.py`.
+
+#### Docs & Examples
+- GitHub Pages source moved from `docs/` to `pages/`, kept separate from repository documentation.
+- One page per feature under `pages/guides/` (no version split) plus `pages/guides/migration.html`
+  (CrewAI / Google ADK migration guide), each with a "Copy page" button (copies the markdown twin,
+  for pasting into an LLM) and a "Copy prompt" button (copies a ready-to-use AI implementation
+  prompt for that feature), and `pages/llms.txt` / `pages/llms-full.txt`.
+- Seven new runnable examples: `self_improving_research.py`, `consensus_code_review.py`,
+  `autonomous_task_planning.py`, `multimodal_agent.py`, `structured_output.py`,
+  `human_in_the_loop.py`, `fastapi_streaming.py`, plus `examples/README.md`.
+
+### Fixed
+- **Critical:** `run_agent()` on any `Agent` with `loop_config` set caused infinite recursion
+  (`RecursionError`) in real usage — `run_agent()` delegated to `run_agent_loop()`, which called
+  the public `run_agent()` again on the same still-looped agent, re-delegating indefinitely. Every
+  existing test was blind to this because it mocked `deepcrew.runner.run_agent` directly, which
+  swallowed the recursive call before it could happen. Fixed by extracting the per-turn execution
+  logic into a private `_run_agent_turns()` that `run_agent_loop()` calls directly, bypassing the
+  delegation check on each iteration. This affected the entire self-improving loop feature set:
+  `LoopConfig`, `Verifier`-driven refinement, adaptive early-stop, branching, procedural memory
+  curation, and skill distillation. Added a regression test that mocks only `litellm.acompletion`
+  (not `run_agent` itself) to exercise the real interaction.
+
 ## [0.3.0] — 2026-07-09 — Self-Improving Loop
 
 The outer refinement loop (`LoopConfig`/`run_agent_loop`, introduced in v0.2.0) grows
@@ -237,6 +312,7 @@ additions are opt-in and fully backward compatible — an unconfigured `LoopConf
 - 37 unit tests; all passing on Python 3.13
 - 4 runnable examples
 
+[0.4.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/releases/tag/v0.1.0

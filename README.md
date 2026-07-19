@@ -1,4 +1,8 @@
-# deepcrew-ai
+<p align="center">
+  <img src="pages/assets/logo-readme.svg" width="72" height="72" alt="deepcrew-ai logo" />
+</p>
+
+<h1 align="center">deepcrew-ai</h1>
 
 Multi-agent AI library for Python. Build parallel workflows, spawn agents dynamically, attach tools via MCP, and stream events in real time — using any of 100+ LLM providers, with minimal boilerplate.
 
@@ -8,15 +12,17 @@ pip install deepcrew-ai
 
 [![PyPI](https://img.shields.io/pypi/v/deepcrew-ai)](https://pypi.org/project/deepcrew-ai)
 [![Python](https://img.shields.io/pypi/pyversions/deepcrew-ai)](https://pypi.org/project/deepcrew-ai)
+[![CI](https://github.com/Aayush-Joshi-01/deepcrew-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Aayush-Joshi-01/deepcrew-ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-📖 **Full docs:** [deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev) · [Features guide](https://deepcrew-ai.aayushjoshi.dev/features.html) · [Examples](https://deepcrew-ai.aayushjoshi.dev/examples.html)
+**Full docs:** [deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev) · [Features guide](https://deepcrew-ai.aayushjoshi.dev/features.html) · [Examples](https://deepcrew-ai.aayushjoshi.dev/examples.html) · [Migrating from CrewAI/ADK](https://deepcrew-ai.aayushjoshi.dev/guides/migration.html)
 
 ---
 
 <details>
 <summary><strong>Table of contents</strong></summary>
 
+- [What's new in v0.4.0 — Production Readiness & Streaming-First](#whats-new-in-v040--production-readiness--streaming-first)
 - [What's new in v0.3.0 — Self-Improving Loop](#whats-new-in-v030--self-improving-loop)
 - [Features](#features)
 - [Quick Start](#quick-start)
@@ -42,6 +48,32 @@ pip install deepcrew-ai
 - [License](#license)
 
 </details>
+
+---
+
+## What's new in v0.4.0 — Production Readiness & Streaming-First
+
+| Feature | Description |
+|---|---|
+| **Multimodal Input** | `image()`, `pdf()`, `user_message()` — attach images and PDFs to any message as standard content blocks |
+| **StreamPolicy** | `chat()` / `standard()` / `verbose()` presets (or a custom set) control exactly which event types a consumer sees |
+| **FastAPI Integration** | `create_stream_router()` turns an `Agent`, `Orchestrator`, or `WorkflowBuilder` into an SSE endpoint in one call (`fastapi` extra) |
+| **Structured Output** | `Agent(response_model=...)` validates the final answer against a pydantic schema; result on `AgentResult.parsed` |
+| **Human-in-the-Loop Hooks** | `AgentHooks.approve_tool` can deny an individual tool call before it runs |
+| **Redis Memory Provider** | `RedisMemoryProvider` — a persistent, shared `MemoryProvider` backed by Redis (`redis` extra) |
+| **Production hardening** | `py.typed`, ruff + mypy in CI, structured logging, a version-consistency check, and a tagged release workflow that publishes to PyPI with twine and attaches the wheel/sdist to a GitHub Release |
+
+```python
+from deepcrew import Agent, run_agent, image, pdf, user_message
+
+agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
+msg = user_message("Summarize this chart against the report.", image("chart.png"), pdf("report.pdf"))
+result = await run_agent(agent, [msg])
+```
+
+See the [features guide](https://deepcrew-ai.aayushjoshi.dev/features.html) for full examples of
+every feature above, and the [migration guide](https://deepcrew-ai.aayushjoshi.dev/guides/migration.html)
+if you're coming from CrewAI or Google ADK.
 
 ---
 
@@ -640,21 +672,32 @@ Agent("a", model="ollama/qwen2.5-coder")
 
 ## Streaming with FastAPI
 
+The `fastapi` extra (`pip install deepcrew-ai[fastapi]`) gives you a streaming endpoint in one call:
+
 ```python
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-from deepcrew import Agent, Orchestrator, ApexConfig
+from deepcrew import Agent, Orchestrator, ApexConfig, StreamPolicy
+from deepcrew.integrations.fastapi import create_stream_router
 
-app = FastAPI()
 orch = Orchestrator(
     agents=[Agent("assistant", model="openai/gpt-4o")],
     apex_config=ApexConfig(cite_sources=True),
 )
 
-@app.post("/chat")
+app = FastAPI()
+app.include_router(create_stream_router(orch, policy=StreamPolicy.chat()))
+# POST /chat streams Server-Sent Events; POST /chat/complete returns the final result as JSON.
+```
+
+Or wire it up manually against any `.stream()`-producing object:
+
+```python
+from fastapi.responses import StreamingResponse
+
+@app.post("/chat-manual")
 async def chat(query: str):
     async def event_stream():
-        async for event in orch.stream(query):
+        async for event in orch.stream(query, policy=StreamPolicy.chat()):
             yield event.to_sse()
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 ```
@@ -671,6 +714,8 @@ All events have `event` (EventType), `agent_id` (str), and `data` (dict).
 | `text_delta` | `chunk` | Each streamed text token |
 | `tool_call` | `tool`, `args` | Before tool execution |
 | `tool_result` | `tool`, `result` | After tool execution |
+| `tool_denied` | `tool` | An `AgentHooks.approve_tool` hook denied the call |
+| `thinking_delta` | `chunk` | Each streamed reasoning-content token (if the model exposes one) |
 | `agent_done` | `input_tokens`, `output_tokens` | Agent finished |
 | `apex_start` | `agents` | APEX synthesis begins |
 | `apex_done` | `confidence` | APEX synthesis complete |
@@ -687,6 +732,7 @@ All events have `event` (EventType), `agent_id` (str), and `data` (dict).
 | `step_start` | `node` | Workflow node begins |
 | `step_done` | `node` | Workflow node finished |
 | `error` | `message` | Any exception |
+| `done` | `final_text` (Orchestrator/WorkflowBuilder only) | The whole run/pipeline finished |
 | `done` | `final_text` | Entire run complete |
 
 ---
@@ -699,6 +745,12 @@ pip install deepcrew-ai
 
 # With OpenTelemetry
 pip install "deepcrew-ai[otel]"
+
+# With the FastAPI streaming integration
+pip install "deepcrew-ai[fastapi]"
+
+# With the Redis memory provider
+pip install "deepcrew-ai[redis]"
 
 # With dev dependencies
 pip install "deepcrew-ai[dev]"
@@ -713,8 +765,10 @@ Requires Python 3.11+.
 Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
 - [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
-- [v0.3.0 Features](https://deepcrew-ai.aayushjoshi.dev/features.html)
+- [Features](https://deepcrew-ai.aayushjoshi.dev/features.html) — one page per feature
 - [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
+- [Migration Guide (CrewAI / Google ADK)](https://deepcrew-ai.aayushjoshi.dev/guides/migration.html)
+- [llms.txt](https://deepcrew-ai.aayushjoshi.dev/llms.txt) — machine-readable docs index
 
 ---
 
