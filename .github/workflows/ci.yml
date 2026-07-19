@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -e .[dev]
+      - name: Ruff check
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+      - name: Mypy
+        run: mypy src/
+      - name: Verify pyproject/package version match
+        run: |
+          python - <<'EOF'
+          import re
+          import tomllib
+
+          with open("pyproject.toml", "rb") as f:
+              pyproject_version = tomllib.load(f)["project"]["version"]
+
+          with open("src/deepcrew/__init__.py", encoding="utf-8") as f:
+              init_src = f.read()
+          match = re.search(r'__version__\s*=\s*"([^"]+)"', init_src)
+          init_version = match.group(1) if match else None
+
+          if pyproject_version != init_version:
+              raise SystemExit(
+                  f"Version mismatch: pyproject.toml={pyproject_version!r} "
+                  f"deepcrew.__version__={init_version!r}"
+              )
+          print(f"Version OK: {pyproject_version}")
+          EOF
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -e .[dev,otel,fastapi]
+      - name: Run tests with coverage
+        run: pytest --cov=deepcrew --cov-report=xml

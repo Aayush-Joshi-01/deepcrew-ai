@@ -7,7 +7,7 @@ packages = ["src/deepcrew"]
 
 [project]
 name = "deepcrew-ai"
-version = "0.3.0"
+version = "0.4.0"
 description = "Multi-agent spawning library with a self-improving loop (verifier, adaptive budget, branching, skill distillation, procedural memory), APEX synthesis, bounded nested spawning, and observability"
 readme = "README.md"
 license = { text = "MIT" }
@@ -52,6 +52,9 @@ otel = [
 ]
 redis = [
     "redis>=5.0.0",
+]
+fastapi = [
+    "fastapi>=0.110",
 ]
 
 [project.scripts]
