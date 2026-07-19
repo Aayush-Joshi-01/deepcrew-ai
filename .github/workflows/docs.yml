@@ -1,22 +1,32 @@
-name: Deploy docs
+name: Deploy Docs
 
+# Publishes the hand-written static site in pages/ to GitHub Pages.
+# Requires repo Settings -> Pages -> Source = "GitHub Actions".
+# Only pages/** changes trigger a deploy; source-only commits do not.
 on:
   push:
     branches: [main]
     paths:
       - "pages/**"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
+run-name: Deploy Docs · ${{ github.ref_name }}
+
 permissions:
+  contents: read
   pages: write
   id-token: write
 
+# Never run two Pages deploys at once, and never cancel one midway:
+# a half-applied deploy would leave the live site in a mixed state.
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
   deploy:
+    name: Build & deploy to GitHub Pages
     runs-on: ubuntu-latest
     environment:
       name: github-pages

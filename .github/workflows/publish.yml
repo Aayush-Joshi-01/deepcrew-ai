@@ -1,23 +1,53 @@
-name: Publish
+name: Release
 
+# Triggered only by pushing a version tag, e.g. `git push origin v0.4.0`.
+#
+# Gating: the `build` job runs unattended so packaging breakage surfaces
+# immediately, but `publish-pypi` targets the `pypi` environment, which has
+# required reviewers configured. The run therefore HALTS for manual approval
+# before anything is published. `github-release` depends on publish-pypi, so a
+# single approval covers both PyPI and the GitHub Release.
+#
+# A published PyPI version can never be re-uploaded — treat approval as final.
 on:
   push:
     tags:
       - "v*"
+
+run-name: Release ${{ github.ref_name }}
 
 permissions:
   contents: read
 
 jobs:
   build:
+    name: Build & verify distributions
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
       - name: Install build tooling
         run: pip install build twine
+      - name: Verify tag matches package version
+        run: |
+          python - <<'EOF'
+          import os
+          import tomllib
+
+          tag = os.environ["GITHUB_REF_NAME"]          # e.g. v0.4.0
+          with open("pyproject.toml", "rb") as f:
+              version = tomllib.load(f)["project"]["version"]
+
+          if tag != f"v{version}":
+              raise SystemExit(
+                  f"Tag/version mismatch: tag={tag!r} but "
+                  f"pyproject.toml version={version!r} (expected tag 'v{version}')"
+              )
+          print(f"Tag matches package version: {tag}")
+          EOF
       - name: Build sdist and wheel
         run: python -m build
       - name: Verify py.typed is packaged in the wheel
@@ -37,6 +67,7 @@ jobs:
           path: dist/
 
   publish-pypi:
+    name: Publish to PyPI (manual approval)
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -53,6 +84,16 @@ jobs:
           python-version: "3.12"
       - name: Install twine
         run: pip install twine
+      - name: Fail early if the PyPI token is missing
+        env:
+          TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "PYPI_API_TOKEN is not set for the 'pypi' environment." >&2
+            echo "Add it under Settings -> Environments -> pypi -> Environment secrets." >&2
+            exit 1
+          fi
+          echo "PYPI_API_TOKEN is present."
       - name: Publish to PyPI with twine
         env:
           TWINE_USERNAME: __token__
@@ -60,6 +101,7 @@ jobs:
         run: twine upload --non-interactive dist/*
 
   github-release:
+    name: Create GitHub Release
     needs: publish-pypi
     runs-on: ubuntu-latest
     permissions:

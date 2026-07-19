@@ -1,19 +1,45 @@
 name: CI
 
+# Runs only when code that can actually break the build changes.
+# Documentation-only commits (pages/**, *.md, examples/**) intentionally do NOT
+# trigger CI — there is nothing for ruff/mypy/pytest to validate in them.
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+run-name: CI · ${{ github.event_name }} on ${{ github.ref_name }}
+
+permissions:
+  contents: read
+
+# A newer push to the same branch/PR supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
+    name: Lint & type check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
       - name: Install dependencies
         run: pip install -e .[dev]
       - name: Ruff check
@@ -45,8 +71,10 @@ jobs:
           EOF
 
   test:
+    name: Test (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
@@ -54,6 +82,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
       - name: Install dependencies
         run: pip install -e .[dev,otel,fastapi]
       - name: Run tests with coverage
