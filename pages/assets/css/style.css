@@ -245,6 +245,9 @@ aside {
 .sidebar-section {
   margin-bottom: 24px;
 }
+/* Injected top-nav links (see main.js): only meaningful inside the mobile drawer,
+   where the header's .nav-links is hidden. Kept out of the desktop sidebar. */
+.sidebar-navlinks { display: none; }
 .sidebar-label {
   font-size: 11px;
   font-weight: 600;
@@ -256,9 +259,9 @@ aside {
 }
 .sidebar-link {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 16px;
   font-size: 13.5px;
   color: var(--text-muted);
   border-radius: 0;
@@ -276,8 +279,87 @@ aside {
   border-left-color: white;
   background: var(--accent-glow);
 }
-.sidebar-link .icon { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; }
+.sidebar-link .icon { width: 14px; height: 14px; opacity: 0.5; flex-shrink: 0; margin-top: 2px; }
 .sidebar-link.active .icon { opacity: 1; }
+.sidebar-link .link-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.sidebar-link .link-title { color: inherit; font-size: 13.5px; }
+.sidebar-link .link-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-dim);
+  transition: color var(--transition);
+}
+.sidebar-link:hover .link-desc,
+.sidebar-link.active .link-desc {
+  color: var(--text-muted);
+}
+.sidebar-sublink {
+  display: block;
+  padding: 4px 16px 4px 38px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-left: 2px solid transparent;
+  transition: color var(--transition), background var(--transition);
+}
+.sidebar-sublink:hover {
+  color: var(--text-muted);
+  background: var(--accent-glow);
+  border-left-color: var(--border-bright);
+}
+
+/* On-this-page TOC: real descriptions per anchor, not a bare label list */
+.sidebar-page {
+  display: block;
+  padding: 2px 16px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 8px;
+}
+.toc-item {
+  display: block;
+  padding: 7px 8px 7px 10px;
+  border-radius: var(--radius);
+  border-left: 2px solid transparent;
+  transition: background var(--transition), border-color var(--transition);
+}
+.toc-item:hover {
+  background: var(--accent-glow);
+  border-left-color: var(--border-bright);
+}
+.toc-item.active {
+  background: var(--accent-glow);
+  border-left-color: white;
+}
+.toc-title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  transition: color var(--transition);
+}
+.toc-item:hover .toc-title,
+.toc-item.active .toc-title {
+  color: var(--text);
+}
+.toc-desc {
+  display: block;
+  font-size: 11px;
+  line-height: 1.42;
+  color: var(--text-dim);
+}
 
 /* ============================================================
    MAIN CONTENT
@@ -658,16 +740,25 @@ main {
 /* ============================================================
    FEATURE CARDS
    ============================================================ */
+.feature-section-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 32px 80px 12px;
+}
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
-  margin: 0 80px 80px;
+  margin: 0 80px 32px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   animation: fadeUp 0.5s 0.35s ease both;
 }
+.feature-grid:last-of-type { margin-bottom: 80px; }
 .feature-card {
   background: var(--bg-card);
   padding: 28px;
@@ -1077,6 +1168,22 @@ footer {
   .hero-right { display: none; }
 }
 
+/* Icon-only nav buttons on narrow screens: text hides, icon + svg stay,
+   so "Copy page" / "Copy prompt" / "GitHub" / "PyPI" always fit on one row
+   even on the widest phones (iPhone 14 Pro Max is 430px CSS width). */
+@media (max-width: 560px) {
+  .nav-right .btn-text { display: none; }
+  .nav-right .btn-outline,
+  .nav-right .btn-primary {
+    padding: 7px 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-right .btn-primary { font-size: 0; } /* hide the bare "&rarr;" text node too */
+  .nav-right .btn-primary::after { content: "\2192"; font-size: 13px; }
+}
+
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
 
@@ -1088,24 +1195,47 @@ footer {
   .btn-outline { padding: 6px 10px; font-size: 12px; }
   .btn-primary { padding: 6px 10px; font-size: 12px; }
 
-  /* Sidebar — hidden by default, shown as overlay via JS */
+  /* Sidebar — hidden by default, shown as a bounded dropdown sheet via JS.
+     Height is content-sized (not stretched to the viewport bottom) so a short
+     sidebar doesn't render as a large empty near-black rectangle indistinguishable
+     from the backdrop behind it. */
   aside {
     display: none;
-    width: 260px;
-    background: #050505;
-    box-shadow: 4px 0 32px rgba(0,0,0,0.9);
+    top: var(--header-h);
+    bottom: auto;
+    max-height: min(78vh, calc(100vh - var(--header-h)));
+    width: min(330px, calc(100vw - 24px));
+    /* Fully opaque, elevated surface so the drawer reads as a distinct panel and
+       never blends with the dimmed page behind it. */
+    background: #161616;
+    border: 1px solid var(--border-bright);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    box-shadow: 0 18px 48px rgba(0,0,0,0.6);
     z-index: 200;
+    /* Disable the desktop slide-in fade on mobile: its opacity/transform keyframes
+       can otherwise leave the toggled-open drawer semi-transparent. */
+    animation: none;
   }
-  /* Backdrop overlay when sidebar is open */
+  /* Backdrop overlay when sidebar is open. Lives inside .page-layout (see main.js)
+     so it shares the drawer's stacking context and dims <main> without covering the
+     drawer itself. */
   .sidebar-backdrop {
     display: none;
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.6);
     z-index: 199;
-    backdrop-filter: blur(2px);
   }
   .sidebar-backdrop.open { display: block; }
+
+  /* Reveal the cloned top-nav links inside the drawer, with a divider below. */
+  .sidebar-navlinks {
+    display: block;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
 
   /* Main / layout */
   main { margin-left: 0; }
@@ -1138,7 +1268,8 @@ footer {
   .stat-item:nth-child(4) { border-bottom: none; }
 
   /* Feature grid */
-  .feature-grid { grid-template-columns: 1fr; margin: 0 20px 48px; }
+  .feature-grid { grid-template-columns: 1fr; margin: 0 20px 32px; }
+  .feature-section-label { margin: 24px 20px 12px; }
 
   /* Sections */
   .section { padding: 40px 20px; }
@@ -1155,8 +1286,6 @@ footer {
 }
 
 @media (max-width: 420px) {
-  .btn-outline span, .btn-outline { font-size: 11px; padding: 5px 8px; }
-  .nav-right .btn-outline { display: none; } /* hide GitHub btn on very small, keep PyPI */
   .stat-num { font-size: 22px; }
   .stat-item { padding: 16px 16px; }
 }

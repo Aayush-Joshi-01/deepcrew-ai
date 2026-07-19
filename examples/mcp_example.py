@@ -10,7 +10,7 @@ Run: python examples/mcp_example.py
 import asyncio
 
 from deepcrew import Agent, run_agent
-from deepcrew.mcp import HTTPMCP, MCPManager, SSEMCP, StdioMCP
+from deepcrew.mcp import HTTPMCP, SSEMCP, MCPManager, StdioMCP
 
 
 async def stdio_example():

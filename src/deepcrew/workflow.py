@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from .agent import Agent
 from .exceptions import WorkflowError
 from .observability import ObservabilityConfig, workflow_step_span
 from .runner import run_agent
-from .stream import make_done_event, make_error_event, queue_to_stream
+from .stream import StreamPolicy, filter_stream, make_error_event, queue_to_stream
 from .types import AgentResult, EventType, StreamEvent, WorkflowResult
 
 
@@ -116,12 +116,14 @@ class WorkflowBuilder:
 
         for level in levels:
             tasks = [
-                _run_node(self._nodes[name], initial_input, outputs, observability=self._observability)
+                _run_node(
+                    self._nodes[name], initial_input, outputs, observability=self._observability
+                )
                 for name in level
             ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for name, result in zip(level, results):
-                if isinstance(result, Exception):
+            for name, result in zip(level, results, strict=False):
+                if isinstance(result, BaseException):
                     raise result
                 outputs[name] = result
                 total_in += result.input_tokens
@@ -139,14 +141,22 @@ class WorkflowBuilder:
         self,
         initial_input: str,
         context: dict[str, Any] | None = None,
+        *,
+        policy: StreamPolicy | None = None,
     ) -> AsyncGenerator[StreamEvent, None]:
-        """Execute the workflow, streaming events in real time."""
+        """Execute the workflow, streaming events in real time.
+
+        ``policy`` filters which event types are yielded (see
+        :class:`StreamPolicy`); it is a view over the stream only and never
+        affects execution.
+        """
         self._validate()
         queue: asyncio.Queue[StreamEvent | None] = asyncio.Queue()
-        task = asyncio.create_task(
-            self._run_streaming(initial_input, context or {}, queue)
-        )
-        return queue_to_stream(queue, task)
+        task = asyncio.create_task(self._run_streaming(initial_input, context or {}, queue))
+        stream = queue_to_stream(queue, task)
+        if policy is not None:
+            stream = filter_stream(stream, policy)
+        return stream
 
     async def _run_streaming(
         self,
@@ -163,13 +173,19 @@ class WorkflowBuilder:
                     await queue.put(StreamEvent(EventType.STEP_START, {"node": name}, name))
 
                 tasks = [
-                    _run_node(self._nodes[name], initial_input, outputs, queue=queue, observability=self._observability)
+                    _run_node(
+                        self._nodes[name],
+                        initial_input,
+                        outputs,
+                        queue=queue,
+                        observability=self._observability,
+                    )
                     for name in level
                 ]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                for name, result in zip(level, results):
-                    if isinstance(result, Exception):
+                for name, result in zip(level, results, strict=False):
+                    if isinstance(result, BaseException):
                         await queue.put(make_error_event(name, str(result)))
                         await queue.put(None)
                         return
@@ -194,6 +210,7 @@ class WorkflowBuilder:
 # ---------------------------------------------------------------------------
 # DAG helpers
 # ---------------------------------------------------------------------------
+
 
 async def _run_node(
     node: _WorkflowNode,

@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
-import pytest
-
 from deepcrew.tools import fn_to_tool_def, tool
 
 
@@ -55,7 +51,7 @@ def test_fn_to_tool_def_defaults_not_required():
 
 
 def test_fn_to_tool_def_optional_type():
-    def func(value: Optional[str] = None) -> str:
+    def func(value: str | None = None) -> str:
         return value or ""
 
     td = fn_to_tool_def(func)

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 from ..exceptions import MCPError
 from ..types import ToolDef
 from .base import MCPClient
+
+logger = logging.getLogger(__name__)
 
 
 class MCPManager:
@@ -42,6 +45,7 @@ class MCPManager:
 
     async def connect_all(self) -> None:
         """Connect all clients in parallel."""
+        logger.info("MCPManager connecting %d client(s)", len(self._clients))
         await asyncio.gather(*[c.connect() for c in self._clients], return_exceptions=True)
 
     async def discover_tools(self) -> list[ToolDef]:
@@ -65,6 +69,7 @@ class MCPManager:
     async def call_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any] | str:
         client = self._routing.get(name)
         if not client:
+            logger.error("no MCP server owns tool %r", name)
             raise MCPError(
                 f"No MCP server owns tool {name!r}. "
                 "Did you call discover_tools() before calling call_tool()?"

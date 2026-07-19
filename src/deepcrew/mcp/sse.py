@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 import json
+import logging
 from typing import Any
 from urllib.parse import urljoin
 
@@ -10,6 +10,8 @@ import httpx
 from ..exceptions import MCPError
 from ..types import ToolDef
 from .base import MCPClient, _parse_mcp_tool
+
+logger = logging.getLogger(__name__)
 
 
 class SSEMCP(MCPClient):
@@ -46,6 +48,7 @@ class SSEMCP(MCPClient):
         self._msg_id = 0
 
     async def connect(self) -> None:
+        logger.info("SSEMCP connecting: %s", self.base_url)
         self._http = httpx.AsyncClient(timeout=60.0)
         await self._sse_handshake()
         await self._initialize()
@@ -80,9 +83,7 @@ class SSEMCP(MCPClient):
     async def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
         if self._http is None or self._post_url is None:
             raise MCPError("SSEMCP is not connected. Call connect() first.")
-        resp = await self._http.post(
-            self._post_url, json=payload, headers=self._extra_headers
-        )
+        resp = await self._http.post(self._post_url, json=payload, headers=self._extra_headers)
         resp.raise_for_status()
         try:
             return resp.json()
@@ -104,6 +105,7 @@ class SSEMCP(MCPClient):
             }
         )
         if "error" in body:
+            logger.error("SSEMCP initialize error: %s", body["error"])
             raise MCPError(f"SSEMCP initialize error: {body['error']}")
 
         # Fire-and-forget notification
@@ -125,6 +127,7 @@ class SSEMCP(MCPClient):
             {"jsonrpc": "2.0", "id": self._msg_id, "method": "tools/list", "params": {}}
         )
         if "error" in body:
+            logger.error("SSEMCP tools/list failed: %s", body["error"])
             raise MCPError(f"tools/list failed: {body['error']}")
         raw_tools: list[dict] = body.get("result", {}).get("tools", [])
         self._tool_cache = [_parse_mcp_tool(t, self) for t in raw_tools]
@@ -141,6 +144,7 @@ class SSEMCP(MCPClient):
             }
         )
         if "error" in body:
+            logger.error("SSEMCP tool %r call failed: %s", name, body["error"])
             raise MCPError(f"Tool {name!r} call failed: {body['error']}")
         result = body.get("result", {})
         if isinstance(result, dict) and "content" in result:

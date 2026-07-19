@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Looping — deepcrew-ai</title>
+  <meta name="description" content="Outer iteration loop for search-refine patterns, with self-consistency branching." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Self-Improving Loop</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/looping.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="looping-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Self-Improving Loop</span>
+    <span class="sidebar-page">Looping</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#adaptive"><span class="toc-title">Adaptive early-stop</span><span class="toc-desc">Exit the refinement loop early once verifier scores plateau.</span></a>
+      <a class="toc-item" href="#skill-distillation"><span class="toc-title">Skill distillation</span><span class="toc-desc">Voyager-style: successful runs get compiled into reusable skills.</span></a>
+      <a class="toc-item" href="#branching"><span class="toc-title">Branching</span><span class="toc-desc">Self-consistency: run several branches in parallel, keep the best.</span></a>
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Convergence functions, LoopConvergedError, and verifier dependencies.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="looping" data-section="looping">
+  <div class="section-eyebrow">Self-Improving Loop</div>
+  <h2>Looping Methodology</h2>
+  <p>The outer iteration loop is distinct from the inner per-turn <code>max_turns</code> cycle. The loop runs the entire agent (including all its tool calls) and re-runs it if the result doesn't meet a convergence criterion — ideal for search-refine, draft-critique, and iterative research patterns.</p>
+
+  <h3>How it works</h3>
+  <ol>
+    <li>Agent runs (all inner turns until no more tool calls)</li>
+    <li><code>convergence_fn(result)</code> is called — if it returns <code>True</code>, the loop exits</li>
+    <li>If not converged, <code>refine_prompt</code> is appended and the agent runs again</li>
+    <li>Loop exits when <code>max_iterations</code> is reached or convergence is achieved</li>
+    <li><code>result.loop_iterations</code> records how many outer iterations ran</li>
+  </ol>
+
+  <h3>Basic loop with convergence</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">loop_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web for information."
+    ...
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a thorough researcher. Use search to gather comprehensive information.",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        # Convergence: result is long enough to be a proper answer
+        convergence_fn=lambda r: len(r.text) > 800 and r.text.count("\n") > 5,
+        # What to say to the agent if not converged
+        refine_prompt="Your answer is incomplete. Search for more details and expand your response significantly.",
+    ),
+)
+
+result = await run_agent(
+    agent,
+    [{"role": "user", "content": "Explain the mechanism of CRISPR-Cas9 gene editing"}],
+)
+
+print(result.text)
+print(f"Iterations: {result.loop_iterations}")</code></pre>
+  </div>
+
+  <h3>Verifier-driven refinement</h3>
+  <p>A <code>Verifier</code> grades each iteration's answer with structured feedback — a score, specific issues, and a suggestion — instead of a boolean, and drives a targeted refinement prompt. See the full <a href="#verifier">Verifier feature guide</a> for a showcase of usage patterns, from a basic quality gate to a fully custom grading function.</p>
+
+  <h3>run_agent_loop() directly</h3>
+  <p><code>run_agent()</code> already delegates to <code>run_agent_loop()</code> automatically whenever <code>agent.loop_config</code> is set — you never need to call this yourself in normal use. It's exposed for cases where you want to call the outer loop directly without going through <code>run_agent()</code>'s signature (for example, from inside other deepcrew internals, or your own orchestration code that already has a fully-resolved <code>tool_defs</code> list and wants to skip the discovery step).</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import run_agent_loop, LoopConfig
+
+result = await run_agent_loop(
+    agent=my_agent,
+    messages=[{"role": "user", "content": "Draft an executive summary"}],
+    tool_defs=None,
+    queue=my_queue,
+    agent_id="drafter",
+)
+# result.loop_iterations is set on every exit path — converged, adaptive
+# early-stop, or plain max_iterations exhaustion — so you can always tell
+# how many outer iterations actually ran.</code></pre>
+  </div>
+
+  <span class="anchor" id="adaptive"></span>
+  <h3>How-to: adaptive early-stop</h3>
+  <p>By default the loop always runs the full <code>max_iterations</code> unless <code>convergence_fn</code>/the verifier's <code>converged</code> flag fires first. With <code>adaptive=True</code> and a <code>verifier</code> configured, the loop additionally tracks the verifier score across iterations and stops as soon as improvement plateaus — saving compute once refinement stops paying off. It requires at least two scored iterations before it can detect a plateau, so it never fires on iteration 0 or 1; <code>max_iterations</code> remains a hard ceiling either way, adaptive can only shorten the loop, never lengthen it.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">adaptive_loop.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=8,
+        verifier=Verifier(),
+        adaptive=True,
+        min_improvement=0.02,   # smaller deltas than this count as "not improving"
+        plateau_patience=2,     # stop after 2 consecutive non-improving iterations
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(f"Stopped after {result.loop_iterations} iterations")</code></pre>
+  </div>
+  <p>When the plateau fires, the loop returns the <em>best-scoring</em> result seen so far — not necessarily the most recent one. If iteration 4 scored higher than iterations 5 and 6 before patience ran out, iteration 4's result is what you get back, even though two more (worse) iterations ran after it.</p>
+
+  <span class="anchor" id="skill-distillation"></span>
+  <h3>How-to: self-evolving skill distillation</h3>
+  <p>Set <code>auto_extract_skill=True</code> to turn a genuinely converged, high-quality loop run into a reusable <code>Skill</code> automatically, registered in the process-wide <code>SkillRegistry</code>. "Genuinely converged" is strict: this only fires when the loop actually converged via <code>convergence_fn</code> or the verifier's <code>converged</code> flag — plain <code>max_iterations</code> exhaustion, or an adaptive plateau stop, never triggers distillation, no matter how good the final score was.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">skill_distillation.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, SkillRegistry
+
+agent = Agent(
+    name="sql_analyst",
+    model="openai/gpt-4o-mini",
+    tools=[run_sql],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,  # quality bar to distill
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Find top 10 customers by revenue"}])
+
+# If it converged with score/confidence >= 0.85, a new Skill now exists
+# in SkillRegistry, named deterministically from task_tag + a query hash.
+print([s.name for s in SkillRegistry.list_all()])</code></pre>
+  </div>
+  <p>The distilled skill is <strong>replayable</strong>, not a frozen memoized answer: calling it re-runs a fresh copy of the original agent (same <code>system_prompt</code>, <code>tools</code>, <code>mcps</code>, <code>skills</code>, model, and generation params) against whatever new <code>task</code> string you pass the skill — it generalizes to similar future tasks rather than always returning the one answer that happened to converge. See <a href="skills.html#self-evolving-skills">Skills → Self-evolving skills</a> for how to actually invoke a distilled skill afterward.</p>
+
+  <h3>search_loop() — confidence-based iteration</h3>
+  <p><code>search_loop()</code> is a convenience wrapper that builds a fresh <code>Agent</code> with a single search tool and a <code>convergence_fn</code> based on <code>AgentResult.confidence</code>:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import search_loop, Agent, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web."
+    ...
+
+agent = Agent("searcher", model="openai/gpt-4o-mini",
+              system_prompt="You are a research agent.", tools=[search_web])
+
+# Runs at most 3 iterations, stopping early if result.confidence >= 0.8
+result = await search_loop(
+    query="What is the current state of nuclear fusion research?",
+    search_tool=search_web,
+    agent=agent,
+    max_iterations=3,
+    confidence_threshold=0.8,
+)</code></pre>
+  </div>
+  <div class="callout">
+    <div><strong>Caveat:</strong> <code>AgentResult.confidence</code> defaults to <code>None</code> and is only ever populated by <code>APEXSynthesizer</code> (multi-agent synthesis) or by a custom <code>evaluate_fn</code> you write and attach to a <code>Verifier</code> yourself — a bare agent run through <code>run_agent()</code> never sets it. <code>search_loop()</code>'s convergence check is <code>(r.confidence or 0.0) >= confidence_threshold</code>, so with the plain single-agent setup shown above, confidence stays <code>None</code> → treated as <code>0.0</code> → the check never passes, and the loop always runs the full <code>max_iterations</code> regardless of the threshold you set. If you want a real early-stop signal for a plain search agent, use <a href="#looping">a <code>Verifier</code></a> and set <code>convergence_fn</code> yourself instead of relying on <code>search_loop()</code>'s confidence check.</div>
+  </div>
+
+  <h3>Stop condition (early exit)</h3>
+  <p><code>stop_condition</code> (and <code>convergence_fn</code>, for that matter) should be a plain predicate — return <code>True</code>/<code>False</code>, don't raise anything yourself. When <code>stop_condition</code> returns <code>True</code>, <strong>the loop itself</strong> raises <code>LoopConvergedError</code> carrying that <code>AgentResult</code> on its <code>.result</code> attribute; the loop never catches this exception internally, so it propagates all the way out of <code>run_agent()</code>/<code>run_agent_loop()</code> to whoever called them. That means using <code>stop_condition</code> requires wrapping the call in a <code>try/except</code>:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, LoopConvergedError
+
+agent = Agent(
+    "reasoner", model="openai/gpt-4o",
+    system_prompt="When you have a final answer, prefix it with 'FINAL ANSWER:'.",
+    loop_config=LoopConfig(
+        max_iterations=6,
+        stop_condition=lambda r: "FINAL ANSWER:" in r.text,  # plain bool, no raise
+    ),
+)
+
+try:
+    result = await run_agent(agent, [{"role": "user", "content": "..."}])
+except LoopConvergedError as exc:
+    result = exc.result   # the AgentResult that triggered the stop</code></pre>
+  </div>
+  <p><code>convergence_fn</code> is different: returning <code>True</code> from it makes the loop exit and <em>return</em> the result normally, no exception involved. Use <code>convergence_fn</code> for the common case (stop and return); reach for <code>stop_condition</code> only when you specifically want the exception-based early-exit path — e.g. to unwind through several stack frames of your own code, or to distinguish "converged normally" from "stopped early" at the call site via <code>except</code> vs. normal return.</p>
+
+  <h3>LoopConfig reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">max_iterations</div><div class="param-cell param-type">int = 5</div><div class="param-cell param-desc">Hard limit on outer loop iterations. Loop always exits after this many runs, converged or not.</div></div>
+    <div class="param-row"><div class="param-cell param-name">convergence_fn</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Called with the current <code>AgentResult</code>. Return <code>True</code> to stop. Raise <code>LoopConvergedError(result)</code> for immediate exit with that result.</div></div>
+    <div class="param-row"><div class="param-cell param-name">stop_condition</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Alternative to convergence_fn. Raises <code>LoopConvergedError</code> on its own — useful for externalizing early-exit logic.</div></div>
+    <div class="param-row"><div class="param-cell param-name">refine_prompt</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Appended to conversation on each non-converged iteration. Default: <code>"Your answer is incomplete. Please search for more information and expand your response."</code></div></div>
+    <div class="param-row"><div class="param-cell param-name">verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div><div class="param-cell param-type">Verifier | None</div><div class="param-cell param-desc">Structured critic. When set, its <code>VerifierFeedback</code> (score + issues + suggestion) drives both convergence and the next refinement prompt, replacing the static <code>refine_prompt</code> text.</div></div>
+    <div class="param-row"><div class="param-cell param-name">procedural_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">ProceduralMemory | None</div><div class="param-cell param-desc">Evolving playbook, read before iteration 1 and curated on loop exit. Requires <code>verifier</code> to be set too — see the <a href="#procedural-memory">Procedural Memory guide</a>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">task_tag <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Playbook namespace for <code>procedural_memory</code>. Defaults to <code>agent.name</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">adaptive <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">bool = False</div><div class="param-cell param-desc">Plateau-detection early exit based on verifier score deltas. No-op without <code>verifier</code>. Never exceeds <code>max_iterations</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">min_improvement <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">float = 0.02</div><div class="param-cell param-desc">Minimum verifier-score delta between iterations to count as still improving.</div></div>
+    <div class="param-row"><div class="param-cell param-name">plateau_patience <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">int = 2</div><div class="param-cell param-desc">Consecutive non-improving iterations tolerated before an adaptive early stop.</div></div>
+    <div class="param-row"><div class="param-cell param-name">branches <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.4</span></div><div class="param-cell param-type">int = 1</div><div class="param-cell param-desc">When &gt; 1, run this many parallel candidates per iteration (self-consistency). Best picked by <code>verifier</code> score, or merged via <code>APEXSynthesizer</code> when no verifier is set. Multiplies LLM calls per iteration.</div></div>
+    <div class="param-row"><div class="param-cell param-name">auto_extract_skill <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></div><div class="param-cell param-type">bool = False</div><div class="param-cell param-desc">Distills a genuinely converged run into a reusable <code>Skill</code> registered in <code>SkillRegistry</code> — see the <a href="#skills">Skills guide</a>. Never triggers on plain <code>max_iterations</code> exhaustion.</div></div>
+    <div class="param-row"><div class="param-cell param-name">skill_confidence_threshold <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></div><div class="param-cell param-type">float = 0.85</div><div class="param-cell param-desc">Minimum quality signal (verifier score, or <code>AgentResult.confidence</code>) required to distill a skill.</div></div>
+  </div>
+
+  <span class="anchor" id="branching"></span>
+  <h3>How-to: self-consistency branching <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.4</span></h3>
+  <p>Instead of one linear refinement path, run several candidate continuations per iteration in parallel and keep the best — a lightweight tree-search/self-consistency pattern. Each parallel call already samples independently from the model, so branches naturally diverge without any extra seeding logic. This costs <code>branches</code>× the LLM calls per iteration, so pair it with a low <code>max_iterations</code>.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">loop_branching.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        branches=3,  # 3x the LLM calls per iteration, in exchange for picking the best
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])</code></pre>
+  </div>
+  <p>Without a <code>verifier</code>, branching still works — the <code>branches</code> candidates are merged into one cohesive answer via the same <code>APEXSynthesizer</code> used for multi-agent orchestration, rather than picking a single winner.</p>
+
+  <h3>Loop events</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.types import EventType
+
+while True:
+    event = await queue.get()
+    if event is None: break
+    if event.event == EventType.LOOP_ITERATION:
+        i = event.data["iteration"]
+        converged = event.data["converged"]
+        print(f"Loop iteration {i} — {'converged' if converged else 'refining...'}")
+    elif event.event == EventType.VERIFIER_SCORED:  # v0.2.1
+        print(f"Verifier score: {event.data['score']} — issues: {event.data['issues']}")
+    elif event.event == EventType.BRANCH_SELECTED:  # v0.2.4
+        print(f"Branch {event.data['winning_index']} won with score {event.data['winning_score']}")
+    elif event.event == EventType.SKILL_EXTRACTED:  # v0.2.5
+        print(f"Distilled new skill: {event.data['skill_name']} (score {event.data['score']})")</code></pre>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong><code>search_loop()</code>'s confidence check can silently never fire.</strong> See the caveat above — with no verifier or APEX in the path, <code>AgentResult.confidence</code> stays <code>None</code> and the loop always runs to <code>max_iterations</code>.</li>
+    <li><strong><code>stop_condition</code> requires a <code>try/except LoopConvergedError</code> at the call site.</strong> The predicate itself must just return a bool — the loop raises the exception, not your callable.</li>
+    <li><strong><code>adaptive</code>, <code>procedural_memory</code>, and <code>auto_extract_skill</code> are all no-ops without <code>verifier</code>.</strong> Each of them either reads a verifier score or a converged-via-verifier flag; set a <code>Verifier</code> or these fields do nothing silently.</li>
+    <li><strong><code>branches</code> multiplies LLM call volume linearly.</strong> <code>branches=3</code> means 3× the calls per iteration — pair a high branch count with a low <code>max_iterations</code> to keep total cost bounded.</li>
+    <li><strong>Adaptive early-stop returns the best iteration, not the last one.</strong> Don't assume <code>result.loop_iterations</code> tells you which iteration's text you're holding — it only tells you how many ran in total.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="verifier.html">Verifier</a> — the structured critic that drives convergence, adaptive stopping, and branch selection.</li>
+    <li><a href="procedural-memory.html">Procedural Memory</a> — the evolving playbook this loop reads from and curates into on exit.</li>
+    <li><a href="skills.html#self-evolving-skills">Skills → Self-evolving skills</a> — what happens to a distilled skill after <code>auto_extract_skill</code> registers it.</li>
+    <li><a href="apex.html">APEX Synthesizer</a> — merges branches when no verifier is set.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="looping-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Looping" feature: Outer iteration loop for search-refine patterns, with self-consistency branching.
+
+How it works: Use Agent(loop_config=LoopConfig(max_iterations=..., branches=...)) to run an outer refinement loop over full agent runs, optionally with parallel self-consistency branches per iteration.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Looping') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Looping for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Looping
+The outer iteration loop is distinct from the inner per-turn `max_turns` cycle. The loop runs the entire agent (including all its tool calls) and re-runs it if the result doesn't meet a convergence criterion — ideal for search-refine, draft-critique, and iterative research patterns.
+
+### How it works
+
+    - Agent runs (all inner turns until no more tool calls)
+    - `convergence_fn(result)` is called — if it returns `True`, the loop exits
+    - If not converged, `refine_prompt` is appended and the agent runs again
+    - Loop exits when `max_iterations` is reached or convergence is achieved
+    - `result.loop_iterations` records how many outer iterations ran
+
+### Basic loop with convergence
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web for information."
+    ...
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a thorough researcher. Use search to gather comprehensive information.",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        # Convergence: result is long enough to be a proper answer
+        convergence_fn=lambda r: len(r.text) > 800 and r.text.count("\n") > 5,
+        # What to say to the agent if not converged
+        refine_prompt="Your answer is incomplete. Search for more details and expand your response significantly.",
+    ),
+)
+
+result = await run_agent(
+    agent,
+    [{"role": "user", "content": "Explain the mechanism of CRISPR-Cas9 gene editing"}],
+)
+
+print(result.text)
+print(f"Iterations: {result.loop_iterations}")
+```
+
+### Verifier-driven refinement
+
+A `Verifier` grades each iteration's answer with structured feedback — a score, specific issues, and a suggestion — instead of a boolean, and drives a targeted refinement prompt. See the full [Verifier feature guide](#verifier) for a showcase of usage patterns, from a basic quality gate to a fully custom grading function.
+
+### run_agent_loop() directly
+
+`run_agent()` already delegates to `run_agent_loop()` automatically whenever `agent.loop_config` is set — you never need to call this yourself in normal use. It's exposed for cases where you want to call the outer loop directly without going through `run_agent()`'s signature (for example, from inside other deepcrew internals, or your own orchestration code that already has a fully-resolved `tool_defs` list and wants to skip the discovery step).
+
+```python
+from deepcrew import run_agent_loop, LoopConfig
+
+result = await run_agent_loop(
+    agent=my_agent,
+    messages=[{"role": "user", "content": "Draft an executive summary"}],
+    tool_defs=None,
+    queue=my_queue,
+    agent_id="drafter",
+)
+# result.loop_iterations is set on every exit path — converged, adaptive
+# early-stop, or plain max_iterations exhaustion — so you can always tell
+# how many outer iterations actually ran.
+```
+
+### How-to: adaptive early-stop
+
+By default the loop always runs the full `max_iterations` unless `convergence_fn`/the verifier's `converged` flag fires first. With `adaptive=True` and a `verifier` configured, the loop additionally tracks the verifier score across iterations and stops as soon as improvement plateaus — saving compute once refinement stops paying off. It requires at least two scored iterations before it can detect a plateau, so it never fires on iteration 0 or 1; `max_iterations` remains a hard ceiling either way, adaptive can only shorten the loop, never lengthen it.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=8,
+        verifier=Verifier(),
+        adaptive=True,
+        min_improvement=0.02,   # smaller deltas than this count as "not improving"
+        plateau_patience=2,     # stop after 2 consecutive non-improving iterations
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(f"Stopped after {result.loop_iterations} iterations")
+```
+
+When the plateau fires, the loop returns the best-scoring result seen so far — not necessarily the most recent one. If iteration 4 scored higher than iterations 5 and 6 before patience ran out, iteration 4's result is what you get back, even though two more (worse) iterations ran after it.
+
+### How-to: self-evolving skill distillation
+
+Set `auto_extract_skill=True` to turn a genuinely converged, high-quality loop run into a reusable `Skill` automatically, registered in the process-wide `SkillRegistry`. "Genuinely converged" is strict: this only fires when the loop actually converged via `convergence_fn` or the verifier's `converged` flag — plain `max_iterations` exhaustion, or an adaptive plateau stop, never triggers distillation, no matter how good the final score was.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, SkillRegistry
+
+agent = Agent(
+    name="sql_analyst",
+    model="openai/gpt-4o-mini",
+    tools=[run_sql],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,  # quality bar to distill
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Find top 10 customers by revenue"}])
+
+# If it converged with score/confidence >= 0.85, a new Skill now exists
+# in SkillRegistry, named deterministically from task_tag + a query hash.
+print([s.name for s in SkillRegistry.list_all()])
+```
+
+The distilled skill is replayable, not a frozen memoized answer: calling it re-runs a fresh copy of the original agent (same `system_prompt`, `tools`, `mcps`, `skills`, model, and generation params) against whatever new `task` string you pass the skill — it generalizes to similar future tasks rather than always returning the one answer that happened to converge. See [Skills → Self-evolving skills](skills.html#self-evolving-skills) for how to actually invoke a distilled skill afterward.
+
+### search_loop() — confidence-based iteration
+
+`search_loop()` is a convenience wrapper that builds a fresh `Agent` with a single search tool and a `convergence_fn` based on `AgentResult.confidence`:
+
+```python
+from deepcrew import search_loop, Agent, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web."
+    ...
+
+agent = Agent("searcher", model="openai/gpt-4o-mini",
+              system_prompt="You are a research agent.", tools=[search_web])
+
+# Runs at most 3 iterations, stopping early if result.confidence >= 0.8
+result = await search_loop(
+    query="What is the current state of nuclear fusion research?",
+    search_tool=search_web,
+    agent=agent,
+    max_iterations=3,
+    confidence_threshold=0.8,
+)
+```
+
+> Caveat: `AgentResult.confidence` defaults to `None` and is only ever populated by `APEXSynthesizer` (multi-agent synthesis) or by a custom `evaluate_fn` you write and attach to a `Verifier` yourself — a bare agent run through `run_agent()` never sets it. `search_loop()`'s convergence check is `(r.confidence or 0.0) >= confidence_threshold`, so with the plain single-agent setup shown above, confidence stays `None` → treated as `0.0` → the check never passes, and the loop always runs the full `max_iterations` regardless of the threshold you set. If you want a real early-stop signal for a plain search agent, use [a `Verifier`](#looping) and set `convergence_fn` yourself instead of relying on `search_loop()`'s confidence check.
+
+### Stop condition (early exit)
+
+`stop_condition` (and `convergence_fn`, for that matter) should be a plain predicate — return `True`/`False`, don't raise anything yourself. When `stop_condition` returns `True`, the loop itself raises `LoopConvergedError` carrying that `AgentResult` on its `.result` attribute; the loop never catches this exception internally, so it propagates all the way out of `run_agent()`/`run_agent_loop()` to whoever called them. That means using `stop_condition` requires wrapping the call in a `try/except`:
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, LoopConvergedError
+
+agent = Agent(
+    "reasoner", model="openai/gpt-4o",
+    system_prompt="When you have a final answer, prefix it with 'FINAL ANSWER:'.",
+    loop_config=LoopConfig(
+        max_iterations=6,
+        stop_condition=lambda r: "FINAL ANSWER:" in r.text,  # plain bool, no raise
+    ),
+)
+
+try:
+    result = await run_agent(agent, [{"role": "user", "content": "..."}])
+except LoopConvergedError as exc:
+    result = exc.result   # the AgentResult that triggered the stop
+```
+
+`convergence_fn` is different: returning `True` from it makes the loop exit and return the result normally, no exception involved. Use `convergence_fn` for the common case (stop and return); reach for `stop_condition` only when you specifically want the exception-based early-exit path — e.g. to unwind through several stack frames of your own code, or to distinguish "converged normally" from "stopped early" at the call site via `except` vs. normal return.
+
+### LoopConfig reference
+
+- **max_iterations** (int = 5): Hard limit on outer loop iterations. Loop always exits after this many runs, converged or not.
+
+- **convergence_fn** (Callable | None): Called with the current `AgentResult`. Return `True` to stop. Raise `LoopConvergedError(result)` for immediate exit with that result.
+
+- **stop_condition** (Callable | None): Alternative to convergence_fn. Raises `LoopConvergedError` on its own — useful for externalizing early-exit logic.
+
+- **refine_prompt** (str): Appended to conversation on each non-converged iteration. Default: `"Your answer is incomplete. Please search for more information and expand your response."`
+
+- **verifier v0.2.1** (Verifier | None): Structured critic. When set, its `VerifierFeedback` (score + issues + suggestion) drives both convergence and the next refinement prompt, replacing the static `refine_prompt` text.
+
+- **procedural_memory v0.2.2** (ProceduralMemory | None): Evolving playbook, read before iteration 1 and curated on loop exit. Requires `verifier` to be set too — see the [Procedural Memory guide](#procedural-memory).
+
+- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.name`.
+
+- **adaptive v0.2.3** (bool = False): Plateau-detection early exit based on verifier score deltas. No-op without `verifier`. Never exceeds `max_iterations`.
+
+- **min_improvement v0.2.3** (float = 0.02): Minimum verifier-score delta between iterations to count as still improving.
+
+- **plateau_patience v0.2.3** (int = 2): Consecutive non-improving iterations tolerated before an adaptive early stop.
+
+- **branches v0.2.4** (int = 1): When > 1, run this many parallel candidates per iteration (self-consistency). Best picked by `verifier` score, or merged via `APEXSynthesizer` when no verifier is set. Multiplies LLM calls per iteration.
+
+- **auto_extract_skill v0.2.5** (bool = False): Distills a genuinely converged run into a reusable `Skill` registered in `SkillRegistry` — see the [Skills guide](#skills). Never triggers on plain `max_iterations` exhaustion.
+
+- **skill_confidence_threshold v0.2.5** (float = 0.85): Minimum quality signal (verifier score, or `AgentResult.confidence`) required to distill a skill.
+
+### How-to: self-consistency branching v0.2.4
+
+Instead of one linear refinement path, run several candidate continuations per iteration in parallel and keep the best — a lightweight tree-search/self-consistency pattern. Each parallel call already samples independently from the model, so branches naturally diverge without any extra seeding logic. This costs `branches`× the LLM calls per iteration, so pair it with a low `max_iterations`.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        branches=3,  # 3x the LLM calls per iteration, in exchange for picking the best
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+```
+
+Without a `verifier`, branching still works — the `branches` candidates are merged into one cohesive answer via the same `APEXSynthesizer` used for multi-agent orchestration, rather than picking a single winner.
+
+### Loop events
+
+```python
+from deepcrew.types import EventType
+
+while True:
+    event = await queue.get()
+    if event is None: break
+    if event.event == EventType.LOOP_ITERATION:
+        i = event.data["iteration"]
+        converged = event.data["converged"]
+        print(f"Loop iteration {i} — {'converged' if converged else 'refining...'}")
+    elif event.event == EventType.VERIFIER_SCORED:  # v0.2.1
+        print(f"Verifier score: {event.data['score']} — issues: {event.data['issues']}")
+    elif event.event == EventType.BRANCH_SELECTED:  # v0.2.4
+        print(f"Branch {event.data['winning_index']} won with score {event.data['winning_score']}")
+    elif event.event == EventType.SKILL_EXTRACTED:  # v0.2.5
+        print(f"Distilled new skill: {event.data['skill_name']} (score {event.data['score']})")
+```
+
+### Common pitfalls
+
+    - `search_loop()`'s confidence check can silently never fire. See the caveat above — with no verifier or APEX in the path, `AgentResult.confidence` stays `None` and the loop always runs to `max_iterations`.
+    - `stop_condition` requires a `try/except LoopConvergedError` at the call site. The predicate itself must just return a bool — the loop raises the exception, not your callable.
+    - `adaptive`, `procedural_memory`, and `auto_extract_skill` are all no-ops without `verifier`. Each of them either reads a verifier score or a converged-via-verifier flag; set a `Verifier` or these fields do nothing silently.
+    - `branches` multiplies LLM call volume linearly. `branches=3` means 3× the calls per iteration — pair a high branch count with a low `max_iterations` to keep total cost bounded.
+    - Adaptive early-stop returns the best iteration, not the last one. Don't assume `result.loop_iterations` tells you which iteration's text you're holding — it only tells you how many ran in total.
+
+### See also
+
+    - [Verifier](verifier.html) — the structured critic that drives convergence, adaptive stopping, and branch selection.
+    - [Procedural Memory](procedural-memory.html) — the evolving playbook this loop reads from and curates into on exit.
+    - [Skills → Self-evolving skills](skills.html#self-evolving-skills) — what happens to a distilled skill after `auto_extract_skill` registers it.
+    - [APEX Synthesizer](apex.html) — merges branches when no verifier is set.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

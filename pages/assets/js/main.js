@@ -35,6 +35,52 @@ sidebarLinks.forEach(link => {
   });
 });
 
+// ─── Clipboard helper ────────────────────────────────────────
+// navigator.clipboard.writeText() requires the document to still be focused
+// and requires "recent" user activation. Both can be lost across an awaited
+// fetch() (slow network, devtools open, focus stolen by an extension, an
+// embedding iframe without a clipboard-write permission), which throws
+// NotAllowedError even though the user did click the button. Fall back to
+// the legacy execCommand('copy') textarea trick, and if even that is denied
+// (blocked entirely in some sandboxed/embedded contexts), fall back one more
+// time to a native window.prompt() with the text pre-filled and selected —
+// that's a plain browser dialog, not the Clipboard API, so no permission or
+// focus requirement can block it; the user copies it out with Ctrl/Cmd+C
+// themselves. Returns 'clipboard' | 'exec' | 'prompt' | 'cancelled'.
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return 'clipboard';
+  } catch (err) {
+    console.warn('[deepcrew] clipboard.writeText failed, trying execCommand:', err);
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) return 'exec';
+    console.warn('[deepcrew] execCommand("copy") returned false, falling back to prompt()');
+  } catch (err) {
+    console.warn('[deepcrew] execCommand("copy") failed, falling back to prompt()', err);
+  }
+  // Last resort: a native dialog the user copies from manually. Always available.
+  const result = window.prompt('Copy this text (Ctrl/Cmd+C, then Enter or Esc):', text);
+  return result === null ? 'cancelled' : 'prompt';
+}
+
+function copyButtonLabel(outcome, successLabel) {
+  if (outcome === 'clipboard' || outcome === 'exec') return successLabel;
+  if (outcome === 'prompt') return 'Copied via dialog';
+  return 'Copy failed';
+}
+
 // ─── Copy buttons ────────────────────────────────────────────
 document.querySelectorAll('.code-copy, .copy-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
@@ -42,14 +88,66 @@ document.querySelectorAll('.code-copy, .copy-btn').forEach(btn => {
       ? document.getElementById(btn.dataset.copy)
       : btn.closest('.code-block')?.querySelector('code');
     const text = target?.textContent?.trim() || btn.dataset.text || '';
-    try {
-      await navigator.clipboard.writeText(text);
-      const original = btn.innerHTML;
-      btn.classList.add('copied');
-      btn.innerHTML = btn.classList.contains('copy-btn')
-        ? '✓ Copied' : '✓&nbsp;Copied';
-      setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 2000);
-    } catch {}
+    const original = btn.innerHTML;
+    const outcome = await copyText(text);
+    if (outcome === 'cancelled') return;
+    btn.classList.add('copied');
+    btn.innerHTML = copyButtonLabel(outcome, 'Copied');
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 2000);
+  });
+});
+
+// ─── Copy page as Markdown (for pasting into an LLM) ──────────
+// The markdown is embedded inline in every page as <script type="text/plain"
+// class="page-md">. Reading it from the DOM works everywhere — including a page
+// opened directly from disk via file:// (where fetch() of a local .md is blocked
+// by the browser and was the cause of the recurring "Copy failed"). fetch(data-md)
+// is kept only as a fallback for any page that lacks the inline block.
+async function getPageMarkdown(btn) {
+  const inline = document.querySelector('script.page-md');
+  if (inline && inline.textContent.trim()) return inline.textContent.trim();
+  const src = btn.dataset.md;
+  if (!src) return '';
+  try {
+    const res = await fetch(src);
+    if (!res.ok) throw new Error('fetch failed: ' + res.status);
+    return (await res.text()).trim();
+  } catch (err) {
+    console.warn('[deepcrew] copy-page-btn fetch fallback failed:', err);
+    return '';
+  }
+}
+
+document.querySelectorAll('.copy-page-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const original = btn.innerHTML;
+    const text = await getPageMarkdown(btn);
+    if (!text) {
+      btn.innerHTML = 'Copy failed';
+      setTimeout(() => { btn.innerHTML = original; }, 2000);
+      return;
+    }
+    const outcome = await copyText(text);
+    if (outcome === 'cancelled') return;
+    btn.classList.add('copied');
+    btn.innerHTML = copyButtonLabel(outcome, 'Copied for LLM');
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 2000);
+  });
+});
+
+// ─── Copy an AI-ready implementation prompt for this feature ──
+document.querySelectorAll('.copy-prompt-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.prompt;
+    const el = id ? document.getElementById(id) : null;
+    const text = el?.textContent?.trim() || '';
+    if (!text) return;
+    const original = btn.innerHTML;
+    const outcome = await copyText(text);
+    if (outcome === 'cancelled') return;
+    btn.classList.add('copied');
+    btn.innerHTML = copyButtonLabel(outcome, 'Prompt copied');
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 2000);
   });
 });
 
@@ -92,20 +190,54 @@ document.querySelectorAll('[data-count]').forEach(el => counterObserver.observe(
 const toggle = document.querySelector('.menu-toggle');
 const sidebar = document.querySelector('aside');
 
-// Inject backdrop element
+// On mobile the primary top-nav links (Docs / Features / Examples / API) are hidden
+// (.nav-links { display:none }), which left Features and Examples unreachable from the
+// drawer. Clone them into a section at the top of the drawer — this reuses each page's
+// own relative hrefs automatically. The section is display:none on desktop (where the
+// top nav is already visible) and revealed only inside the drawer at <=768px.
+if (sidebar) {
+  const navLinks = document.querySelector('.nav-links');
+  if (navLinks && !sidebar.querySelector('.sidebar-navlinks')) {
+    const section = document.createElement('div');
+    section.className = 'sidebar-section sidebar-navlinks';
+    const label = document.createElement('span');
+    label.className = 'sidebar-label';
+    label.textContent = 'Navigate';
+    section.appendChild(label);
+    navLinks.querySelectorAll('a').forEach(a => {
+      const link = document.createElement('a');
+      link.className = 'sidebar-link';
+      link.setAttribute('href', a.getAttribute('href'));
+      link.textContent = a.textContent.trim();
+      section.appendChild(link);
+    });
+    sidebar.insertBefore(section, sidebar.firstChild);
+  }
+}
+
+// Inject backdrop element.
+// IMPORTANT: it must live INSIDE .page-layout, not on <body>. .page-layout is a
+// stacking context (position:relative; z-index:1), so the <aside> drawer's z-index
+// is only meaningful within that context. A body-level backdrop would paint on top
+// of the entire page-layout subtree — including the drawer — dimming it. Placing the
+// backdrop as a sibling of the drawer inside page-layout lets it dim <main> while the
+// drawer (higher z-index within the same context) stays above it.
 const backdrop = document.createElement('div');
 backdrop.className = 'sidebar-backdrop';
-document.body.appendChild(backdrop);
+(document.querySelector('.page-layout') || document.body).appendChild(backdrop);
+
+const ICON_MENU = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg>';
+const ICON_CLOSE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2l12 12M14 2L2 14"/></svg>';
 
 function closeSidebar() {
   sidebar.style.display = '';
   backdrop.classList.remove('open');
-  toggle.textContent = '☰';
+  if (toggle) toggle.innerHTML = ICON_MENU;
 }
 function openSidebar() {
   sidebar.style.display = 'block';
   backdrop.classList.add('open');
-  toggle.textContent = '✕';
+  if (toggle) toggle.innerHTML = ICON_CLOSE;
 }
 
 if (toggle && sidebar) {

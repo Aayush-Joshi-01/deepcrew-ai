@@ -23,19 +23,18 @@
   </a>
   <ul class="nav-links">
     <li><a href="index.html">Docs</a></li>
-    <li><a href="features.html">v0.2.0 Features</a></li>
+    <li><a href="features.html">Features</a></li>
     <li><a href="examples.html" class="active">Examples</a></li>
     <li><a href="index.html#api-reference">API</a></li>
   </ul>
   <div class="nav-right">
-    <span class="badge">v0.2.0</span>
+    <span class="badge">v0.4.0</span>
+    <button class="btn-outline copy-page-btn" data-md="md/examples.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
-    </a>
-    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener">PyPI →</a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
   </div>
-  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
 </header>
 
 <div class="page-layout">
@@ -45,6 +44,22 @@
     <a class="sidebar-link" data-target="providers">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
       Provider Guide
+    </a>
+  </div>
+
+  <div class="sidebar-section">
+    <span class="sidebar-label">v0.3.0 · Self-Improving Loop</span>
+    <a class="sidebar-link" data-target="ex-selfimproving">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
+      Self-Improving Research
+    </a>
+    <a class="sidebar-link" data-target="ex-consensus">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="12" r="1.6"/><circle cx="13" cy="12" r="1.6"/><path d="M8 4.6V9M4.3 10.8L7 9M11.7 10.8L9 9"/></svg>
+      Consensus Code Review
+    </a>
+    <a class="sidebar-link" data-target="ex-autoplan">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><path d="M8 4.6V8M3 9.6V13M13 9.6V13"/></svg>
+      Autonomous Task Planning
     </a>
   </div>
 
@@ -117,10 +132,25 @@
   <section class="hero hero--compact">
     <div class="hero-eyebrow">Examples Library</div>
     <h1>Real-world examples<br/><em>across every domain.</em></h1>
-    <p>Complete, runnable examples for legal, financial, medical, DevOps, e-commerce, and more — using OpenAI, Anthropic, Gemini, Bedrock, Azure, and local Ollama models.</p>
+    <p>Complete, runnable examples for legal, financial, medical, DevOps, e-commerce, and more — using OpenAI, Anthropic, Gemini, Bedrock, Azure, and local Ollama models. New in v0.3.0: three examples built around the self-improving loop.</p>
   </section>
 
+  <div class="callout callout--tip">    <div>Every example on this page — plus the v0.4.0 ones (multimodal, structured output, human-in-the-loop, FastAPI streaming) — is also a runnable script in <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai/tree/main/examples" target="_blank" rel="noopener"><code>examples/</code></a> in the repository. See <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai/blob/main/examples/README.md" target="_blank" rel="noopener"><code>examples/README.md</code></a> for the full index and required environment variables.</div>
+  </div>
+
   <div class="examples-grid">
+    <a class="ex-card" href="#ex-selfimproving">
+      <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
+      <span>Self-Improving Research</span>
+    </a>
+    <a class="ex-card" href="#ex-consensus">
+      <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="12" r="1.6"/><circle cx="13" cy="12" r="1.6"/><path d="M8 4.6V9M4.3 10.8L7 9M11.7 10.8L9 9"/></svg>
+      <span>Consensus Code Review</span>
+    </a>
+    <a class="ex-card" href="#ex-autoplan">
+      <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><path d="M8 4.6V8M3 9.6V13M13 9.6V13"/></svg>
+      <span>Autonomous Task Planning</span>
+    </a>
     <a class="ex-card" href="#ex-research">
       <svg class="ex-card-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
       <span>Research</span>
@@ -251,6 +281,222 @@ Agent("a", model="ollama/mistral")</code></pre>
         <tr><td>Ollama</td><td>Fully local, air-gapped, no cost</td><td>None</td></tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<!-- ─── SELF-IMPROVING RESEARCH ─── -->
+<section class="section" id="ex-selfimproving" data-section="ex-selfimproving">
+  <div class="section-eyebrow">v0.3.0 · Verifier + Adaptive Budget + Procedural Memory</div>
+  <h2>Self-Improving Research Agent</h2>
+  <p>A research agent that grades its own answers with a task-specific rubric, stops refining as soon as quality plateaus instead of always burning the full iteration budget, and persists what worked (and what to avoid) to disk — so the <em>next</em> run on a similar question starts smarter than the last.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">self_improving_research.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">"""
+Self-improving research agent: Verifier + adaptive budget + procedural memory.
+Run this script twice — the second run's system prompt already carries lessons
+learned from the first (see the injected "Known strategies" block it prints).
+"""
+import asyncio
+from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory, tool,
+)
+
+@tool
+def search_web(query: str) -> str:
+    """Search the web for information.
+
+    Args:
+        query (str): Search query.
+    """
+    import httpx
+    resp = httpx.get("https://api.duckduckgo.com/", params={"q": query, "format": "json"})
+    data = resp.json()
+    return data.get("AbstractText") or "No summary available; try a more specific query."
+
+# Persists to disk — survives across script runs, not just within one process.
+playbook = ProceduralMemory(FileMemoryProvider("research_playbook.json"), max_entries=20)
+
+verifier = Verifier(VerifierConfig(
+    threshold=0.85,
+    rubric=(
+        "1. Every non-obvious claim must be traceable to a search result.\n"
+        "2. The answer must directly address the question, not a related tangent.\n"
+        "3. Vague hedging ('some sources suggest...') without specifics is a failure."
+    ),
+))
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a meticulous researcher. Cite what you find; never guess.",
+    tools=[search_web],
+    procedural_memory=playbook,        # read on every run, even outside a loop
+    loop_config=LoopConfig(
+        max_iterations=6,
+        verifier=verifier,
+        procedural_memory=playbook,     # curated after a converged loop
+        adaptive=True,                  # stop once refinement stops paying off
+        min_improvement=0.03,
+        plateau_patience=2,
+    ),
+)
+
+async def main():
+    result = await run_agent(researcher, [
+        {"role": "user", "content": "What caused the 2024-2025 surge in room-temperature superconductor claims?"}
+    ])
+    print(result.text)
+    print(f"\nConverged in {result.loop_iterations} iterations (cap was 6)")
+
+    entries = await playbook.load("researcher")
+    print(f"Playbook now has {len(entries)} strategies for next time:")
+    for e in entries[:5]:
+        print(f"  [{e.kind}] {e.content[:80]}")
+
+asyncio.run(main())</code></pre>
+  </div>
+
+  <div class="callout">    <div>Delete <code>research_playbook.json</code> and run again to see the "cold start" behavior — without it, the agent has no prior strategies injected and typically takes more iterations to converge.</div>
+  </div>
+</section>
+
+<!-- ─── CONSENSUS CODE REVIEW ─── -->
+<section class="section" id="ex-consensus" data-section="ex-consensus">
+  <div class="section-eyebrow">v0.3.0 · Branching + Self-Evolving Skills</div>
+  <h2>Consensus Code Review</h2>
+  <p>Instead of one linear review pass, this reviewer runs three independent review candidates per iteration in parallel (a lightweight self-consistency / tree-search pattern) and keeps whichever one the verifier scores highest. Once it lands on a review that scores high enough, the approach is distilled into a reusable <code>Skill</code> that other agents can call directly.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">consensus_review.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">"""
+Consensus code review: branching (self-consistency) + skill distillation.
+"""
+import asyncio
+from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig, SkillRegistry, tool,
+)
+
+@tool
+def read_diff(path: str) -> str:
+    """Read a git diff file from disk.
+
+    Args:
+        path (str): Path to a .diff or .patch file.
+    """
+    return open(path).read()
+
+reviewer = Agent(
+    name="code_reviewer",
+    model="openai/gpt-4o",
+    system_prompt=(
+        "Review the given diff for bugs, security issues, and missed edge cases. "
+        "Be specific: cite line numbers and explain the failure scenario."
+    ),
+    tools=[read_diff],
+    loop_config=LoopConfig(
+        max_iterations=2,
+        verifier=Verifier(VerifierConfig(
+            threshold=0.9,
+            rubric=(
+                "1. Every changed function must be addressed.\n"
+                "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
+                "3. A generic 'looks good to me' with no specifics is an automatic failure."
+            ),
+        )),
+        branches=3,                    # 3 parallel review candidates per iteration
+        auto_extract_skill=True,       # distill a reusable Skill once it nails a review
+        skill_confidence_threshold=0.9,
+    ),
+)
+
+async def main():
+    result = await run_agent(reviewer, [
+        {"role": "user", "content": "Review the diff at ./payment_handler.diff"}
+    ])
+    print(result.text)
+
+    # If the loop converged with a high enough score, a skill now exists —
+    # any other agent can reuse the proven review approach directly.
+    distilled = [s for s in SkillRegistry.list_all() if s.name.startswith("code_reviewer_")]
+    if distilled:
+        print(f"\nDistilled skill available for reuse: {distilled[0].name}")
+
+asyncio.run(main())</code></pre>
+  </div>
+
+  <div class="callout">    <div><code>branches=3</code> triples the LLM calls made per iteration. Reserve branching for reviews where getting it right matters more than the extra cost — a security-sensitive diff, not a typo fix.</div>
+  </div>
+</section>
+
+<!-- ─── AUTONOMOUS TASK PLANNING ─── -->
+<section class="section" id="ex-autoplan" data-section="ex-autoplan">
+  <div class="section-eyebrow">v0.3.0 · Bounded Nested Spawning</div>
+  <h2>Autonomous Task Planning</h2>
+  <p>A coordinator agent breaks a large project into sub-tasks by spawning sub-agents — and each of <em>those</em> sub-agents can itself spawn further sub-agents if its slice is still too big, up to a hard depth cap. A <code>Verifier</code> gates each nested spawn so agents only decompose further when the sub-task genuinely warrants it, instead of nesting reflexively.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">autonomous_planning.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">"""
+Autonomous task planning: bounded nested agent spawning.
+"""
+import asyncio
+from deepcrew import Agent, Orchestrator, Verifier, tool
+
+@tool
+def write_file(path: str, content: str) -> str:
+    """Write content to a file.
+
+    Args:
+        path (str): File path to write.
+        content (str): File content.
+    """
+    with open(path, "w") as f:
+        f.write(content)
+    return f"Wrote {len(content)} chars to {path}"
+
+@tool
+def list_directory(path: str = ".") -> list[str]:
+    """List files in a directory.
+
+    Args:
+        path (str): Directory path.
+    """
+    import os
+    return os.listdir(path)
+
+coordinator = Agent(
+    name="project_coordinator",
+    model="openai/gpt-4o",
+    system_prompt=(
+        "You are a project coordinator. Break large tasks into sub-tasks and use "
+        "spawn_agent to delegate each one. If a delegated sub-task is still too "
+        "large for a single agent, spawn_agent is available to that sub-agent too "
+        "(up to the configured depth) — delegate further rather than doing it all yourself."
+    ),
+)
+
+orch = Orchestrator(
+    agents=[coordinator],
+    router_model="openai/gpt-4o-mini",
+    global_tools=[write_file, list_directory],
+    enable_spawn=True,
+    max_spawn_depth=3,                       # coordinator -> sub-agent -> sub-sub-agent
+    spawn_complexity_check=Verifier(),        # skip nesting for sub-tasks that don't need it
+)
+
+async def main():
+    result = await orch.run(
+        "Plan and scaffold a new microservice: API design, database schema, "
+        "Docker setup, and a CI pipeline config. Write each artifact to disk."
+    )
+    print(result.final_text)
+
+asyncio.run(main())</code></pre>
+  </div>
+
+  <div class="callout">    <div>This is depth-bounded, not fan-out-bounded — each level can still spawn as many sibling sub-agents as it needs. A sub-agent that hits <code>max_spawn_depth</code> simply has no <code>spawn_agent</code> tool available and completes its slice directly instead of delegating further.</div>
   </div>
 </section>
 
@@ -1744,13 +1990,14 @@ curl -X POST http://localhost:8000/v1/query \
 
 <footer>
   <div class="footer-left">
-    Built with ♥ — <strong>deepcrew-ai</strong> v0.2.0 — MIT License
+    Built with <strong>deepcrew-ai</strong> — MIT License
   </div>
   <div class="footer-links">
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
     <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
     <a href="index.html">Docs</a>
     <a href="features.html">Features</a>
+    <a href="llms.txt">llms.txt</a>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai/blob/main/CHANGELOG.md" target="_blank">Changelog</a>
   </div>
 </footer>
@@ -1760,6 +2007,43 @@ curl -X POST http://localhost:8000/v1/query \
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# deepcrew-ai Examples
+
+Runnable, self-contained scripts live in [`examples/`](https://github.com/Aayush-Joshi-01/deepcrew-ai/tree/main/examples)
+in the repository. Each file's module docstring lists the required environment variables (API
+keys) before you run it.
+
+## Core
+
+- `simple_agent.py` — a single agent with an `@tool`-decorated function.
+- `workflow_example.py` — a 4-node DAG (`WorkflowBuilder`) with streaming and non-streaming runs.
+- `automated_example.py` — `Orchestrator` with router + APEX synthesis, streaming events.
+- `mcp_example.py` — all three MCP transports (Stdio/HTTP/SSE) plus `MCPManager`.
+
+## Self-improving loop / spawning
+
+- `self_improving_research.py` — `LoopConfig` with a `Verifier`, adaptive early-stop, and
+  procedural memory.
+- `consensus_code_review.py` — self-consistency branching plus skill distillation.
+- `autonomous_task_planning.py` — bounded nested agent spawning via `Orchestrator(enable_spawn=True)`.
+
+## v0.4.0
+
+- `multimodal_agent.py` — attaching an image and a PDF to a query with `image()`/`pdf()`.
+- `structured_output.py` — `response_model` validated against a pydantic schema.
+- `human_in_the_loop.py` — `AgentHooks.approve_tool` denying a specific tool call.
+- `fastapi_streaming.py` — `create_stream_router` wired into a FastAPI app, chat vs. verbose
+  `StreamPolicy`.
+
+Provider quick reference: swap the `model=` string on any `Agent` —
+`"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, `"gemini/gemini-2.0-flash"`,
+`"bedrock/anthropic.claude-3-sonnet"`, `"azure/<deployment>"`, `"groq/llama-3.1-70b"`,
+`"ollama/llama3.2"` (local, no API key needed) — LiteLLM handles the rest.
+
+Full walkthroughs with expected output: [examples.html](examples.html).
+
+</script>
 <script src="assets/js/main.js"></script>
 </body>
 </html>

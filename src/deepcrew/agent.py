@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from .tools import fn_to_tool_def
 from .types import ToolDef
 
 if TYPE_CHECKING:
+    from pydantic import BaseModel
+
+    from .hooks import AgentHooks
     from .loop import LoopConfig
-    from .memory.base import MemoryProvider
     from .mcp.base import MCPClient
+    from .memory.base import MemoryProvider
+    from .procedural_memory import ProceduralMemory
     from .retry import FallbackChain, RetryPolicy
     from .skills.base import Skill
 
@@ -53,6 +58,22 @@ class Agent:
         Outer iteration loop configuration (refinement loop over full runs).
     skills:
         Higher-level reusable capability bundles exposed to the LLM as tools.
+    procedural_memory:
+        Optional durable, evolving playbook (see ``ProceduralMemory``). When
+        set, accumulated strategies are read and injected into context on
+        every run of this agent (single-shot or looped). Writing/curating
+        new strategies only happens via a loop whose ``LoopConfig`` also has
+        ``procedural_memory`` configured (typically the same instance).
+    response_model:
+        Optional pydantic model. When set, the agent's final (non-tool-call)
+        text is validated against this schema and made available as
+        ``AgentResult.parsed``. One automatic repair attempt is made if the
+        first response isn't valid JSON matching the schema; if that also
+        fails, ``OutputParseError`` is raised.
+    hooks:
+        Optional lifecycle hooks (see ``AgentHooks``) for human-in-the-loop
+        control, e.g. approving or denying individual tool calls. Distinct
+        from the observe-only event stream: hooks can alter execution.
     """
 
     name: str
@@ -69,6 +90,9 @@ class Agent:
     memory: MemoryProvider | None = field(default=None)
     loop_config: LoopConfig | None = field(default=None)
     skills: list[Skill] = field(default_factory=list)
+    procedural_memory: ProceduralMemory | None = field(default=None)
+    response_model: type[BaseModel] | None = field(default=None)
+    hooks: AgentHooks | None = field(default=None)
 
     async def get_tool_defs(self) -> list[ToolDef]:
         """Discover and merge tools from all attached MCP servers, Python functions, and skills."""

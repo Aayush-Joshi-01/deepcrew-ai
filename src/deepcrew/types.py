@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Callable
+from enum import StrEnum
+from typing import Any
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     AGENT_START = "agent_start"
     TEXT_DELTA = "text_delta"
     THINKING_DELTA = "thinking_delta"
     TOOL_CALL = "tool_call"
     TOOL_RESULT = "tool_result"
+    TOOL_DENIED = "tool_denied"
     AGENT_DONE = "agent_done"
     STEP_START = "step_start"
     STEP_DONE = "step_done"
@@ -26,6 +28,11 @@ class EventType(str, Enum):
     SPAWN_AGENT = "spawn_agent"
     APEX_START = "apex_start"
     APEX_DONE = "apex_done"
+    # v0.3.0
+    VERIFIER_SCORED = "verifier_scored"
+    PLAYBOOK_UPDATED = "playbook_updated"
+    BRANCH_SELECTED = "branch_selected"
+    SKILL_EXTRACTED = "skill_extracted"
 
 
 @dataclass
@@ -68,6 +75,9 @@ class AgentResult:
     model: str = ""
     confidence: float | None = None
     loop_iterations: int = 0
+    # Set when Agent.response_model is used: the validated pydantic model
+    # instance parsed from `text`. None otherwise.
+    parsed: Any | None = None
 
     @property
     def total_tokens(self) -> int:

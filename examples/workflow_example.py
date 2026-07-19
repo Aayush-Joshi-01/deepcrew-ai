@@ -56,7 +56,9 @@ async def main():
         WorkflowBuilder()
         .add_agent("research", researcher, task="{input}")
         .add_agent("critique", critic, task="Critically review this research:\n\n{research}")
-        .add_agent("expand", expander, task="Expand on this research with technical depth:\n\n{research}")
+        .add_agent(
+            "expand", expander, task="Expand on this research with technical depth:\n\n{research}"
+        )
         .add_agent(
             "report",
             writer,

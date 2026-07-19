@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -50,7 +49,11 @@ async def test_http_mcp_list_tools():
     list_resp.json.return_value = {
         "result": {
             "tools": [
-                {"name": "search", "description": "Search", "inputSchema": {"type": "object", "properties": {}, "required": []}},
+                {
+                    "name": "search",
+                    "description": "Search",
+                    "inputSchema": {"type": "object", "properties": {}, "required": []},
+                },
             ]
         }
     }
@@ -81,15 +84,19 @@ async def test_http_mcp_list_tools():
 @pytest.mark.asyncio
 async def test_mcp_manager_discover_tools():
     mock_mcp1 = AsyncMock()
-    mock_mcp1.list_tools = AsyncMock(return_value=[
-        MagicMock(name="tool1", _mcp_client=mock_mcp1),
-    ])
+    mock_mcp1.list_tools = AsyncMock(
+        return_value=[
+            MagicMock(name="tool1", _mcp_client=mock_mcp1),
+        ]
+    )
     mock_mcp1.list_tools.return_value[0].name = "tool1"
 
     mock_mcp2 = AsyncMock()
-    mock_mcp2.list_tools = AsyncMock(return_value=[
-        MagicMock(name="tool2", _mcp_client=mock_mcp2),
-    ])
+    mock_mcp2.list_tools = AsyncMock(
+        return_value=[
+            MagicMock(name="tool2", _mcp_client=mock_mcp2),
+        ]
+    )
     mock_mcp2.list_tools.return_value[0].name = "tool2"
 
     manager = MCPManager([mock_mcp1, mock_mcp2])
@@ -103,16 +110,15 @@ async def test_mcp_manager_call_tool_routing():
     mock_client.call_tool = AsyncMock(return_value={"result": "ok"})
 
     from deepcrew.types import ToolDef
-    fake_tool = ToolDef(
-        name="my_tool", description="", parameters={}, _mcp_client=mock_client
-    )
+
+    fake_tool = ToolDef(name="my_tool", description="", parameters={}, _mcp_client=mock_client)
 
     mock_mcp = AsyncMock()
     mock_mcp.list_tools = AsyncMock(return_value=[fake_tool])
 
     manager = MCPManager([mock_mcp])
     await manager.discover_tools()
-    result = await manager.call_tool("my_tool", {"x": 1})
+    await manager.call_tool("my_tool", {"x": 1})
 
     mock_client.call_tool.assert_awaited_once_with("my_tool", {"x": 1})
 

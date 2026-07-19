@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -9,14 +10,18 @@ from typing import Any
 import litellm
 
 from .agent import Agent
-from .apex import APEXSynthesizer, ApexConfig
+from .apex import ApexConfig, APEXSynthesizer
+from .content import ContentPart, TextPart, describe_attachments
 from .exceptions import RouterError
-from .runner import run_agent, _tool_def_to_litellm
+from .runner import run_agent
 from .spawner import ToolAllocator, make_spawn_tool
-from .stream import make_done_event, make_error_event, queue_to_stream
+from .stream import StreamPolicy, filter_stream, make_error_event, queue_to_stream
 from .types import AgentResult, EventType, OrchestratorResult, StreamEvent, ToolDef
+from .verifier import Verifier
 
 litellm.drop_params = True
+
+logger = logging.getLogger(__name__)
 
 _ROUTER_SYSTEM = """\
 You are a task decomposition specialist.
@@ -53,6 +58,16 @@ Synthesize all their findings into a single, cohesive, well-structured response.
 Do NOT mention agents or attribute information to specific agents.
 Just produce the best unified answer.
 """
+
+
+def _build_user_message(task: str, attachments: list[ContentPart] | None) -> dict[str, Any]:
+    """Build a user message, attaching images/documents when present."""
+    if not attachments:
+        return {"role": "user", "content": task}
+    return {
+        "role": "user",
+        "content": [TextPart(task).to_block(), *(p.to_block() for p in attachments)],
+    }
 
 
 class Orchestrator:
@@ -98,6 +113,14 @@ class Orchestrator:
     enable_spawn:
         When True, inject a ``spawn_agent`` meta-tool into every running agent
         so it can dynamically spawn sub-agents mid-loop.
+    max_spawn_depth:
+        Hard, never-exceeded ceiling on nesting depth for recursive spawning
+        (a spawned sub-agent spawning its own sub-agent, and so on). Only
+        relevant when ``enable_spawn=True``. Defaults to 2 (one nested level).
+    spawn_complexity_check:
+        Optional ``Verifier`` whose ``assess_complexity()`` gates whether a
+        newly-spawned sub-agent is worth giving its own nested spawn tool to,
+        below the hard ``max_spawn_depth`` cap.
     """
 
     def __init__(
@@ -112,6 +135,8 @@ class Orchestrator:
         max_parallel_agents: int = 5,
         global_tools: list[ToolDef] | None = None,
         enable_spawn: bool = False,
+        max_spawn_depth: int = 2,
+        spawn_complexity_check: Verifier | None = None,
     ) -> None:
         self.agents: dict[str, Agent] = {a.name: a for a in agents}
         self.router_model = router_model
@@ -125,13 +150,29 @@ class Orchestrator:
         self.max_parallel_agents = max_parallel_agents
         self._global_tools: list[ToolDef] = global_tools or []
         self._enable_spawn = enable_spawn
+        self._max_spawn_depth = max_spawn_depth
+        self._spawn_complexity_check = spawn_complexity_check
         self._apex = APEXSynthesizer(self._apex_model, apex_config)
 
-    async def run(self, query: str, context: dict[str, Any] | None = None) -> OrchestratorResult:
-        """Run the orchestration pipeline and return the complete result."""
+    async def run(
+        self,
+        query: str,
+        context: dict[str, Any] | None = None,
+        *,
+        attachments: list[ContentPart] | None = None,
+    ) -> OrchestratorResult:
+        """Run the orchestration pipeline and return the complete result.
+
+        ``attachments`` (images/PDFs built with :func:`deepcrew.image` /
+        :func:`deepcrew.pdf`) are given to every executing agent, but never to
+        the router, which runs in JSON mode and only sees a text summary of
+        how many attachments exist.
+        """
         events: list[StreamEvent] = []
         queue: asyncio.Queue[StreamEvent | None] = asyncio.Queue()
-        task = asyncio.create_task(self._orchestrate(query, context or {}, queue))
+        task = asyncio.create_task(
+            self._orchestrate(query, context or {}, queue, attachments=attachments)
+        )
 
         async for event in queue_to_stream(queue, task):
             events.append(event)
@@ -152,13 +193,15 @@ class Orchestrator:
                 text_parts.setdefault(ev.agent_id, []).append(ev.data.get("chunk", ""))
             elif ev.event == EventType.AGENT_DONE:
                 text = "".join(text_parts.get(ev.agent_id, []))
-                agent_results.append(AgentResult(
-                    agent_id=ev.agent_id,
-                    text=text,
-                    input_tokens=ev.data.get("input_tokens", 0),
-                    output_tokens=ev.data.get("output_tokens", 0),
-                    model=current_agent.get(ev.agent_id, ""),
-                ))
+                agent_results.append(
+                    AgentResult(
+                        agent_id=ev.agent_id,
+                        text=text,
+                        input_tokens=ev.data.get("input_tokens", 0),
+                        output_tokens=ev.data.get("output_tokens", 0),
+                        model=current_agent.get(ev.agent_id, ""),
+                    )
+                )
                 total_in += ev.data.get("input_tokens", 0)
                 total_out += ev.data.get("output_tokens", 0)
             elif ev.event == EventType.DONE:
@@ -172,28 +215,52 @@ class Orchestrator:
         )
 
     def stream(
-        self, query: str, context: dict[str, Any] | None = None
+        self,
+        query: str,
+        context: dict[str, Any] | None = None,
+        *,
+        attachments: list[ContentPart] | None = None,
+        policy: StreamPolicy | None = None,
     ) -> AsyncGenerator[StreamEvent, None]:
-        """Stream events as the orchestration pipeline runs."""
+        """Stream events as the orchestration pipeline runs.
+
+        See :meth:`run` for how ``attachments`` are distributed. ``policy``
+        filters which event types are yielded (see :class:`StreamPolicy`);
+        it is a view over the stream only and never affects execution.
+        """
         queue: asyncio.Queue[StreamEvent | None] = asyncio.Queue()
-        task = asyncio.create_task(self._orchestrate(query, context or {}, queue))
-        return queue_to_stream(queue, task)
+        task = asyncio.create_task(
+            self._orchestrate(query, context or {}, queue, attachments=attachments)
+        )
+        stream = queue_to_stream(queue, task)
+        if policy is not None:
+            stream = filter_stream(stream, policy)
+        return stream
 
     async def _orchestrate(
         self,
         query: str,
         context: dict[str, Any],
         queue: asyncio.Queue[StreamEvent | None],
+        *,
+        attachments: list[ContentPart] | None = None,
     ) -> None:
         try:
-            routing = await self._route(query)
+            routing = await self._route(query, attachments=attachments)
+            logger.info("orchestrator routing decision: %s", routing)
             agent_results: list[AgentResult] = []
 
             # Build spawn meta-tool if enabled
             spawn_tool: ToolDef | None = None
             if self._enable_spawn and self._global_tools:
                 spawn_tool = make_spawn_tool(
-                    self._global_tools, queue, self.router_model, "orchestrator"
+                    self._global_tools,
+                    queue,
+                    self.router_model,
+                    "orchestrator",
+                    current_depth=0,
+                    max_depth=self._max_spawn_depth,
+                    complexity_check=self._spawn_complexity_check,
                 )
 
             if routing["route"] == "single":
@@ -202,10 +269,10 @@ class Orchestrator:
                 task_override = routing.get("task", query)
                 extra_tools = await self._get_allocated_tools(routing, agent_name)
                 if spawn_tool:
-                    extra_tools = [spawn_tool] + extra_tools
+                    extra_tools = [spawn_tool, *extra_tools]
                 result = await run_agent(
                     agent,
-                    [{"role": "user", "content": task_override}],
+                    [_build_user_message(task_override, attachments)],
                     tool_defs=(await agent.get_tool_defs() + extra_tools) if extra_tools else None,
                     queue=queue,
                     agent_id=agent_name,
@@ -220,16 +287,19 @@ class Orchestrator:
                     agent = self._get_agent(spec["name"])
                     extra_tools = await self._get_allocated_tools(spec, spec["name"])
                     if spawn_tool:
-                        extra_tools = [spawn_tool] + extra_tools
+                        extra_tools = [spawn_tool, *extra_tools]
                     if extra_tools:
                         base_tools = await agent.get_tool_defs()
                         merged = base_tools + extra_tools
                     else:
                         merged = None
+                    # Every parallel agent gets the full attachment set: the router
+                    # cannot reliably partition images/documents across sub-tasks,
+                    # so duplication is the safe default.
                     parallel_coros.append(
                         run_agent(
                             agent,
-                            [{"role": "user", "content": spec.get("task", query)}],
+                            [_build_user_message(spec.get("task", query), attachments)],
                             tool_defs=merged,
                             queue=queue,
                             agent_id=spec["name"],
@@ -242,7 +312,8 @@ class Orchestrator:
                 )
 
                 for r in parallel_results:
-                    if isinstance(r, Exception):
+                    if isinstance(r, BaseException):
+                        logger.warning("parallel agent failed: %s: %s", type(r).__name__, r)
                         await queue.put(make_error_event("orchestrator", str(r)))
                     else:
                         agent_results.append(r)
@@ -252,11 +323,14 @@ class Orchestrator:
 
             await queue.put(StreamEvent(EventType.DONE, {"final_text": final_text}, "orchestrator"))
         except Exception as exc:
+            logger.exception("orchestrator run failed")
             await queue.put(make_error_event("orchestrator", str(exc)))
         finally:
             await queue.put(None)
 
-    async def _route(self, query: str) -> dict[str, Any]:
+    async def _route(
+        self, query: str, *, attachments: list[ContentPart] | None = None
+    ) -> dict[str, Any]:
         agent_descriptions = "\n".join(
             f"- {name}: {agent.system_prompt[:120] or '(no description)'}"
             for name, agent in self.agents.items()
@@ -274,11 +348,20 @@ class Orchestrator:
             tool_section=tool_section,
         )
 
+        # The router always runs in JSON mode on plain text — attachments are
+        # never sent to it, only described, so executing agents see the images.
+        router_query = query
+        attachment_note = describe_attachments(attachments)
+        if attachment_note:
+            router_query = (
+                f"{query}\n\n{attachment_note} will be provided to the executing agent(s)."
+            )
+
         resp = await litellm.acompletion(
             model=self.router_model,
             messages=[
                 {"role": "system", "content": system},
-                {"role": "user", "content": query},
+                {"role": "user", "content": router_query},
             ],
             stream=False,
             response_format={"type": "json_object"},
@@ -293,11 +376,9 @@ class Orchestrator:
                     return json.loads(m.group())
                 except json.JSONDecodeError:
                     pass
-            raise RouterError(f"Router returned invalid JSON: {raw!r}")
+            raise RouterError(f"Router returned invalid JSON: {raw!r}") from None
 
-    async def _get_allocated_tools(
-        self, spec: dict[str, Any], agent_name: str
-    ) -> list[ToolDef]:
+    async def _get_allocated_tools(self, spec: dict[str, Any], agent_name: str) -> list[ToolDef]:
         """Return globally-allocated tools for a routing spec entry."""
         if not self._global_tools:
             return []

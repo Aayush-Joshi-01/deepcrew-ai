@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multimodal Input — deepcrew-ai</title>
+  <meta name="description" content="Attach images and PDFs to any user message with image(), pdf(), and user_message()." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Input</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/multimodal.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="multimodal-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Input</span>
+    <span class="sidebar-page">Multimodal Input</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Not every provider supports file/image blocks — deepcrew doesn't sniff for you.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="multimodal" data-section="multimodal">
+  <div class="section-eyebrow">Input</div>
+  <h2>Multimodal Input</h2>
+  <p><code>image()</code>, <code>pdf()</code>, and <code>user_message()</code> build standard OpenAI-format content blocks, forwarded by LiteLLM to whichever provider you're using. Sources can be a URL, a local file path, or raw bytes.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">multimodal_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, image, pdf, user_message
+
+agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
+
+msg = user_message(
+    "Summarize this chart and check it against the report.",
+    image("chart.png"),   # local file, PNG/JPEG/GIF/WEBP auto-detected
+    pdf("report.pdf"),
+)
+result = await run_agent(agent, [msg])
+print(result.text)</code></pre>
+  </div>
+
+  <div class="callout callout--tip">
+        <div><code>image()</code>/<code>pdf()</code> also accept an <code>https://</code> URL or a <code>data:</code> URI directly — no encoding happens for those, they pass straight through. Local files and raw <code>bytes</code> are size-checked and base64-encoded automatically, raising <code>ContentError</code> on anything invalid or oversized.</div>
+  </div>
+
+  <h3>How image()/pdf() dispatch on the source</h3>
+  <p>Both functions accept a <code>str | Path | bytes</code> and branch on the source's shape, not on any explicit flag you pass:</p>
+  <ul>
+    <li>A string starting with <code>http://</code>, <code>https://</code>, or <code>data:</code> passes straight through, untouched — no size check, no mime sniffing, no encoding. deepcrew trusts you and the receiving provider to handle it.</li>
+    <li>Anything else (a plain string path, a <code>Path</code>, or raw <code>bytes</code>) is read into memory (files) or used directly (bytes), checked against a size limit, sniffed for its actual type by magic bytes, and base64-encoded into a <code>data:</code> URI.</li>
+  </ul>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">multimodal_sources.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import image, pdf
+
+# 1. URL — passthrough, no local I/O at all
+image("https://example.com/chart.png")
+
+# 2. data: URI — passthrough
+image("data:image/png;base64,iVBORw0KGgoAAAANSU...")
+
+# 3. Local path (str or pathlib.Path) — read, sniffed, encoded
+image("./chart.png")
+
+# 4. Raw bytes — sniffed, encoded (no filesystem access at all)
+with open("chart.png", "rb") as f:
+    image(f.read())
+
+# Explicit mime override, e.g. for bytes with no recognizable magic-byte header
+image(some_bytes, mime="image/bmp")
+
+# pdf() works identically, but validates the %PDF header instead of image magic bytes
+pdf("./report.pdf")
+pdf(some_pdf_bytes, filename="q3-report.pdf")  # filename defaults to the source's own name</code></pre>
+  </div>
+  <p>Image type detection recognizes PNG, JPEG, GIF, and WEBP by their leading magic bytes — nothing else. An unrecognized byte sequence with no <code>mime=</code> override raises <code>ContentError</code>. <code>pdf()</code> is stricter still: it requires the content to literally start with <code>%PDF</code>, regardless of file extension — a mislabeled <code>.pdf</code> file that isn't actually a PDF is rejected before it ever reaches the LLM.</p>
+
+  <h3>Size limits and ContentError</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">MAX_IMAGE_BYTES</div><div class="param-cell param-type">20 * 1024 * 1024 (20 MB)</div><div class="param-cell param-desc">Enforced only for local files/bytes — URL and <code>data:</code> passthrough sources are never size-checked by deepcrew itself (the provider may still reject an oversized payload).</div></div>
+    <div class="param-row"><div class="param-cell param-name">MAX_PDF_BYTES</div><div class="param-cell param-type">32 * 1024 * 1024 (32 MB)</div><div class="param-cell param-desc">Same passthrough exemption as images.</div></div>
+    <div class="param-row"><div class="param-cell param-name">ContentError</div><div class="param-cell param-type">exception</div><div class="param-cell param-desc">Raised for: a missing local file, content over the size limit, an unrecognized image type with no <code>mime=</code> override, or bytes/a file that doesn't start with <code>%PDF</code> when calling <code>pdf()</code>.</div></div>
+  </div>
+  <p>Both limits are plain module-level constants in <code>deepcrew.content</code> — override them process-wide if you need to (e.g. in tests) with <code>import deepcrew.content as content; content.MAX_IMAGE_BYTES = 5 * 1024 * 1024</code>. There's no per-call override parameter.</p>
+
+  <h3>ContentPart types</h3>
+  <p><code>image()</code> and <code>pdf()</code> return frozen dataclasses, not raw dicts — <code>ContentPart</code> is the union type covering all three:</p>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">TextPart(text)</div><div class="param-cell param-type">-> {"type": "text", "text": ...}</div><div class="param-cell param-desc">What a bare string gets coerced into inside <code>user_message()</code>. You rarely construct this directly.</div></div>
+    <div class="param-row"><div class="param-cell param-name">ImagePart(url, detail=None)</div><div class="param-cell param-type">-> {"type": "image_url", "image_url": {...}}</div><div class="param-cell param-desc"><code>detail</code> is an OpenAI-specific hint (<code>"low"</code>/<code>"high"</code>/<code>"auto"</code>) forwarded only if set; harmless no-op on providers that ignore it.</div></div>
+    <div class="param-row"><div class="param-cell param-name">DocumentPart(data_url, filename="document.pdf")</div><div class="param-cell param-type">-> {"type": "file", "file": {...}}</div><div class="param-cell param-desc">The <code>"file"</code> content-block shape. See the provider-support callout below.</div></div>
+  </div>
+
+  <h3>extract_text() and describe_attachments()</h3>
+  <p>These two functions are what let the rest of deepcrew (memory injection, the verifier, the loop, the router) work with multimodal messages without needing to know about content blocks themselves.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import extract_text, describe_attachments, image, pdf
+
+content = [
+    {"type": "text", "text": "What's in this?"},
+    {"type": "image_url", "image_url": {"url": "..."}},
+]
+extract_text(content)          # "What's in this?" — joins only the text blocks
+extract_text("plain string")   # "plain string" — passthrough
+extract_text(None)             # "" — never raises
+
+parts = [image("chart.png"), pdf("report.pdf")]
+describe_attachments(parts)    # "[attachments: 1 image, 1 document]"
+describe_attachments("text")   # "" — no attachments to describe</code></pre>
+  </div>
+  <p><code>extract_text()</code> is what the memory-injection query, the verifier's grading prompt, and the self-improving loop's convergence checks all run on internally — none of them ever see the raw image/document bytes, only whatever text accompanied them.</p>
+
+  <h3>With Orchestrator</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">result = await orch.run(
+    "What's in this photo, and does it match the incident report?",
+    attachments=[image("scene.jpg"), pdf("incident_report.pdf")],
+)</code></pre>
+  </div>
+  <p>The router stays text-only — it never sees the raw attachments, only a summary like <code>[attachments: 1 image, 1 document]</code>, so its JSON-mode routing call is never sent binary content. The agent(s) it routes to receive the real attachments. In parallel routing, every agent gets the full attachment set, since the router can't reliably split images across sub-tasks. Spawned sub-agents (see <a href="spawning.html">Agent Spawning</a>) never automatically inherit attachments either — describe what's relevant directly in the spawn task text.</p>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>PDF/file-block support is not universal across providers.</strong> <code>image_url</code> blocks are forwarded by LiteLLM to essentially every vision-capable provider, but <code>"file"</code>/document blocks are only reliably supported on OpenAI, Anthropic, and Gemini. <code>litellm.drop_params</code> strips unsupported top-level <em>parameters</em>, not content blocks — sending a PDF to a provider without file support fails loudly with an API error, it does not silently degrade.</li>
+    <li><strong>URL/data: sources bypass every safety check.</strong> No size limit, no mime sniffing, no <code>%PDF</code> validation — deepcrew trusts the string is well-formed and lets the provider be the final arbiter.</li>
+    <li><strong>Only user messages carry multimodal content.</strong> Assistant and tool messages in the conversation history remain plain strings throughout deepcrew — there's no path for an agent's own output to include images.</li>
+    <li><strong>Parallel orchestration duplicates attachments to every agent.</strong> A 5-agent parallel fan-out with a 10 MB PDF attached means that PDF's bytes are included in 5 separate LLM requests, not one shared reference.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="apex.html">APEX Synthesizer</a> — synthesizes text results only; it never re-sees the original attachments.</li>
+    <li><a href="spawning.html">Agent Spawning</a> — sub-agents don't inherit attachments automatically.</li>
+    <li><a href="fastapi.html">FastAPI Integration</a> — <code>create_stream_router</code> accepts attachments as URLs/data-URIs in the request body.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="multimodal-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Multimodal Input" feature: Attach images and PDFs to any user message with image(), pdf(), and user_message().
+
+How it works: Use deepcrew.image()/pdf() to build content blocks from a URL, data: URI, local file path, or bytes, and pass them via user_message(text, *parts) or Orchestrator.run(query, attachments=[...]).
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Multimodal Input') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Multimodal Input for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Multimodal Input
+`image()`, `pdf()`, and `user_message()` build standard OpenAI-format content blocks, forwarded by LiteLLM to whichever provider you're using. Sources can be a URL, a local file path, or raw bytes.
+
+```python
+from deepcrew import Agent, run_agent, image, pdf, user_message
+
+agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
+
+msg = user_message(
+    "Summarize this chart and check it against the report.",
+    image("chart.png"),   # local file, PNG/JPEG/GIF/WEBP auto-detected
+    pdf("report.pdf"),
+)
+result = await run_agent(agent, [msg])
+print(result.text)
+```
+
+> `image()`/`pdf()` also accept an `https://` URL or a `data:` URI directly — no encoding happens for those, they pass straight through. Local files and raw `bytes` are size-checked and base64-encoded automatically, raising `ContentError` on anything invalid or oversized.
+
+### How image()/pdf() dispatch on the source
+
+Both functions accept a `str | Path | bytes` and branch on the source's shape, not on any explicit flag you pass:
+
+    - A string starting with `http://`, `https://`, or `data:` passes straight through, untouched — no size check, no mime sniffing, no encoding. deepcrew trusts you and the receiving provider to handle it.
+    - Anything else (a plain string path, a `Path`, or raw `bytes`) is read into memory (files) or used directly (bytes), checked against a size limit, sniffed for its actual type by magic bytes, and base64-encoded into a `data:` URI.
+
+```python
+from deepcrew import image, pdf
+
+# 1. URL — passthrough, no local I/O at all
+image("https://example.com/chart.png")
+
+# 2. data: URI — passthrough
+image("data:image/png;base64,iVBORw0KGgoAAAANSU...")
+
+# 3. Local path (str or pathlib.Path) — read, sniffed, encoded
+image("./chart.png")
+
+# 4. Raw bytes — sniffed, encoded (no filesystem access at all)
+with open("chart.png", "rb") as f:
+    image(f.read())
+
+# Explicit mime override, e.g. for bytes with no recognizable magic-byte header
+image(some_bytes, mime="image/bmp")
+
+# pdf() works identically, but validates the %PDF header instead of image magic bytes
+pdf("./report.pdf")
+pdf(some_pdf_bytes, filename="q3-report.pdf")  # filename defaults to the source's own name
+```
+
+Image type detection recognizes PNG, JPEG, GIF, and WEBP by their leading magic bytes — nothing else. An unrecognized byte sequence with no `mime=` override raises `ContentError`. `pdf()` is stricter still: it requires the content to literally start with `%PDF`, regardless of file extension — a mislabeled `.pdf` file that isn't actually a PDF is rejected before it ever reaches the LLM.
+
+### Size limits and ContentError
+
+- **MAX_IMAGE_BYTES** (20 * 1024 * 1024 (20 MB)): Enforced only for local files/bytes — URL and `data:` passthrough sources are never size-checked by deepcrew itself (the provider may still reject an oversized payload).
+
+- **MAX_PDF_BYTES** (32 * 1024 * 1024 (32 MB)): Same passthrough exemption as images.
+
+- **ContentError** (exception): Raised for: a missing local file, content over the size limit, an unrecognized image type with no `mime=` override, or bytes/a file that doesn't start with `%PDF` when calling `pdf()`.
+
+Both limits are plain module-level constants in `deepcrew.content` — override them process-wide if you need to (e.g. in tests) with `import deepcrew.content as content; content.MAX_IMAGE_BYTES = 5 * 1024 * 1024`. There's no per-call override parameter.
+
+### ContentPart types
+
+`image()` and `pdf()` return frozen dataclasses, not raw dicts — `ContentPart` is the union type covering all three:
+
+- **TextPart(text)** (-> {"type": "text", "text": ...}): What a bare string gets coerced into inside `user_message()`. You rarely construct this directly.
+
+- **ImagePart(url, detail=None)** (-> {"type": "image_url", "image_url": {...}}): `detail` is an OpenAI-specific hint (`"low"`/`"high"`/`"auto"`) forwarded only if set; harmless no-op on providers that ignore it.
+
+- **DocumentPart(data_url, filename="document.pdf")** (-> {"type": "file", "file": {...}}): The `"file"` content-block shape. See the provider-support callout below.
+
+### extract_text() and describe_attachments()
+
+These two functions are what let the rest of deepcrew (memory injection, the verifier, the loop, the router) work with multimodal messages without needing to know about content blocks themselves.
+
+```python
+from deepcrew import extract_text, describe_attachments, image, pdf
+
+content = [
+    {"type": "text", "text": "What's in this?"},
+    {"type": "image_url", "image_url": {"url": "..."}},
+]
+extract_text(content)          # "What's in this?" — joins only the text blocks
+extract_text("plain string")   # "plain string" — passthrough
+extract_text(None)             # "" — never raises
+
+parts = [image("chart.png"), pdf("report.pdf")]
+describe_attachments(parts)    # "[attachments: 1 image, 1 document]"
+describe_attachments("text")   # "" — no attachments to describe
+```
+
+`extract_text()` is what the memory-injection query, the verifier's grading prompt, and the self-improving loop's convergence checks all run on internally — none of them ever see the raw image/document bytes, only whatever text accompanied them.
+
+### With Orchestrator
+
+```python
+result = await orch.run(
+    "What's in this photo, and does it match the incident report?",
+    attachments=[image("scene.jpg"), pdf("incident_report.pdf")],
+)
+```
+
+The router stays text-only — it never sees the raw attachments, only a summary like `[attachments: 1 image, 1 document]`, so its JSON-mode routing call is never sent binary content. The agent(s) it routes to receive the real attachments. In parallel routing, every agent gets the full attachment set, since the router can't reliably split images across sub-tasks. Spawned sub-agents (see [Agent Spawning](spawning.html)) never automatically inherit attachments either — describe what's relevant directly in the spawn task text.
+
+### Common pitfalls
+
+    - PDF/file-block support is not universal across providers. `image_url` blocks are forwarded by LiteLLM to essentially every vision-capable provider, but `"file"`/document blocks are only reliably supported on OpenAI, Anthropic, and Gemini. `litellm.drop_params` strips unsupported top-level parameters, not content blocks — sending a PDF to a provider without file support fails loudly with an API error, it does not silently degrade.
+    - URL/data: sources bypass every safety check. No size limit, no mime sniffing, no `%PDF` validation — deepcrew trusts the string is well-formed and lets the provider be the final arbiter.
+    - Only user messages carry multimodal content. Assistant and tool messages in the conversation history remain plain strings throughout deepcrew — there's no path for an agent's own output to include images.
+    - Parallel orchestration duplicates attachments to every agent. A 5-agent parallel fan-out with a 10 MB PDF attached means that PDF's bytes are included in 5 separate LLM requests, not one shared reference.
+
+### See also
+
+    - [APEX Synthesizer](apex.html) — synthesizes text results only; it never re-sees the original attachments.
+    - [Agent Spawning](spawning.html) — sub-agents don't inherit attachments automatically.
+    - [FastAPI Integration](fastapi.html) — `create_stream_router` accepts attachments as URLs/data-URIs in the request body.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

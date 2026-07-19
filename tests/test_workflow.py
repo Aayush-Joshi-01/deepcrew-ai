@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from deepcrew.exceptions import WorkflowError
+from deepcrew.types import AgentResult
 from deepcrew.workflow import (
     WorkflowBuilder,
     _find_sink,
@@ -10,7 +11,6 @@ from deepcrew.workflow import (
     _resolve_task,
     _topological_levels,
 )
-from deepcrew.types import AgentResult
 
 
 def _make_result(agent_id: str, text: str) -> AgentResult:
@@ -64,13 +64,17 @@ def test_resolve_task_string_template():
 
 def test_resolve_task_callable():
     outputs = {"step1": _make_result("step1", "step1 output")}
-    fn = lambda ctx: f"Input was: {ctx['input']}, step1: {ctx['step1']}"
+
+    def fn(ctx):
+        return f"Input was: {ctx['input']}, step1: {ctx['step1']}"
+
     result = _resolve_task(fn, "my input", outputs)
     assert result == "Input was: my input, step1: step1 output"
 
 
 def test_workflow_builder_duplicate_node_raises():
     from deepcrew.agent import Agent
+
     wb = WorkflowBuilder()
     agent = Agent("a", model="openai/gpt-4o")
     wb.add_agent("node", agent)
@@ -80,6 +84,7 @@ def test_workflow_builder_duplicate_node_raises():
 
 def test_workflow_builder_unknown_edge_raises():
     from deepcrew.agent import Agent
+
     wb = WorkflowBuilder()
     agent = Agent("a", model="openai/gpt-4o")
     wb.add_agent("node1", agent)
@@ -95,6 +100,7 @@ def test_workflow_builder_empty_raises():
 
 def test_workflow_builder_cycle_raises():
     from deepcrew.agent import Agent
+
     wb = WorkflowBuilder()
     a = Agent("a", model="openai/gpt-4o")
     b = Agent("b", model="openai/gpt-4o")

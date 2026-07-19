@@ -26,7 +26,9 @@ async def main():
     agent = Agent(
         name="weather_assistant",
         model="openai/gpt-4o-mini",
-        system_prompt="You are a helpful weather assistant. Use the get_weather tool to answer questions.",
+        system_prompt=(
+            "You are a helpful weather assistant. Use the get_weather tool to answer questions."
+        ),
         tools=[get_weather],
         max_turns=3,
     )

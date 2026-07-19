@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifier — deepcrew-ai</title>
+  <meta name="description" content="Structured, LLM-graded critique — score, issues, and a suggestion — drives targeted refinement, with an adaptive compute budget." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Self-Improving Loop</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/verifier.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="verifier-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Self-Improving Loop</span>
+    <span class="sidebar-page">Verifier</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#adaptive-budget"><span class="toc-title">Adaptive budget</span><span class="toc-desc">How the verifier's score feeds the loop's early-stop decision.</span></a>
+      <a class="toc-item" href="#standalone-evaluate"><span class="toc-title">Standalone evaluate()</span><span class="toc-desc">Score any text against a query without running a full loop.</span></a>
+      <a class="toc-item" href="#assess-complexity"><span class="toc-title">assess_complexity()</span><span class="toc-desc">The other Verifier method — estimating task difficulty up front.</span></a>
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Failed grading returns 0.0 silently, not an exception.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="verifier" data-section="verifier">
+  <div class="section-eyebrow">Self-Improving Loop <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div>
+  <h2>Verifier</h2>
+  <p>A <code>Verifier</code> grades an agent's result against the original query and returns <strong>structured</strong> feedback — a score, specific issues, and a concrete suggestion — instead of a plain boolean. Attached to a <code>LoopConfig</code>, it drives both convergence and a targeted refinement prompt built from its critique, replacing the static default refine message. This page is a showcase of the ways to use it, end to end.</p>
+
+  <h3>How-to: basic quality gate</h3>
+  <p>The simplest use — stop refining once the built-in LLM grader is confident enough.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_basic.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(result.text)</code></pre>
+  </div>
+
+  <h3>How-to: a task-specific rubric</h3>
+  <p>Pass grading criteria specific to your domain so the verifier checks for what actually matters — e.g. code review, not just "is this a complete sentence."</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_rubric.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">code_reviewer = Agent(
+    name="code_reviewer",
+    model="openai/gpt-4o",
+    system_prompt="Review the given diff for bugs, security issues, and style.",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(
+            threshold=0.9,
+            rubric=(
+                "1. Every changed function must be covered by the review.\n"
+                "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
+                "3. Style nits are optional but bugs are not."
+            ),
+        )),
+    ),
+)
+
+result = await run_agent(code_reviewer, [{"role": "user", "content": diff_text}])</code></pre>
+  </div>
+
+  <h3>How-to: fully custom grading (no LLM call)</h3>
+  <p><code>evaluate_fn</code> replaces the built-in LLM grader entirely — useful when you have a deterministic check (schema validation, a unit test, a regex) that's cheaper and more reliable than asking another model.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_custom.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import json
+from deepcrew import VerifierFeedback
+
+async def json_schema_grader(query: str, result) -> VerifierFeedback:
+    try:
+        data = json.loads(result.text)
+    except json.JSONDecodeError:
+        return VerifierFeedback(score=0.0, issues=["Output is not valid JSON"], suggestion="Return valid JSON only.")
+    missing = [k for k in ("summary", "action_items") if k not in data]
+    if missing:
+        return VerifierFeedback(score=0.4, issues=[f"Missing key: {k}" for k in missing], suggestion="Include all required keys.")
+    return VerifierFeedback(score=1.0, converged=True)
+
+agent = Agent(
+    name="extractor",
+    model="openai/gpt-4o-mini",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(evaluate_fn=json_schema_grader)),
+    ),
+)</code></pre>
+  </div>
+
+  <span class="anchor" id="adaptive-budget"></span>
+  <h3>How-to: adaptive compute budget <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></h3>
+  <p>By default the loop always runs <code>max_iterations</code> times unless it converges early. With <code>adaptive=True</code>, it also tracks the verifier score across iterations and stops as soon as improvement plateaus — saving compute once refinement stops paying off. <code>max_iterations</code> is still a hard ceiling; adaptive can only shorten the loop, never lengthen it.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_adaptive.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=8,
+        verifier=Verifier(VerifierConfig(threshold=0.9)),
+        adaptive=True,
+        min_improvement=0.02,   # minimum score delta to still count as "improving"
+        plateau_patience=2,     # stop after this many non-improving iterations in a row
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(f"Stopped after {result.loop_iterations} iterations (cap was 8)")</code></pre>
+  </div>
+  <p>When the loop stops early on a plateau, it returns the <em>highest-scoring</em> result seen so far — not necessarily the very last one — and emits a <code>LOOP_ITERATION</code> event with <code>{"early_stop": "plateau"}</code> in its data. Adaptive is a no-op without a <code>verifier</code> configured (there's no score to track).</p>
+
+  <span class="anchor" id="standalone-evaluate"></span>
+  <h3>How-to: grading something outside a loop</h3>
+  <p><code>Verifier</code> doesn't require a <code>LoopConfig</code> at all — call <code>evaluate()</code> directly whenever you have a query and an <code>AgentResult</code> you want graded, e.g. to build your own custom retry/escalation logic instead of using the built-in loop.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">verifier_standalone.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Verifier, VerifierConfig, run_agent, Agent
+
+verifier = Verifier(VerifierConfig(threshold=0.85))
+agent = Agent(name="drafter", model="openai/gpt-4o-mini")
+
+result = await run_agent(agent, [{"role": "user", "content": "Draft a release note"}])
+
+feedback = await verifier.evaluate(
+    "Draft a release note",
+    result,
+    default_model=agent.model,   # used only if VerifierConfig.model wasn't set
+)
+
+if not feedback.converged:
+    print(f"Score {feedback.score:.2f} — issues: {feedback.issues}")
+    print(f"Suggestion: {feedback.suggestion}")</code></pre>
+  </div>
+
+  <span class="anchor" id="assess-complexity"></span>
+  <h3>assess_complexity() — the other Verifier method</h3>
+  <p>Separate from <code>evaluate()</code> (which grades a finished answer), <code>Verifier</code> also exposes <code>assess_complexity(task, default_model=...)</code> — a lightweight, pre-execution judgment call: "does this task genuinely need decomposing into sub-tasks, or can one agent handle it directly?" This is what powers <code>Orchestrator</code>'s <code>spawn_complexity_check</code> parameter, gating whether a newly-spawned sub-agent gets its own nested spawn tool (see <a href="spawning.html#nested-spawning">Agent Spawning → Bounded nested spawning</a>). You can call it standalone too:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">verifier = Verifier()
+needs_decomposition = await verifier.assess_complexity(
+    "Build a full REST API with auth, rate limiting, and tests",
+    default_model="openai/gpt-4o-mini",
+)
+print(needs_decomposition)  # bool</code></pre>
+  </div>
+  <p>If the underlying LLM call fails or returns something unparseable, <code>assess_complexity()</code> defaults to <code>True</code> (permissive) rather than <code>False</code> — the reasoning being that a failed complexity check should not silently prevent legitimate decomposition. If you constructed the <code>Verifier</code> with <code>evaluate_fn</code> (a fully custom grader), <code>assess_complexity()</code> has no way to reuse that custom function for this different purpose and always returns <code>True</code> unconditionally.</p>
+
+  <h3>Verifier reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.model</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">LiteLLM model string used to grade results. Defaults to the looped agent's own model.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.threshold</div><div class="param-cell param-type">float = 0.8</div><div class="param-cell param-desc">Minimum score for <code>VerifierFeedback.converged</code> to be <code>True</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.rubric</div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Optional task-specific grading criteria appended to the built-in verifier prompt.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierConfig.evaluate_fn</div><div class="param-cell param-type">Callable | None</div><div class="param-cell param-desc">Full override: an async <code>(query, result) -> VerifierFeedback</code> function that replaces the built-in LLM grader entirely.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.score</div><div class="param-cell param-type">float</div><div class="param-cell param-desc">0.0-1.0 quality estimate.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.issues</div><div class="param-cell param-type">list[str]</div><div class="param-cell param-desc">Specific problems found in the result.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.suggestion</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Actionable next-step guidance, used to build the refinement prompt.</div></div>
+    <div class="param-row"><div class="param-cell param-name">VerifierFeedback.converged</div><div class="param-cell param-type">bool</div><div class="param-cell param-desc"><code>score >= threshold</code>.</div></div>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>A failed grading call returns score 0.0, not an error.</strong> If the LLM call raises, or the response can't be parsed as JSON even with the regex fallback, <code>evaluate()</code> swallows the exception and returns <code>VerifierFeedback(score=0.0, ...)</code> — indistinguishable from a genuinely terrible answer. If your loop seems to never converge, check whether the grading model itself is actually reachable before assuming your agent's output is at fault.</li>
+    <li><strong><code>rubric</code> is appended text, not a replacement.</strong> It's inserted into the default grading prompt as extra criteria — it doesn't change the required JSON response shape (<code>score</code>/<code>issues</code>/<code>suggestion</code>), so a rubric describing a different output format won't be honored.</li>
+    <li><strong><code>evaluate_fn</code> disables <code>assess_complexity()</code>'s real logic.</strong> Once you supply a fully custom grader, complexity assessment (used by spawn nesting) always returns <code>True</code> — it has no way to reuse your custom function.</li>
+    <li><strong><code>adaptive</code> and <code>procedural_memory</code> both require <code>verifier</code>.</strong> Neither has any effect if you set them on a <code>LoopConfig</code> without also setting <code>verifier</code>.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="looping.html">Looping</a> — how <code>LoopConfig.verifier</code> integrates with convergence, adaptive early-stop, and refinement.</li>
+    <li><a href="procedural-memory.html">Procedural Memory</a> — verifier feedback also feeds the evolving playbook.</li>
+    <li><a href="spawning.html#nested-spawning">Agent Spawning</a> — <code>assess_complexity()</code> gates nested spawn-tool attachment.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="verifier-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Verifier" feature: Structured, LLM-graded critique — score, issues, and a suggestion — drives targeted refinement, with an adaptive compute budget.
+
+How it works: Attach a Verifier(VerifierConfig(threshold=..., rubric=...)) to a LoopConfig so each iteration is graded and refined against specific, structured feedback rather than a static prompt; set adaptive=True to stop early once the score plateaus.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Verifier') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Verifier for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Verifier
+A `Verifier` grades an agent's result against the original query and returns structured feedback — a score, specific issues, and a concrete suggestion — instead of a plain boolean. Attached to a `LoopConfig`, it drives both convergence and a targeted refinement prompt built from its critique, replacing the static default refine message. This page is a showcase of the ways to use it, end to end.
+
+### How-to: basic quality gate
+
+The simplest use — stop refining once the built-in LLM grader is confident enough.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(result.text)
+```
+
+### How-to: a task-specific rubric
+
+Pass grading criteria specific to your domain so the verifier checks for what actually matters — e.g. code review, not just "is this a complete sentence."
+
+```python
+code_reviewer = Agent(
+    name="code_reviewer",
+    model="openai/gpt-4o",
+    system_prompt="Review the given diff for bugs, security issues, and style.",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(
+            threshold=0.9,
+            rubric=(
+                "1. Every changed function must be covered by the review.\n"
+                "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
+                "3. Style nits are optional but bugs are not."
+            ),
+        )),
+    ),
+)
+
+result = await run_agent(code_reviewer, [{"role": "user", "content": diff_text}])
+```
+
+### How-to: fully custom grading (no LLM call)
+
+`evaluate_fn` replaces the built-in LLM grader entirely — useful when you have a deterministic check (schema validation, a unit test, a regex) that's cheaper and more reliable than asking another model.
+
+```python
+import json
+from deepcrew import VerifierFeedback
+
+async def json_schema_grader(query: str, result) -> VerifierFeedback:
+    try:
+        data = json.loads(result.text)
+    except json.JSONDecodeError:
+        return VerifierFeedback(score=0.0, issues=["Output is not valid JSON"], suggestion="Return valid JSON only.")
+    missing = [k for k in ("summary", "action_items") if k not in data]
+    if missing:
+        return VerifierFeedback(score=0.4, issues=[f"Missing key: {k}" for k in missing], suggestion="Include all required keys.")
+    return VerifierFeedback(score=1.0, converged=True)
+
+agent = Agent(
+    name="extractor",
+    model="openai/gpt-4o-mini",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(evaluate_fn=json_schema_grader)),
+    ),
+)
+```
+
+### How-to: adaptive compute budget v0.2.3
+
+By default the loop always runs `max_iterations` times unless it converges early. With `adaptive=True`, it also tracks the verifier score across iterations and stops as soon as improvement plateaus — saving compute once refinement stops paying off. `max_iterations` is still a hard ceiling; adaptive can only shorten the loop, never lengthen it.
+
+```python
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=8,
+        verifier=Verifier(VerifierConfig(threshold=0.9)),
+        adaptive=True,
+        min_improvement=0.02,   # minimum score delta to still count as "improving"
+        plateau_patience=2,     # stop after this many non-improving iterations in a row
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(f"Stopped after {result.loop_iterations} iterations (cap was 8)")
+```
+
+When the loop stops early on a plateau, it returns the highest-scoring result seen so far — not necessarily the very last one — and emits a `LOOP_ITERATION` event with `{"early_stop": "plateau"}` in its data. Adaptive is a no-op without a `verifier` configured (there's no score to track).
+
+### How-to: grading something outside a loop
+
+`Verifier` doesn't require a `LoopConfig` at all — call `evaluate()` directly whenever you have a query and an `AgentResult` you want graded, e.g. to build your own custom retry/escalation logic instead of using the built-in loop.
+
+```python
+from deepcrew import Verifier, VerifierConfig, run_agent, Agent
+
+verifier = Verifier(VerifierConfig(threshold=0.85))
+agent = Agent(name="drafter", model="openai/gpt-4o-mini")
+
+result = await run_agent(agent, [{"role": "user", "content": "Draft a release note"}])
+
+feedback = await verifier.evaluate(
+    "Draft a release note",
+    result,
+    default_model=agent.model,   # used only if VerifierConfig.model wasn't set
+)
+
+if not feedback.converged:
+    print(f"Score {feedback.score:.2f} — issues: {feedback.issues}")
+    print(f"Suggestion: {feedback.suggestion}")
+```
+
+### assess_complexity() — the other Verifier method
+
+Separate from `evaluate()` (which grades a finished answer), `Verifier` also exposes `assess_complexity(task, default_model=...)` — a lightweight, pre-execution judgment call: "does this task genuinely need decomposing into sub-tasks, or can one agent handle it directly?" This is what powers `Orchestrator`'s `spawn_complexity_check` parameter, gating whether a newly-spawned sub-agent gets its own nested spawn tool (see [Agent Spawning → Bounded nested spawning](spawning.html#nested-spawning)). You can call it standalone too:
+
+```python
+verifier = Verifier()
+needs_decomposition = await verifier.assess_complexity(
+    "Build a full REST API with auth, rate limiting, and tests",
+    default_model="openai/gpt-4o-mini",
+)
+print(needs_decomposition)  # bool
+```
+
+If the underlying LLM call fails or returns something unparseable, `assess_complexity()` defaults to `True` (permissive) rather than `False` — the reasoning being that a failed complexity check should not silently prevent legitimate decomposition. If you constructed the `Verifier` with `evaluate_fn` (a fully custom grader), `assess_complexity()` has no way to reuse that custom function for this different purpose and always returns `True` unconditionally.
+
+### Verifier reference
+
+- **VerifierConfig.model** (str | None): LiteLLM model string used to grade results. Defaults to the looped agent's own model.
+
+- **VerifierConfig.threshold** (float = 0.8): Minimum score for `VerifierFeedback.converged` to be `True`.
+
+- **VerifierConfig.rubric** (str | None): Optional task-specific grading criteria appended to the built-in verifier prompt.
+
+- **VerifierConfig.evaluate_fn** (Callable | None): Full override: an async `(query, result) -> VerifierFeedback` function that replaces the built-in LLM grader entirely.
+
+- **VerifierFeedback.score** (float): 0.0-1.0 quality estimate.
+
+- **VerifierFeedback.issues** (list[str]): Specific problems found in the result.
+
+- **VerifierFeedback.suggestion** (str): Actionable next-step guidance, used to build the refinement prompt.
+
+- **VerifierFeedback.converged** (bool): `score >= threshold`.
+
+### Common pitfalls
+
+    - A failed grading call returns score 0.0, not an error. If the LLM call raises, or the response can't be parsed as JSON even with the regex fallback, `evaluate()` swallows the exception and returns `VerifierFeedback(score=0.0, ...)` — indistinguishable from a genuinely terrible answer. If your loop seems to never converge, check whether the grading model itself is actually reachable before assuming your agent's output is at fault.
+    - `rubric` is appended text, not a replacement. It's inserted into the default grading prompt as extra criteria — it doesn't change the required JSON response shape (`score`/`issues`/`suggestion`), so a rubric describing a different output format won't be honored.
+    - `evaluate_fn` disables `assess_complexity()`'s real logic. Once you supply a fully custom grader, complexity assessment (used by spawn nesting) always returns `True` — it has no way to reuse your custom function.
+    - `adaptive` and `procedural_memory` both require `verifier`. Neither has any effect if you set them on a `LoopConfig` without also setting `verifier`.
+
+### See also
+
+    - [Looping](looping.html) — how `LoopConfig.verifier` integrates with convergence, adaptive early-stop, and refinement.
+    - [Procedural Memory](procedural-memory.html) — verifier feedback also feeds the evolving playbook.
+    - [Agent Spawning](spawning.html#nested-spawning) — `assess_complexity()` gates nested spawn-tool attachment.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>
