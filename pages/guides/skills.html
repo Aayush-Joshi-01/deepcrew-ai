@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skills — deepcrew-ai</title>
+  <meta name="description" content="Reusable capability bundles exposed to the LLM as tools, now self-evolving from converged loop runs." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Extensibility</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/skills.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="skills-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Extensibility</span>
+    <span class="sidebar-page">Skills</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#self-evolving-skills"><span class="toc-title">Self-evolving skills</span><span class="toc-desc">Skills distilled automatically from successful loop runs.</span></a>
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">What distilled skills don't carry over — memory, hooks, retry policy.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="skills" data-section="skills">
+  <div class="section-eyebrow">Extensibility</div>
+  <h2>Skills</h2>
+  <p>Skills are higher-level capability bundles. They look identical to tools from the LLM's perspective (both become <code>ToolDef</code>), but can wrap multi-step logic, sub-agents, or external APIs internally. Three built-ins are included; you can also create custom skills with the <code>@skill</code> decorator.</p>
+
+  <h3>Built-in skills</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">skills_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent
+from deepcrew import WebSearchSkill, SummarizeSkill, CodeExecutionSkill
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    system_prompt="You are a versatile AI assistant.",
+    skills=[
+        WebSearchSkill(),                            # DuckDuckGo Instant Answer API
+        SummarizeSkill(model="openai/gpt-4o-mini"),  # LLM-backed summarization
+        CodeExecutionSkill(timeout=15.0),            # sandboxed Python subprocess
+    ],
+)
+
+result = await run_agent(agent, [
+    {"role": "user", "content": "Search for Python async best practices, summarize them, then write a demo script and run it."}
+])
+print(result.text)</code></pre>
+  </div>
+
+  <h3>Skill ABC — what every skill needs</h3>
+  <p>Every skill, however you build it, must provide four things: a <code>name</code> (the tool name the LLM sees), a <code>description</code>, a <code>parameters</code> JSON Schema object, and an async <code>execute(self, **kwargs) -> str</code> method. <code>to_tool_def()</code> is provided by the base class and wraps <code>execute()</code> into a <code>ToolDef</code> — you never need to override it.</p>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">name</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Must be unique among an agent's tools/skills — if a skill and a plain <code>@tool</code> function share a name, whichever ends up later in the merged tool list from <code>Agent.get_tool_defs()</code> wins.</div></div>
+    <div class="param-row"><div class="param-cell param-name">description</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Shown to the LLM verbatim. Also what <code>ToolAllocator</code> reads when deciding whether a spawned sub-agent should get this skill — see <a href="spawning.html">Agent Spawning</a>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">parameters</div><div class="param-cell param-type">dict</div><div class="param-cell param-desc">A JSON Schema object (<code>{"type": "object", "properties": {...}, "required": [...]}</code>) — exactly the shape OpenAI-style function-calling expects.</div></div>
+    <div class="param-row"><div class="param-cell param-name">execute(**kwargs)</div><div class="param-cell param-type">async -> str</div><div class="param-cell param-desc">Receives the LLM's parsed tool-call arguments as keyword arguments. Must return a string — if your logic naturally produces a dict/list, serialize it yourself (e.g. <code>str(result)</code> or <code>json.dumps(result)</code>).</div></div>
+  </div>
+
+  <h3>@skill decorator — custom skills</h3>
+  <p>The decorator inspects your function's signature to auto-generate the JSON Schema for you, so you don't hand-write <code>parameters</code>. The mapping is intentionally simple: parameters annotated <code>int</code> become JSON <code>"integer"</code>, <code>float</code> becomes <code>"number"</code>, <code>bool</code> becomes <code>"boolean"</code>, and everything else (including <code>str</code>, no annotation, or a complex type) becomes <code>"string"</code> — there is no support for nested objects, lists, unions, or enums via the decorator's auto-generated schema. A parameter is marked <code>"required"</code> whenever it has no default value in the function signature; anything with a default is treated as optional.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import skill, Agent
+
+@skill(name="translate", description="Translate text to another language")
+async def translate(text: str, target_language: str) -> str:
+    """
+    Args:
+        text (str): The text to translate.
+        target_language (str): Target language code, e.g. 'es', 'fr', 'ja'.
+    """
+    import httpx
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            "https://libretranslate.de/translate",
+            json={"q": text, "source": "auto", "target": target_language},
+        )
+        return r.json()["translatedText"]
+
+@skill(name="send_slack", description="Send a message to a Slack channel")
+async def send_slack(channel: str, message: str) -> str:
+    """
+    Args:
+        channel (str): Slack channel name (without #).
+        message (str): Message text to send.
+    """
+    import os
+    import httpx
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            "https://slack.com/api/chat.postMessage",
+            headers={"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}"},
+            json={"channel": channel, "text": message},
+        )
+    return f"Message sent to #{channel}"
+
+agent = Agent(
+    "comms",
+    model="openai/gpt-4o",
+    system_prompt="Help with communications and translations.",
+    skills=[translate, send_slack],
+)</code></pre>
+  </div>
+
+  <h3>Skill class — full custom implementation</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.skills.base import Skill
+
+class DatabaseQuerySkill(Skill):
+    name = "database_query"
+    description = "Execute a read-only SQL query against the production database"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "sql": {"type": "string", "description": "SQL SELECT query to execute"},
+            "limit": {"type": "integer", "description": "Max rows to return", "default": 100},
+        },
+        "required": ["sql"],
+    }
+
+    def __init__(self, connection_string: str):
+        self._conn_str = connection_string
+
+    async def execute(self, sql: str, limit: int = 100) -> str:
+        import asyncpg
+        conn = await asyncpg.connect(self._conn_str)
+        try:
+            rows = await conn.fetch(f"{sql} LIMIT {limit}")
+            return str([dict(r) for r in rows])
+        finally:
+            await conn.close()
+
+# Use it:
+agent = Agent("db_agent", model="openai/gpt-4o",
+              skills=[DatabaseQuerySkill("postgresql://...")])</code></pre>
+  </div>
+
+  <h3>SkillRegistry</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import SkillRegistry
+from deepcrew import WebSearchSkill, SummarizeSkill
+
+# Register globally
+SkillRegistry.register(WebSearchSkill())
+SkillRegistry.register(SummarizeSkill())
+
+# Retrieve by name
+search = SkillRegistry.get("web_search")
+summarize = SkillRegistry.get("summarize")
+
+# List all registered skills
+for skill in SkillRegistry.list_all():
+    print(f"{skill.name}: {skill.description}")</code></pre>
+  </div>
+
+  <h3>Built-in skill reference</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Class</th><th>Tool name</th><th>Description</th><th>Config</th></tr></thead>
+      <tbody>
+        <tr><td><code>WebSearchSkill</code></td><td><code>web_search</code></td><td>DuckDuckGo Instant Answer API. Returns top results.</td><td>None</td></tr>
+        <tr><td><code>SummarizeSkill</code></td><td><code>summarize</code></td><td>LLM-backed text summarization.</td><td><code>model="openai/gpt-4o-mini"</code></td></tr>
+        <tr><td><code>CodeExecutionSkill</code></td><td><code>code_exec</code></td><td>Runs Python in an isolated subprocess.</td><td><code>timeout=10.0</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <span class="anchor" id="self-evolving-skills"></span>
+  <h3>How-to: self-evolving skills (auto_extract_skill) <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.5</span></h3>
+  <p>With <code>LoopConfig.auto_extract_skill=True</code>, a loop run that genuinely converges (via <code>convergence_fn</code> or <code>verifier</code>) with a quality signal at or above <code>skill_confidence_threshold</code> is distilled into a reusable, <em>replayable</em> <code>Skill</code> and registered in <code>SkillRegistry</code> — Voyager-style. The distilled skill doesn't just memoize the one answer; it re-runs the original agent's <code>system_prompt</code>/<code>tools</code>/<code>mcps</code> against whatever new task text it's called with, so it generalizes to similar future tasks. This never triggers on plain <code>max_iterations</code> exhaustion without real convergence, and is off by default.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">skill_distillation.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig, SkillRegistry
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,
+    ),
+)
+
+result = await run_agent(researcher, [{"role": "user", "content": "Explain CRISPR"}])
+
+# Later, a completely different agent can reuse the distilled skill by name.
+distilled = [s for s in SkillRegistry.list_all() if s.name.startswith("researcher_")][0]
+writer = Agent(name="writer", model="openai/gpt-4o-mini", skills=[distilled])</code></pre>
+  </div>
+  <p>Listen for <code>EventType.SKILL_EXTRACTED</code> (<code>{"skill_name": ..., "score": ...}</code>) to know when a new skill was registered.</p>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>The <code>@skill</code> decorator's auto-schema has no support for complex types.</strong> Lists, dicts, unions, and enums all silently become plain <code>"string"</code> parameters — write a full <code>Skill</code> subclass with a hand-authored <code>parameters</code> schema if you need anything beyond int/float/bool/string.</li>
+    <li><strong><code>FunctionSkill.execute()</code> stringifies whatever your function returns.</strong> A function returning a dict or list gets <code>str(result)</code> applied to it (Python's default repr), which is rarely what you want an LLM to parse back — return a string yourself, or use <code>json.dumps(...)</code> explicitly.</li>
+    <li><strong>Distilled skills only reuse a fixed subset of the original agent's config.</strong> The replay agent copies <code>system_prompt</code>, <code>tools</code>, <code>mcps</code>, <code>skills</code>, <code>max_turns</code>, <code>temperature</code>, <code>max_tokens</code>, and <code>extra_params</code> — it does <strong>not</strong> carry over <code>memory</code>, <code>procedural_memory</code>, <code>retry_policy</code>, <code>fallback_chain</code>, or <code>hooks</code> from the original agent.</li>
+    <li><strong><code>SkillRegistry</code> is process-global, class-level state.</strong> It is not automatically cleared between runs — tests that rely on a clean registry call <code>SkillRegistry.clear()</code> themselves in setup/teardown.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="looping.html#skill-distillation">Looping → Skill distillation</a> — the mechanics of how a converged run becomes a <code>Skill</code>.</li>
+    <li><a href="verifier.html">Verifier</a> — the quality signal that gates distillation.</li>
+    <li><a href="spawning.html">Agent Spawning</a> — <code>ToolAllocator</code> reads skill descriptions the same way it reads tool descriptions.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="skills-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Skills" feature: Reusable capability bundles exposed to the LLM as tools, now self-evolving from converged loop runs.
+
+How it works: Define a Skill (via @skill or a Skill subclass) for a multi-step capability, register it in SkillRegistry, and pass it to Agent(skills=[...]); optionally set LoopConfig(auto_extract_skill=True) to distill converged runs into new replayable skills automatically.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Skills') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Skills for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Skills
+Skills are higher-level capability bundles. They look identical to tools from the LLM's perspective (both become `ToolDef`), but can wrap multi-step logic, sub-agents, or external APIs internally. Three built-ins are included; you can also create custom skills with the `@skill` decorator.
+
+### Built-in skills
+
+```python
+from deepcrew import Agent, run_agent
+from deepcrew import WebSearchSkill, SummarizeSkill, CodeExecutionSkill
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    system_prompt="You are a versatile AI assistant.",
+    skills=[
+        WebSearchSkill(),                            # DuckDuckGo Instant Answer API
+        SummarizeSkill(model="openai/gpt-4o-mini"),  # LLM-backed summarization
+        CodeExecutionSkill(timeout=15.0),            # sandboxed Python subprocess
+    ],
+)
+
+result = await run_agent(agent, [
+    {"role": "user", "content": "Search for Python async best practices, summarize them, then write a demo script and run it."}
+])
+print(result.text)
+```
+
+### Skill ABC — what every skill needs
+
+Every skill, however you build it, must provide four things: a `name` (the tool name the LLM sees), a `description`, a `parameters` JSON Schema object, and an async `execute(self, **kwargs) -> str` method. `to_tool_def()` is provided by the base class and wraps `execute()` into a `ToolDef` — you never need to override it.
+
+- **name** (str): Must be unique among an agent's tools/skills — if a skill and a plain `@tool` function share a name, whichever ends up later in the merged tool list from `Agent.get_tool_defs()` wins.
+
+- **description** (str): Shown to the LLM verbatim. Also what `ToolAllocator` reads when deciding whether a spawned sub-agent should get this skill — see [Agent Spawning](spawning.html).
+
+- **parameters** (dict): A JSON Schema object (`{"type": "object", "properties": {...}, "required": [...]}`) — exactly the shape OpenAI-style function-calling expects.
+
+- **execute(**kwargs)** (async -> str): Receives the LLM's parsed tool-call arguments as keyword arguments. Must return a string — if your logic naturally produces a dict/list, serialize it yourself (e.g. `str(result)` or `json.dumps(result)`).
+
+### @skill decorator — custom skills
+
+The decorator inspects your function's signature to auto-generate the JSON Schema for you, so you don't hand-write `parameters`. The mapping is intentionally simple: parameters annotated `int` become JSON `"integer"`, `float` becomes `"number"`, `bool` becomes `"boolean"`, and everything else (including `str`, no annotation, or a complex type) becomes `"string"` — there is no support for nested objects, lists, unions, or enums via the decorator's auto-generated schema. A parameter is marked `"required"` whenever it has no default value in the function signature; anything with a default is treated as optional.
+
+```python
+from deepcrew import skill, Agent
+
+@skill(name="translate", description="Translate text to another language")
+async def translate(text: str, target_language: str) -> str:
+    """
+    Args:
+        text (str): The text to translate.
+        target_language (str): Target language code, e.g. 'es', 'fr', 'ja'.
+    """
+    import httpx
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            "https://libretranslate.de/translate",
+            json={"q": text, "source": "auto", "target": target_language},
+        )
+        return r.json()["translatedText"]
+
+@skill(name="send_slack", description="Send a message to a Slack channel")
+async def send_slack(channel: str, message: str) -> str:
+    """
+    Args:
+        channel (str): Slack channel name (without #).
+        message (str): Message text to send.
+    """
+    import os
+    import httpx
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            "https://slack.com/api/chat.postMessage",
+            headers={"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}"},
+            json={"channel": channel, "text": message},
+        )
+    return f"Message sent to #{channel}"
+
+agent = Agent(
+    "comms",
+    model="openai/gpt-4o",
+    system_prompt="Help with communications and translations.",
+    skills=[translate, send_slack],
+)
+```
+
+### Skill class — full custom implementation
+
+```python
+from deepcrew.skills.base import Skill
+
+class DatabaseQuerySkill(Skill):
+    name = "database_query"
+    description = "Execute a read-only SQL query against the production database"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "sql": {"type": "string", "description": "SQL SELECT query to execute"},
+            "limit": {"type": "integer", "description": "Max rows to return", "default": 100},
+        },
+        "required": ["sql"],
+    }
+
+    def __init__(self, connection_string: str):
+        self._conn_str = connection_string
+
+    async def execute(self, sql: str, limit: int = 100) -> str:
+        import asyncpg
+        conn = await asyncpg.connect(self._conn_str)
+        try:
+            rows = await conn.fetch(f"{sql} LIMIT {limit}")
+            return str([dict(r) for r in rows])
+        finally:
+            await conn.close()
+
+# Use it:
+agent = Agent("db_agent", model="openai/gpt-4o",
+              skills=[DatabaseQuerySkill("postgresql://...")])
+```
+
+### SkillRegistry
+
+```python
+from deepcrew import SkillRegistry
+from deepcrew import WebSearchSkill, SummarizeSkill
+
+# Register globally
+SkillRegistry.register(WebSearchSkill())
+SkillRegistry.register(SummarizeSkill())
+
+# Retrieve by name
+search = SkillRegistry.get("web_search")
+summarize = SkillRegistry.get("summarize")
+
+# List all registered skills
+for skill in SkillRegistry.list_all():
+    print(f"{skill.name}: {skill.description}")
+```
+
+### Built-in skill reference
+
+      | Class | Tool name | Description | Config |
+
+        | `WebSearchSkill` | `web_search` | DuckDuckGo Instant Answer API. Returns top results. | None |
+
+        | `SummarizeSkill` | `summarize` | LLM-backed text summarization. | `model="openai/gpt-4o-mini"` |
+
+        | `CodeExecutionSkill` | `code_exec` | Runs Python in an isolated subprocess. | `timeout=10.0` |
+
+### How-to: self-evolving skills (auto_extract_skill) v0.2.5
+
+With `LoopConfig.auto_extract_skill=True`, a loop run that genuinely converges (via `convergence_fn` or `verifier`) with a quality signal at or above `skill_confidence_threshold` is distilled into a reusable, replayable `Skill` and registered in `SkillRegistry` — Voyager-style. The distilled skill doesn't just memoize the one answer; it re-runs the original agent's `system_prompt`/`tools`/`mcps` against whatever new task text it's called with, so it generalizes to similar future tasks. This never triggers on plain `max_iterations` exhaustion without real convergence, and is off by default.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig, SkillRegistry
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,
+    ),
+)
+
+result = await run_agent(researcher, [{"role": "user", "content": "Explain CRISPR"}])
+
+# Later, a completely different agent can reuse the distilled skill by name.
+distilled = [s for s in SkillRegistry.list_all() if s.name.startswith("researcher_")][0]
+writer = Agent(name="writer", model="openai/gpt-4o-mini", skills=[distilled])
+```
+
+Listen for `EventType.SKILL_EXTRACTED` (`{"skill_name": ..., "score": ...}`) to know when a new skill was registered.
+
+### Common pitfalls
+
+    - The `@skill` decorator's auto-schema has no support for complex types. Lists, dicts, unions, and enums all silently become plain `"string"` parameters — write a full `Skill` subclass with a hand-authored `parameters` schema if you need anything beyond int/float/bool/string.
+    - `FunctionSkill.execute()` stringifies whatever your function returns. A function returning a dict or list gets `str(result)` applied to it (Python's default repr), which is rarely what you want an LLM to parse back — return a string yourself, or use `json.dumps(...)` explicitly.
+    - Distilled skills only reuse a fixed subset of the original agent's config. The replay agent copies `system_prompt`, `tools`, `mcps`, `skills`, `max_turns`, `temperature`, `max_tokens`, and `extra_params` — it does not carry over `memory`, `procedural_memory`, `retry_policy`, `fallback_chain`, or `hooks` from the original agent.
+    - `SkillRegistry` is process-global, class-level state. It is not automatically cleared between runs — tests that rely on a clean registry call `SkillRegistry.clear()` themselves in setup/teardown.
+
+### See also
+
+    - [Looping → Skill distillation](looping.html#skill-distillation) — the mechanics of how a converged run becomes a `Skill`.
+    - [Verifier](verifier.html) — the quality signal that gates distillation.
+    - [Agent Spawning](spawning.html) — `ToolAllocator` reads skill descriptions the same way it reads tool descriptions.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

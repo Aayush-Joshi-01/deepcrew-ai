@@ -1,0 +1,2356 @@
+# deepcrew-ai — full documentation (concatenated for LLM context)
+
+
+---
+
+# deepcrew-ai
+
+Multi-agent AI library for Python, built on LiteLLM (100+ providers via one interface).
+
+## Install
+
+```bash
+pip install deepcrew-ai
+# optional extras
+pip install deepcrew-ai[fastapi]   # SSE streaming endpoint
+pip install deepcrew-ai[redis]     # Redis-backed memory
+pip install deepcrew-ai[otel]      # OpenTelemetry tracing
+```
+
+Set the API key env var for whichever provider(s) you use: `OPENAI_API_KEY`,
+`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, etc. The `model` string on each `Agent` determines the
+provider, e.g. `"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, `"ollama/llama3.2"` (local).
+
+## Quick start
+
+```python
+from deepcrew import Agent, run_agent
+
+agent = Agent(name="assistant", model="openai/gpt-4o", system_prompt="You are helpful.")
+result = await run_agent(agent, [{"role": "user", "content": "Hello!"}])
+print(result.text)
+```
+
+## Core building blocks
+
+- **`Agent`** — model, system prompt, tools, memory, hooks, optional `response_model`.
+- **`run_agent()`** — the agentic loop: stream → buffer tool calls → execute in parallel → repeat.
+- **`Orchestrator`** — an LLM router picks a single agent or fans out to several in parallel, then
+  `APEXSynthesizer` merges parallel results with confidence scoring and optional citations.
+- **`WorkflowBuilder`** — an explicit DAG of agents; independent nodes at the same level run in
+  parallel automatically.
+- **`LoopConfig`** — an outer refinement loop: a `Verifier` scores each iteration and drives
+  targeted refinement, with optional adaptive early-stop and self-consistency branching.
+- **Bounded agent spawning** — `Orchestrator(enable_spawn=True)` lets agents dynamically spawn
+  sub-agents mid-run via a `spawn_agent` meta-tool, hard-capped by `max_spawn_depth`.
+- **`MemoryProvider`** — pluggable context store (`InMemoryProvider`, `FileMemoryProvider`,
+  `RedisMemoryProvider`), auto-injected into each LLM call.
+- **MCP tools** — `StdioMCP`, `SSEMCP`, `HTTPMCP`, `MCPManager` for attaching MCP servers.
+- **`StreamEvent`/`StreamPolicy`** — every consequential action streams as an event; `StreamPolicy`
+  controls which event types a given consumer sees (`chat()`, `standard()`, `verbose()`, custom).
+
+## Latest additions
+
+Multimodal input (`image()`, `pdf()`, `user_message()`), selectable streaming visibility
+(`StreamPolicy`), an optional FastAPI SSE integration, structured output (`response_model`),
+human-in-the-loop tool approval (`AgentHooks`), and a Redis memory provider. See the
+[features index](features.html) and [migration guide](guides/migration.html).
+
+## Documentation map
+
+- [Features](features.html) — every feature has its own page: APEX, agent spawning, looping,
+  verifier, procedural memory, skills, memory providers, retry/fallback, observability, CLI,
+  multimodal input, StreamPolicy, FastAPI integration, structured output, human-in-the-loop hooks,
+  and the Redis memory provider. Each page has a "Copy prompt" button for AI-assisted implementation.
+- [Examples](examples.html) — runnable end-to-end scripts and domain walkthroughs.
+- [Migration Guide](guides/migration.html) — coming from CrewAI or Google ADK.
+- [llms.txt](llms.txt) / [llms-full.txt](llms-full.txt) — machine-readable docs index for LLM tools.
+
+
+---
+
+# deepcrew-ai Features
+
+Every feature has its own self-contained page under `docs/guides/`, each with a description, a
+working code example, and a "Copy prompt" button that copies a ready-to-paste AI implementation
+prompt for that specific feature.
+
+## Orchestration
+
+- [APEX Synthesizer](guides/apex.md) — confidence-scored, citation-aware multi-agent result synthesis.
+- [Agent Spawning](guides/spawning.md) — agents dynamically spawn sub-agents mid-loop, with bounded nested delegation.
+
+## Self-Improving Loop
+
+- [Looping](guides/looping.md) — outer iteration loop for search-refine patterns, with self-consistency branching.
+- [Verifier](guides/verifier.md) — structured, LLM-graded critique drives targeted refinement, with an adaptive compute budget.
+- [Procedural Memory](guides/procedural-memory.md) — an ACE-inspired evolving playbook of strategies accumulated across runs.
+
+## Input & Streaming
+
+- [Multimodal Input](guides/multimodal.md) — attach images and PDFs to any message with `image()`/`pdf()`.
+- [StreamPolicy](guides/streampolicy.md) — choose exactly which event types a consumer sees.
+- [FastAPI Integration](guides/fastapi.md) — one call turns any Agent/Orchestrator/WorkflowBuilder into an SSE endpoint.
+
+## Agent Behavior
+
+- [Structured Output](guides/structured-output.md) — `response_model` validates the final answer against a pydantic schema.
+- [Human-in-the-Loop Hooks](guides/hooks.md) — `AgentHooks.approve_tool` can deny individual tool calls before they run.
+
+## Memory & Extensibility
+
+- [Memory Providers](guides/memory.md) — pluggable context stores auto-injected into each LLM call.
+- [Redis Memory Provider](guides/redis-memory.md) — a persistent, shared `MemoryProvider` backed by Redis.
+- [Skills](guides/skills.md) — reusable capability bundles, self-evolving from converged loop runs.
+
+## Infrastructure
+
+- [Retry & Fallback](guides/retry.md) — per-agent exponential backoff with model fallback chains.
+- [Observability](guides/observability.md) — OpenTelemetry spans for every LLM call, tool execution, and workflow step.
+- [CLI](guides/cli.md) — `deepcrew run workflow.yaml` for declarative workflow execution.
+
+See also the [migration guide](guides/migration.md) if you're coming from CrewAI or Google ADK.
+
+
+---
+
+# deepcrew-ai Examples
+
+Runnable, self-contained scripts live in [`examples/`](https://github.com/Aayush-Joshi-01/deepcrew-ai/tree/main/examples)
+in the repository. Each file's module docstring lists the required environment variables (API
+keys) before you run it.
+
+## Core
+
+- `simple_agent.py` — a single agent with an `@tool`-decorated function.
+- `workflow_example.py` — a 4-node DAG (`WorkflowBuilder`) with streaming and non-streaming runs.
+- `automated_example.py` — `Orchestrator` with router + APEX synthesis, streaming events.
+- `mcp_example.py` — all three MCP transports (Stdio/HTTP/SSE) plus `MCPManager`.
+
+## Self-improving loop / spawning
+
+- `self_improving_research.py` — `LoopConfig` with a `Verifier`, adaptive early-stop, and
+  procedural memory.
+- `consensus_code_review.py` — self-consistency branching plus skill distillation.
+- `autonomous_task_planning.py` — bounded nested agent spawning via `Orchestrator(enable_spawn=True)`.
+
+## v0.4.0
+
+- `multimodal_agent.py` — attaching an image and a PDF to a query with `image()`/`pdf()`.
+- `structured_output.py` — `response_model` validated against a pydantic schema.
+- `human_in_the_loop.py` — `AgentHooks.approve_tool` denying a specific tool call.
+- `fastapi_streaming.py` — `create_stream_router` wired into a FastAPI app, chat vs. verbose
+  `StreamPolicy`.
+
+Provider quick reference: swap the `model=` string on any `Agent` —
+`"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, `"gemini/gemini-2.0-flash"`,
+`"bedrock/anthropic.claude-3-sonnet"`, `"azure/<deployment>"`, `"groq/llama-3.1-70b"`,
+`"ollama/llama3.2"` (local, no API key needed) — LiteLLM handles the rest.
+
+Full walkthroughs with expected output: [examples.html](examples.html).
+
+
+---
+
+# Migrating to deepcrew-ai
+
+A concept map for teams coming from CrewAI or Google's Agent Development Kit (ADK), plus what
+deepcrew adds once you're here.
+
+## From CrewAI
+
+| CrewAI concept | deepcrew equivalent | Notes |
+|---|---|---|
+| `Agent(role=, goal=, backstory=)` | `Agent(name=, system_prompt=)` | deepcrew doesn't split role/goal/backstory into separate fields — fold them into one `system_prompt`. |
+| `Crew(agents=[...], process=Process.sequential)` | `WorkflowBuilder().add_agent(...).then(...)` | Explicit DAG edges instead of an implicit list order. |
+| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | An LLM router picks single-agent or fan-out parallel execution; no manager agent to configure. |
+| `@tool` / `BaseTool` subclass | `@tool` decorator on a plain function | Schema is auto-generated from type hints — no separate schema class. |
+| `Agent(..., output_pydantic=Model)` | `Agent(..., response_model=Model)` | Validated result lands on `AgentResult.parsed`; one automatic repair attempt on invalid JSON. |
+| `Task(human_input=True)` | `AgentHooks(approve_tool=...)` | deepcrew's human-in-the-loop is per-tool-call, not per-task; return `False` from `approve_tool` to deny. |
+| Crew `verbose=True` | `StreamPolicy.verbose()` | Streaming, not console printing — see [Streaming guide](streaming.html). |
+
+**Before (CrewAI):**
+```python
+from crewai import Agent, Crew, Task, Process
+
+researcher = Agent(role="Researcher", goal="Find facts", backstory="...")
+crew = Crew(agents=[researcher], tasks=[Task(description="...", agent=researcher)],
+            process=Process.sequential)
+result = crew.kickoff()
+```
+
+**After (deepcrew):**
+```python
+from deepcrew import Agent, run_agent
+
+researcher = Agent(name="researcher", model="openai/gpt-4o", system_prompt="You find facts.")
+result = await run_agent(researcher, [{"role": "user", "content": "..."}])
+```
+
+**Before (CrewAI, structured output):**
+```python
+researcher = Agent(role="Researcher", goal="...", output_pydantic=Report)
+```
+
+**After (deepcrew):**
+```python
+researcher = Agent(name="researcher", model="openai/gpt-4o", response_model=Report)
+result = await run_agent(researcher, messages)
+result.parsed  # a validated Report instance
+```
+
+## From Google ADK
+
+| ADK concept | deepcrew equivalent | Notes |
+|---|---|---|
+| `LlmAgent(model=, instruction=)` | `Agent(model=, system_prompt=)` | Same shape; `model` is a LiteLLM string (`"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, ...) rather than an ADK model object. |
+| ADK `FunctionTool` | `@tool`-decorated function or `Skill` | Simple callables become tools; multi-step capabilities become `Skill` subclasses. |
+| ADK callbacks (`before_tool_callback`, etc.) | `AgentHooks` + the `StreamEvent` queue | Hooks *intercept* (can deny a tool call); events only *observe*. Use `StreamPolicy` to control what a UI sees. |
+| ADK `Session` / state | `MemoryProvider` (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) | Pluggable backend; attach via `Agent(memory=...)`. |
+| ADK `SequentialAgent` / `ParallelAgent` | `WorkflowBuilder` | Explicit `.then()` edges; independent nodes at the same DAG level run in parallel automatically. |
+| ADK `LoopAgent` | `LoopConfig` + `run_agent_loop` | deepcrew's loop is verifier-driven (a critic scores each iteration) rather than a fixed iteration count, with optional adaptive early-stop and self-consistency branching. |
+
+**Before (ADK):**
+```python
+from google.adk.agents import LlmAgent
+
+agent = LlmAgent(model="gemini-2.0-flash", name="assistant", instruction="You are helpful.")
+```
+
+**After (deepcrew):**
+```python
+from deepcrew import Agent, run_agent
+
+agent = Agent(name="assistant", model="gemini/gemini-2.0-flash", system_prompt="You are helpful.")
+result = await run_agent(agent, [{"role": "user", "content": "Hello!"}])
+```
+
+## What deepcrew adds
+
+- **True token streaming with selectable visibility** — every agent, tool call, memory op, retry,
+  and verifier score is a `StreamEvent`. `StreamPolicy.chat()` / `.standard()` / `.verbose()` (or a
+  custom include/exclude set) control what a given UI actually sees, without changing execution.
+- **Self-improving loop** — `LoopConfig` with a `Verifier` critiques each iteration and drives
+  refinement, with optional adaptive early-stopping and self-consistency branching across parallel
+  candidates.
+- **Bounded recursive spawning** — agents can dynamically spawn sub-agents mid-run via a
+  `spawn_agent` meta-tool, capped by a hard `max_spawn_depth` so delegation can't recurse forever.
+- **Skill distillation** — a converged, high-confidence loop result can be distilled into a
+  replayable `Skill` and registered for reuse, Voyager-style.
+- **Multimodal input** — `image()` / `pdf()` / `user_message()` attach images and documents as
+  standard OpenAI-format content blocks, forwarded by LiteLLM to whichever provider you're using.
+
+See the [Streaming guide](streaming.html) and [Loop guide](guides/loop.html) for details.
+
+
+---
+
+# APEX Synthesizer
+APEX is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
+
+APEX lives in `src/deepcrew/apex.py` as the `APEXSynthesizer` class. You will rarely construct it directly in normal use: `Orchestrator` builds and owns one internally whenever it routes a query to multiple agents. You only reach for the standalone API in [the section below](#standalone) when you already have a list of `AgentResult` objects from somewhere else (a cache, a previous run, a custom fan-out you wrote yourself) and want APEX's merging behavior without going through the full router pipeline.
+
+### When APEX actually runs
+
+This is the single most common point of confusion, so it is worth being precise: APEX only runs on the parallel branch of orchestration. When the router decides a query needs exactly one agent (`{"route": "single", ...}`), that agent's raw `AgentResult` is returned as-is — `result.final_text` is that agent's text verbatim, and `result.agent_results[-1].confidence` is `None`, because no synthesis step ever ran. APEX is invoked exactly once per orchestration, from inside `Orchestrator._orchestrate`, immediately after all agents in a parallel fan-out finish (or fail — a failed agent's exception is swallowed into an `ERROR` event and it is simply excluded from the list passed to APEX; APEX never sees agents that raised).
+
+There is a second, less obvious place APEX runs: inside the self-improving loop's [branching](looping.html#branching) feature. When `LoopConfig(branches=N)` runs N parallel candidate continuations for one iteration and no `verifier` is configured, there is no score to pick a single winner by — so `loop.py` falls back to merging all N branches through a fresh, default-configured `APEXSynthesizer` instead of just discarding N-1 of them. If a verifier is configured, branching skips APEX entirely and picks the highest-scoring branch directly. See [Looping → Branching](looping.html#branching) for the full mechanics.
+
+### How it works
+
+    - All agent results from the parallel fan-out are collected into a list (agents that raised are already filtered out by this point).
+    - APEX builds one prompt containing the original query followed by a `--- Agent: {agent_id} ---` block for every surviving result, in the order the router listed them.
+    - It synthesizes a unified answer using its own model (`apex_model`, defaulting to the same model as the router) and ends its response with a literal trailing line: `CONFIDENCE: 0.85`.
+    - The confidence line is parsed out with a regex (`CONFIDENCE:\s*([\d.]+)`), clamped to `[0.0, 1.0]`, and stored on `AgentResult.confidence` of the returned synthesis result. If the model doesn't emit a parseable confidence line at all — most likely because you overrode `system_prompt` and forgot to keep that instruction — APEX silently falls back to a default confidence of 0.8. This fallback is a deliberate "don't crash the pipeline over a formatting slip" choice, not a signal that anything went well; don't rely on 0.8 meaning anything about answer quality.
+    - The confidence line itself is stripped from the final text via the same regex before `result.final_text`/`synthesis.text` is returned to you — you will never see the literal `CONFIDENCE: 0.85` string in output shown to an end user.
+    - When `cite_sources=True` (the default), the system prompt additionally instructs APEX to mark facts inline as `[source: agent_name]` as it writes them, so `build_citations()` has something to extract afterward.
+
+Two details worth internalizing about the prompt: APEX sees the full text of every agent's result, not a summary or excerpt — with many agents or very long individual outputs this can push the synthesis call's input tokens surprisingly high, since it scales linearly with the number of parallel agents. And critically, none of the individual agents' `tool_calls`, `input_tokens`, or `output_tokens` are forwarded into the synthesis prompt — APEX only ever sees the final `.text` of each result, never how that text was produced.
+
+### Basic usage
+
+The common case: give `Orchestrator` an `ApexConfig` and let it decide when synthesis is needed.
+
+```python
+from deepcrew import Agent, Orchestrator, ApexConfig
+
+orch = Orchestrator(
+    agents=[
+        Agent("researcher", model="openai/gpt-4o-mini", system_prompt="Research facts."),
+        Agent("analyst",    model="anthropic/claude-haiku-4-5-20251001", system_prompt="Analyze data."),
+    ],
+    router_model="openai/gpt-4o-mini",
+    apex_model="openai/gpt-4o",       # defaults to router_model if omitted
+    apex_config=ApexConfig(
+        cite_sources=True,           # [source: researcher] / [source: analyst] inline
+        confidence_threshold=0.75,   # advisory only — see "Common pitfalls" below
+        allow_tools=False,           # APEX can call tools mid-synthesis (experimental)
+    ),
+)
+
+result = await orch.run("What causes inflation?")
+print(result.final_text)
+
+# Only meaningful if the router actually fanned out to >1 agent for this query —
+# on a single-agent route, confidence is None because APEX never ran.
+last = result.agent_results[-1]
+if last.confidence is not None:
+    print(f"Confidence: {last.confidence:.2%}")
+```
+
+### Standalone APEX
+
+Use `APEXSynthesizer` directly when you have `AgentResult` objects from somewhere other than a live `Orchestrator` run — for example, results you cached from an earlier run, or a custom fan-out you built by hand with `asyncio.gather` over several `run_agent()` calls.
+
+```python
+from deepcrew import APEXSynthesizer, ApexConfig, AgentResult
+
+# Use APEX outside of Orchestrator — e.g., synthesize cached results
+apex = APEXSynthesizer(
+    model="openai/gpt-4o",
+    config=ApexConfig(cite_sources=True),
+)
+
+results: list[AgentResult] = [...]  # your pre-computed results
+
+synthesis = await apex.synthesize(
+    original_query="Explain quantum entanglement",
+    results=results,
+    # queue=my_queue,        # optional: emits APEX_START/APEX_DONE if you pass one
+    # tool_defs=my_tools,    # required if config.allow_tools=True
+)
+
+print(synthesis.text)
+print(f"Confidence: {synthesis.confidence:.2f}")
+
+# Citations
+for citation in apex.build_citations(results, synthesis.text):
+    print(f"[{citation.agent_id}] {citation.claim[:80]}")
+```
+
+`synthesize()` returns a full `AgentResult` with `agent_id="apex"`, so it slots into anywhere else in deepcrew that expects one — `WorkflowBuilder` outputs, further loop iterations, and so on.
+
+### ApexConfig reference
+
+- **confidence_threshold** (float = 0.7): Purely advisory metadata for your code to act on — deepcrew does not read this value internally, retry, request more agents, or otherwise change behavior when the actual confidence falls below it. Check `result.agent_results[-1].confidence `" instruction — omit it and every synthesis silently falls back to the default confidence of 0.8 (see "How it works" above).
+
+### ApexCitation reference
+
+`build_citations(results, synthesis_text)` scans the synthesis text for every `[source: agent_name]` marker and returns one `ApexCitation` per match — it does not call the LLM again, this is pure string parsing against the text you already have.
+
+- **agent_id** (str): The agent name exactly as it appeared inside the `[source: ...]` marker — matching is case-sensitive and does not validate against the actual agent names you passed in, so a hallucinated agent name in the marker still produces a citation.
+
+- **claim** (str): The sentence immediately preceding the marker (up to 120 characters back, split on the last period). This is a heuristic, not a real sentence-boundary parse — it can occasionally grab a partial or unrelated clause on unusually punctuated text.
+
+- **confidence** (float): Always hardcoded to `0.9` for every citation — this is a per-citation placeholder, not derived from the synthesis-level confidence score or from anything the source agent reported.
+
+### APEX events
+
+Both events are emitted only when you pass a `queue` to `synthesize()` — the standalone API is silent by default. Through `Orchestrator`, the queue is always wired up automatically.
+
+- **APEX_START** ({"agents": int}): Fired once, right before the synthesis prompt is built. `agents` is the count of results being merged.
+
+- **APEX_DONE** ({"confidence": float}): Fired once synthesis text and confidence have both been parsed out. There is no separate "failed" event — if the underlying LLM call raises, that exception propagates up through `Orchestrator._orchestrate`'s own try/except into a generic `ERROR` event instead.
+
+```python
+from deepcrew.types import EventType
+
+async for event in orch.stream("..."):
+    if event.event == EventType.APEX_START:
+        agents = event.data["agents"]
+        print(f"APEX synthesizing from {len(agents)} agents: {agents}")
+    elif event.event == EventType.APEX_DONE:
+        conf = event.data["confidence"]
+        print(f"APEX done — confidence {conf:.2f}")
+        if conf < 0.7:
+            print("Warning: Low confidence — consider adding more specialist agents")
+```
+
+### Common pitfalls
+
+    - Confidence is `None` on single-agent routes. Always guard `result.agent_results[-1].confidence is not None` before formatting it — a query the router sent to exactly one agent never touches APEX.
+    - `confidence_threshold` does nothing by itself. It is metadata for your own conditional logic, not a gate deepcrew enforces (see the ApexConfig table above).
+    - Overriding `system_prompt` drops the confidence instruction. If your custom prompt doesn't end with a request for a `CONFIDENCE: ` line, every result silently gets the 0.8 fallback instead of a real signal.
+    - Citations depend entirely on model compliance. `cite_sources=True` is an instruction, not a constraint — some models under-cite, especially on short syntheses with only one dominant source.
+    - Token cost scales with agent count. APEX receives every parallel agent's full output text verbatim; a 6-agent fan-out with long individual answers means a proportionally large synthesis prompt.
+
+### See also
+
+    - [Agent Spawning](spawning.html) — the other half of `Orchestrator`'s execution stage.
+    - [Looping → Branching](looping.html#branching) — the other place APEX runs, merging self-consistency candidates when no verifier is configured.
+    - [StreamPolicy](streampolicy.html) — `StreamPolicy.standard()` and `.verbose()` both surface `APEX_START`/`APEX_DONE`; `.chat()` hides them.
+
+
+---
+
+# Agent Spawning
+deepcrew-ai v0.2.0 introduces Claude Code-style dynamic agent spawning. Any running agent can call a built-in `spawn_agent` tool to create a sub-agent mid-loop, with tools automatically selected from a global pool by the `ToolAllocator`.
+
+### How it works
+
+    - You provide a `global_tools` pool to `Orchestrator`
+    - With `enable_spawn=True`, every agent gets a `spawn_agent(task, tools, model)` tool injected
+    - When an agent calls `spawn_agent`, `ToolAllocator` uses the router LLM to pick the most relevant tools from the global pool for that specific task
+    - A fresh sub-agent is created and runs to completion, its result returned to the parent
+    - A `SPAWN_AGENT` stream event is emitted for observability
+
+### Enable spawning via Orchestrator
+
+```python
+from deepcrew import Agent, Orchestrator, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web."
+    ...
+
+@tool
+def read_file(path: str) -> str:
+    "Read a local file."
+    ...
+
+@tool
+def run_sql(query: str) -> list[dict]:
+    "Execute a SQL query."
+    ...
+
+@tool
+def call_api(url: str, method: str = "GET") -> dict:
+    "Make an HTTP API call."
+    ...
+
+master = Agent(
+    name="coordinator",
+    model="openai/gpt-4o",
+    system_prompt="""You are a coordinator agent. For complex subtasks,
+    use the spawn_agent tool to delegate to a specialized sub-agent.""",
+)
+
+orch = Orchestrator(
+    agents=[master],
+    router_model="openai/gpt-4o-mini",
+    apex_model="openai/gpt-4o",
+    global_tools=[search_web, read_file, run_sql, call_api],  # pool
+    enable_spawn=True,   # injects spawn_agent tool into master
+)
+
+result = await orch.run(
+    "Research the top 3 AI papers from last month and summarize key findings."
+)
+print(result.final_text)
+```
+
+### Standalone spawning
+
+Calling `spawn_agent()` directly bypasses `Orchestrator` entirely — useful if you're building your own custom control flow. It needs a pool of `ToolDef` objects (not raw `@tool`-decorated functions), so convert with `fn_to_tool_def()` first:
+
+```python
+import asyncio
+from deepcrew import spawn_agent, SpawnRequest, fn_to_tool_def
+
+all_tool_defs = [fn_to_tool_def(search_web), fn_to_tool_def(read_file)]
+
+request = SpawnRequest(
+    task="Find all Python files that import pandas and list their names.",
+    tools=["read_file", "search_web"],   # hint: names from the pool above
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a code analysis assistant.",
+    max_turns=5,
+)
+
+queue: asyncio.Queue = asyncio.Queue()
+
+result = await spawn_agent(
+    request=request,
+    all_tool_defs=all_tool_defs,
+    parent_queue=queue,             # None is fine if you don't need SPAWN_AGENT events
+    router_model="openai/gpt-4o-mini",
+    parent_agent_id="coordinator",
+    max_depth=2,                    # default; see "Bounded nested spawning" below
+)
+
+print(result.text)
+```
+
+Note that `request.tools` is only a hint: `spawn_agent()` always runs the full `ToolAllocator` pass first (see below), then intersects the allocator's picks with your hinted names if you gave any — it never trusts the hint blindly, and falls back to the allocator's full selection if the intersection is empty.
+
+### ToolAllocator
+
+This is the piece that decides which tools a spawned sub-agent actually gets — an LLM call, not a keyword match, so tool descriptions matter as much as names.
+
+```python
+from deepcrew import ToolAllocator
+
+allocator = ToolAllocator(router_model="openai/gpt-4o-mini")
+
+# Given a task description and a large pool of tools,
+# returns only the most relevant subset (up to max_tools)
+relevant_tools = await allocator.allocate(
+    task="Analyze sentiment in customer reviews and generate a report",
+    all_tools=my_tool_defs,   # list[ToolDef] — could be dozens of tools
+    max_tools=5,              # default is 10 if you omit this
+)
+
+print([t.name for t in relevant_tools])
+```
+
+> The allocator prompts the router model with each tool's `name` and `description` and asks for a JSON array of names back. It accepts either a bare array or an object wrapping one array value (some models prefer `{"tools": [...]}` over a bare array). If the response fails to parse as JSON at all, or the router call itself raises, `allocate()` degrades gracefully to returning the first `max_tools` tools from the pool in whatever order you passed them in — not a random or relevance-based subset. A good tool description dramatically improves allocation accuracy in the common case, and also matters for what you get in that fallback case, since pool order is your responsibility.
+
+### SpawnRequest reference
+
+- **task*** (str): Natural language description of the sub-task. Used both for tool allocation and as the sub-agent's first user message — the sub-agent never sees the parent's conversation history, only this string.
+
+- **tools** (list[str] = []): Optional hint: tool names the parent agent thinks the sub-agent should have. `ToolAllocator` still runs first and makes the real decision; this hint only filters its output (see "Standalone spawning" above).
+
+- **model** (str | None = None): Model string for the sub-agent. Falls back to `router_model` if omitted — not the parent agent's model, despite that being the more intuitive default.
+
+- **system_prompt** (str | None = None): Optional system prompt override for the sub-agent. Defaults to a generic `"You are a helpful sub-agent. Complete the given task."` when omitted.
+
+- **max_turns** (int = 5): Max tool-call cycles for the sub-agent — independent of and typically smaller than the parent's own `max_turns`.
+
+- **depth** (int = 0): Nesting depth this spawn happens at. Set automatically by the `spawn_agent` tool wrapper (`make_spawn_tool`) when the LLM calls it; you only need to set this yourself when calling `spawn_agent()` from inside your own already-nested custom logic.
+
+### How-to: bounded nested spawning
+
+A spawned sub-agent can itself spawn further sub-agents — useful when a delegated sub-task is still too large to handle directly. This is strictly depth-bounded, never sibling/fan-out-bounded: each level can still spawn as many sub-agents as it wants, but nesting depth is capped by `max_spawn_depth`. Below that hard cap, an optional `spawn_complexity_check` gate can skip attaching a nested spawn tool when the sub-task doesn't look worth decomposing further.
+
+```python
+from deepcrew import Agent, Orchestrator, Verifier
+
+orch = Orchestrator(
+    agents=[master_agent],
+    global_tools=[search_web, read_file],
+    enable_spawn=True,
+    max_spawn_depth=3,                    # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),     # optional: skip nesting for simple sub-tasks
+)
+```
+
+When a sub-agent tries to spawn beyond `max_spawn_depth`, it simply has no `spawn_agent` tool available — nothing to invoke, so it completes the task directly instead. A defense-in-depth check inside the tool itself also returns `"Maximum nesting depth reached; complete this task directly without further delegation."` as a plain string result for any caller that bypasses the normal attach logic — never an exception.
+
+`spawn_complexity_check` takes any `Verifier` instance and calls its `assess_complexity(task, default_model=...)` method — a lightweight, separate LLM judgment ("does this task genuinely need decomposing, or can one agent handle it directly?") distinct from the answer-grading `evaluate()` method the same class exposes for the [Verifier](verifier.html) feature. If you pass a `Verifier` constructed with `evaluate_fn` (a custom grading callback), `assess_complexity` has no notion of pre-execution complexity and always stays permissive — it returns `True` unconditionally rather than trying to call your custom function for a purpose it wasn't written for.
+
+### Manual wiring with `make_spawn_tool`
+
+`Orchestrator(enable_spawn=True)` is a convenience wrapper — internally, it calls `make_spawn_tool()` once per orchestration to build the actual `ToolDef` that gets injected into each agent's tool list. Call it yourself if you're wiring spawning into an `Agent` you're running with `run_agent()` directly, outside of `Orchestrator` altogether:
+
+```python
+from deepcrew import Agent, run_agent, make_spawn_tool, fn_to_tool_def
+
+pool = [fn_to_tool_def(search_web), fn_to_tool_def(read_file)]
+
+spawn_tool = make_spawn_tool(
+    all_tool_defs=pool,
+    parent_queue=None,
+    router_model="openai/gpt-4o-mini",
+    parent_agent_id="solo-agent",
+    current_depth=0,
+    max_depth=2,
+)
+
+agent = Agent(
+    name="solo-agent",
+    model="openai/gpt-4o",
+    tools=[],
+    # ToolDef instances aren't plain @tool functions, so they don't go in `tools=` —
+    # merge them into tool_defs when you call run_agent() instead:
+)
+result = await run_agent(agent, [{"role": "user", "content": "..."}], tool_defs=[spawn_tool])
+```
+
+### Common pitfalls
+
+    - Sub-agents never see multimodal attachments. If the parent agent received images/PDFs via [multimodal input](multimodal.html), a spawned sub-agent gets none of them automatically — describe what's relevant directly in the `task` string.
+    - `SpawnRequest.model` defaults to `router_model`, not the parent's model. If you want the sub-agent on the same model as its parent, pass it explicitly.
+    - Depth is a hard ceiling, fan-out is not. `max_spawn_depth` only bounds how many levels deep delegation can go — it does nothing to limit how many sibling sub-agents one level spawns, which is a separate cost/runaway concern you may need to bound yourself (e.g. via your own tool-call counting or a stricter `max_turns`).
+    - `ToolAllocator`'s failure mode is silent. A malformed JSON response or a router-call exception both fall back to "first `max_tools` tools in pool order," not an error — if allocation looks wrong, check whether the router is actually returning parseable JSON before assuming your tool descriptions are the problem.
+
+### See also
+
+    - [APEX Synthesizer](apex.html) — merges results when the router fans out to multiple top-level agents; spawning is delegation within one agent's turn.
+    - [Verifier](verifier.html) — the same class that grades loop iterations also powers `spawn_complexity_check`.
+    - [Multimodal Input](multimodal.html) — attachments and spawning interact; see the pitfall above.
+
+
+---
+
+# Looping
+The outer iteration loop is distinct from the inner per-turn `max_turns` cycle. The loop runs the entire agent (including all its tool calls) and re-runs it if the result doesn't meet a convergence criterion — ideal for search-refine, draft-critique, and iterative research patterns.
+
+### How it works
+
+    - Agent runs (all inner turns until no more tool calls)
+    - `convergence_fn(result)` is called — if it returns `True`, the loop exits
+    - If not converged, `refine_prompt` is appended and the agent runs again
+    - Loop exits when `max_iterations` is reached or convergence is achieved
+    - `result.loop_iterations` records how many outer iterations ran
+
+### Basic loop with convergence
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web for information."
+    ...
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a thorough researcher. Use search to gather comprehensive information.",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        # Convergence: result is long enough to be a proper answer
+        convergence_fn=lambda r: len(r.text) > 800 and r.text.count("\n") > 5,
+        # What to say to the agent if not converged
+        refine_prompt="Your answer is incomplete. Search for more details and expand your response significantly.",
+    ),
+)
+
+result = await run_agent(
+    agent,
+    [{"role": "user", "content": "Explain the mechanism of CRISPR-Cas9 gene editing"}],
+)
+
+print(result.text)
+print(f"Iterations: {result.loop_iterations}")
+```
+
+### Verifier-driven refinement
+
+A `Verifier` grades each iteration's answer with structured feedback — a score, specific issues, and a suggestion — instead of a boolean, and drives a targeted refinement prompt. See the full [Verifier feature guide](#verifier) for a showcase of usage patterns, from a basic quality gate to a fully custom grading function.
+
+### run_agent_loop() directly
+
+`run_agent()` already delegates to `run_agent_loop()` automatically whenever `agent.loop_config` is set — you never need to call this yourself in normal use. It's exposed for cases where you want to call the outer loop directly without going through `run_agent()`'s signature (for example, from inside other deepcrew internals, or your own orchestration code that already has a fully-resolved `tool_defs` list and wants to skip the discovery step).
+
+```python
+from deepcrew import run_agent_loop, LoopConfig
+
+result = await run_agent_loop(
+    agent=my_agent,
+    messages=[{"role": "user", "content": "Draft an executive summary"}],
+    tool_defs=None,
+    queue=my_queue,
+    agent_id="drafter",
+)
+# result.loop_iterations is set on every exit path — converged, adaptive
+# early-stop, or plain max_iterations exhaustion — so you can always tell
+# how many outer iterations actually ran.
+```
+
+### How-to: adaptive early-stop
+
+By default the loop always runs the full `max_iterations` unless `convergence_fn`/the verifier's `converged` flag fires first. With `adaptive=True` and a `verifier` configured, the loop additionally tracks the verifier score across iterations and stops as soon as improvement plateaus — saving compute once refinement stops paying off. It requires at least two scored iterations before it can detect a plateau, so it never fires on iteration 0 or 1; `max_iterations` remains a hard ceiling either way, adaptive can only shorten the loop, never lengthen it.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=8,
+        verifier=Verifier(),
+        adaptive=True,
+        min_improvement=0.02,   # smaller deltas than this count as "not improving"
+        plateau_patience=2,     # stop after 2 consecutive non-improving iterations
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(f"Stopped after {result.loop_iterations} iterations")
+```
+
+When the plateau fires, the loop returns the best-scoring result seen so far — not necessarily the most recent one. If iteration 4 scored higher than iterations 5 and 6 before patience ran out, iteration 4's result is what you get back, even though two more (worse) iterations ran after it.
+
+### How-to: self-evolving skill distillation
+
+Set `auto_extract_skill=True` to turn a genuinely converged, high-quality loop run into a reusable `Skill` automatically, registered in the process-wide `SkillRegistry`. "Genuinely converged" is strict: this only fires when the loop actually converged via `convergence_fn` or the verifier's `converged` flag — plain `max_iterations` exhaustion, or an adaptive plateau stop, never triggers distillation, no matter how good the final score was.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, SkillRegistry
+
+agent = Agent(
+    name="sql_analyst",
+    model="openai/gpt-4o-mini",
+    tools=[run_sql],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,  # quality bar to distill
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Find top 10 customers by revenue"}])
+
+# If it converged with score/confidence >= 0.85, a new Skill now exists
+# in SkillRegistry, named deterministically from task_tag + a query hash.
+print([s.name for s in SkillRegistry.list_all()])
+```
+
+The distilled skill is replayable, not a frozen memoized answer: calling it re-runs a fresh copy of the original agent (same `system_prompt`, `tools`, `mcps`, `skills`, model, and generation params) against whatever new `task` string you pass the skill — it generalizes to similar future tasks rather than always returning the one answer that happened to converge. See [Skills → Self-evolving skills](skills.html#self-evolving-skills) for how to actually invoke a distilled skill afterward.
+
+### search_loop() — confidence-based iteration
+
+`search_loop()` is a convenience wrapper that builds a fresh `Agent` with a single search tool and a `convergence_fn` based on `AgentResult.confidence`:
+
+```python
+from deepcrew import search_loop, Agent, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web."
+    ...
+
+agent = Agent("searcher", model="openai/gpt-4o-mini",
+              system_prompt="You are a research agent.", tools=[search_web])
+
+# Runs at most 3 iterations, stopping early if result.confidence >= 0.8
+result = await search_loop(
+    query="What is the current state of nuclear fusion research?",
+    search_tool=search_web,
+    agent=agent,
+    max_iterations=3,
+    confidence_threshold=0.8,
+)
+```
+
+> Caveat: `AgentResult.confidence` defaults to `None` and is only ever populated by `APEXSynthesizer` (multi-agent synthesis) or by a custom `evaluate_fn` you write and attach to a `Verifier` yourself — a bare agent run through `run_agent()` never sets it. `search_loop()`'s convergence check is `(r.confidence or 0.0) >= confidence_threshold`, so with the plain single-agent setup shown above, confidence stays `None` → treated as `0.0` → the check never passes, and the loop always runs the full `max_iterations` regardless of the threshold you set. If you want a real early-stop signal for a plain search agent, use [a `Verifier`](#looping) and set `convergence_fn` yourself instead of relying on `search_loop()`'s confidence check.
+
+### Stop condition (early exit)
+
+`stop_condition` (and `convergence_fn`, for that matter) should be a plain predicate — return `True`/`False`, don't raise anything yourself. When `stop_condition` returns `True`, the loop itself raises `LoopConvergedError` carrying that `AgentResult` on its `.result` attribute; the loop never catches this exception internally, so it propagates all the way out of `run_agent()`/`run_agent_loop()` to whoever called them. That means using `stop_condition` requires wrapping the call in a `try/except`:
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, LoopConvergedError
+
+agent = Agent(
+    "reasoner", model="openai/gpt-4o",
+    system_prompt="When you have a final answer, prefix it with 'FINAL ANSWER:'.",
+    loop_config=LoopConfig(
+        max_iterations=6,
+        stop_condition=lambda r: "FINAL ANSWER:" in r.text,  # plain bool, no raise
+    ),
+)
+
+try:
+    result = await run_agent(agent, [{"role": "user", "content": "..."}])
+except LoopConvergedError as exc:
+    result = exc.result   # the AgentResult that triggered the stop
+```
+
+`convergence_fn` is different: returning `True` from it makes the loop exit and return the result normally, no exception involved. Use `convergence_fn` for the common case (stop and return); reach for `stop_condition` only when you specifically want the exception-based early-exit path — e.g. to unwind through several stack frames of your own code, or to distinguish "converged normally" from "stopped early" at the call site via `except` vs. normal return.
+
+### LoopConfig reference
+
+- **max_iterations** (int = 5): Hard limit on outer loop iterations. Loop always exits after this many runs, converged or not.
+
+- **convergence_fn** (Callable | None): Called with the current `AgentResult`. Return `True` to stop. Raise `LoopConvergedError(result)` for immediate exit with that result.
+
+- **stop_condition** (Callable | None): Alternative to convergence_fn. Raises `LoopConvergedError` on its own — useful for externalizing early-exit logic.
+
+- **refine_prompt** (str): Appended to conversation on each non-converged iteration. Default: `"Your answer is incomplete. Please search for more information and expand your response."`
+
+- **verifier v0.2.1** (Verifier | None): Structured critic. When set, its `VerifierFeedback` (score + issues + suggestion) drives both convergence and the next refinement prompt, replacing the static `refine_prompt` text.
+
+- **procedural_memory v0.2.2** (ProceduralMemory | None): Evolving playbook, read before iteration 1 and curated on loop exit. Requires `verifier` to be set too — see the [Procedural Memory guide](#procedural-memory).
+
+- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.name`.
+
+- **adaptive v0.2.3** (bool = False): Plateau-detection early exit based on verifier score deltas. No-op without `verifier`. Never exceeds `max_iterations`.
+
+- **min_improvement v0.2.3** (float = 0.02): Minimum verifier-score delta between iterations to count as still improving.
+
+- **plateau_patience v0.2.3** (int = 2): Consecutive non-improving iterations tolerated before an adaptive early stop.
+
+- **branches v0.2.4** (int = 1): When > 1, run this many parallel candidates per iteration (self-consistency). Best picked by `verifier` score, or merged via `APEXSynthesizer` when no verifier is set. Multiplies LLM calls per iteration.
+
+- **auto_extract_skill v0.2.5** (bool = False): Distills a genuinely converged run into a reusable `Skill` registered in `SkillRegistry` — see the [Skills guide](#skills). Never triggers on plain `max_iterations` exhaustion.
+
+- **skill_confidence_threshold v0.2.5** (float = 0.85): Minimum quality signal (verifier score, or `AgentResult.confidence`) required to distill a skill.
+
+### How-to: self-consistency branching v0.2.4
+
+Instead of one linear refinement path, run several candidate continuations per iteration in parallel and keep the best — a lightweight tree-search/self-consistency pattern. Each parallel call already samples independently from the model, so branches naturally diverge without any extra seeding logic. This costs `branches`× the LLM calls per iteration, so pair it with a low `max_iterations`.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        branches=3,  # 3x the LLM calls per iteration, in exchange for picking the best
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+```
+
+Without a `verifier`, branching still works — the `branches` candidates are merged into one cohesive answer via the same `APEXSynthesizer` used for multi-agent orchestration, rather than picking a single winner.
+
+### Loop events
+
+```python
+from deepcrew.types import EventType
+
+while True:
+    event = await queue.get()
+    if event is None: break
+    if event.event == EventType.LOOP_ITERATION:
+        i = event.data["iteration"]
+        converged = event.data["converged"]
+        print(f"Loop iteration {i} — {'converged' if converged else 'refining...'}")
+    elif event.event == EventType.VERIFIER_SCORED:  # v0.2.1
+        print(f"Verifier score: {event.data['score']} — issues: {event.data['issues']}")
+    elif event.event == EventType.BRANCH_SELECTED:  # v0.2.4
+        print(f"Branch {event.data['winning_index']} won with score {event.data['winning_score']}")
+    elif event.event == EventType.SKILL_EXTRACTED:  # v0.2.5
+        print(f"Distilled new skill: {event.data['skill_name']} (score {event.data['score']})")
+```
+
+### Common pitfalls
+
+    - `search_loop()`'s confidence check can silently never fire. See the caveat above — with no verifier or APEX in the path, `AgentResult.confidence` stays `None` and the loop always runs to `max_iterations`.
+    - `stop_condition` requires a `try/except LoopConvergedError` at the call site. The predicate itself must just return a bool — the loop raises the exception, not your callable.
+    - `adaptive`, `procedural_memory`, and `auto_extract_skill` are all no-ops without `verifier`. Each of them either reads a verifier score or a converged-via-verifier flag; set a `Verifier` or these fields do nothing silently.
+    - `branches` multiplies LLM call volume linearly. `branches=3` means 3× the calls per iteration — pair a high branch count with a low `max_iterations` to keep total cost bounded.
+    - Adaptive early-stop returns the best iteration, not the last one. Don't assume `result.loop_iterations` tells you which iteration's text you're holding — it only tells you how many ran in total.
+
+### See also
+
+    - [Verifier](verifier.html) — the structured critic that drives convergence, adaptive stopping, and branch selection.
+    - [Procedural Memory](procedural-memory.html) — the evolving playbook this loop reads from and curates into on exit.
+    - [Skills → Self-evolving skills](skills.html#self-evolving-skills) — what happens to a distilled skill after `auto_extract_skill` registers it.
+    - [APEX Synthesizer](apex.html) — merges branches when no verifier is set.
+
+
+---
+
+# Verifier
+A `Verifier` grades an agent's result against the original query and returns structured feedback — a score, specific issues, and a concrete suggestion — instead of a plain boolean. Attached to a `LoopConfig`, it drives both convergence and a targeted refinement prompt built from its critique, replacing the static default refine message. This page is a showcase of the ways to use it, end to end.
+
+### How-to: basic quality gate
+
+The simplest use — stop refining once the built-in LLM grader is confident enough.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(result.text)
+```
+
+### How-to: a task-specific rubric
+
+Pass grading criteria specific to your domain so the verifier checks for what actually matters — e.g. code review, not just "is this a complete sentence."
+
+```python
+code_reviewer = Agent(
+    name="code_reviewer",
+    model="openai/gpt-4o",
+    system_prompt="Review the given diff for bugs, security issues, and style.",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(
+            threshold=0.9,
+            rubric=(
+                "1. Every changed function must be covered by the review.\n"
+                "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
+                "3. Style nits are optional but bugs are not."
+            ),
+        )),
+    ),
+)
+
+result = await run_agent(code_reviewer, [{"role": "user", "content": diff_text}])
+```
+
+### How-to: fully custom grading (no LLM call)
+
+`evaluate_fn` replaces the built-in LLM grader entirely — useful when you have a deterministic check (schema validation, a unit test, a regex) that's cheaper and more reliable than asking another model.
+
+```python
+import json
+from deepcrew import VerifierFeedback
+
+async def json_schema_grader(query: str, result) -> VerifierFeedback:
+    try:
+        data = json.loads(result.text)
+    except json.JSONDecodeError:
+        return VerifierFeedback(score=0.0, issues=["Output is not valid JSON"], suggestion="Return valid JSON only.")
+    missing = [k for k in ("summary", "action_items") if k not in data]
+    if missing:
+        return VerifierFeedback(score=0.4, issues=[f"Missing key: {k}" for k in missing], suggestion="Include all required keys.")
+    return VerifierFeedback(score=1.0, converged=True)
+
+agent = Agent(
+    name="extractor",
+    model="openai/gpt-4o-mini",
+    loop_config=LoopConfig(
+        max_iterations=3,
+        verifier=Verifier(VerifierConfig(evaluate_fn=json_schema_grader)),
+    ),
+)
+```
+
+### How-to: adaptive compute budget v0.2.3
+
+By default the loop always runs `max_iterations` times unless it converges early. With `adaptive=True`, it also tracks the verifier score across iterations and stops as soon as improvement plateaus — saving compute once refinement stops paying off. `max_iterations` is still a hard ceiling; adaptive can only shorten the loop, never lengthen it.
+
+```python
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=8,
+        verifier=Verifier(VerifierConfig(threshold=0.9)),
+        adaptive=True,
+        min_improvement=0.02,   # minimum score delta to still count as "improving"
+        plateau_patience=2,     # stop after this many non-improving iterations in a row
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+print(f"Stopped after {result.loop_iterations} iterations (cap was 8)")
+```
+
+When the loop stops early on a plateau, it returns the highest-scoring result seen so far — not necessarily the very last one — and emits a `LOOP_ITERATION` event with `{"early_stop": "plateau"}` in its data. Adaptive is a no-op without a `verifier` configured (there's no score to track).
+
+### How-to: grading something outside a loop
+
+`Verifier` doesn't require a `LoopConfig` at all — call `evaluate()` directly whenever you have a query and an `AgentResult` you want graded, e.g. to build your own custom retry/escalation logic instead of using the built-in loop.
+
+```python
+from deepcrew import Verifier, VerifierConfig, run_agent, Agent
+
+verifier = Verifier(VerifierConfig(threshold=0.85))
+agent = Agent(name="drafter", model="openai/gpt-4o-mini")
+
+result = await run_agent(agent, [{"role": "user", "content": "Draft a release note"}])
+
+feedback = await verifier.evaluate(
+    "Draft a release note",
+    result,
+    default_model=agent.model,   # used only if VerifierConfig.model wasn't set
+)
+
+if not feedback.converged:
+    print(f"Score {feedback.score:.2f} — issues: {feedback.issues}")
+    print(f"Suggestion: {feedback.suggestion}")
+```
+
+### assess_complexity() — the other Verifier method
+
+Separate from `evaluate()` (which grades a finished answer), `Verifier` also exposes `assess_complexity(task, default_model=...)` — a lightweight, pre-execution judgment call: "does this task genuinely need decomposing into sub-tasks, or can one agent handle it directly?" This is what powers `Orchestrator`'s `spawn_complexity_check` parameter, gating whether a newly-spawned sub-agent gets its own nested spawn tool (see [Agent Spawning → Bounded nested spawning](spawning.html#nested-spawning)). You can call it standalone too:
+
+```python
+verifier = Verifier()
+needs_decomposition = await verifier.assess_complexity(
+    "Build a full REST API with auth, rate limiting, and tests",
+    default_model="openai/gpt-4o-mini",
+)
+print(needs_decomposition)  # bool
+```
+
+If the underlying LLM call fails or returns something unparseable, `assess_complexity()` defaults to `True` (permissive) rather than `False` — the reasoning being that a failed complexity check should not silently prevent legitimate decomposition. If you constructed the `Verifier` with `evaluate_fn` (a fully custom grader), `assess_complexity()` has no way to reuse that custom function for this different purpose and always returns `True` unconditionally.
+
+### Verifier reference
+
+- **VerifierConfig.model** (str | None): LiteLLM model string used to grade results. Defaults to the looped agent's own model.
+
+- **VerifierConfig.threshold** (float = 0.8): Minimum score for `VerifierFeedback.converged` to be `True`.
+
+- **VerifierConfig.rubric** (str | None): Optional task-specific grading criteria appended to the built-in verifier prompt.
+
+- **VerifierConfig.evaluate_fn** (Callable | None): Full override: an async `(query, result) -> VerifierFeedback` function that replaces the built-in LLM grader entirely.
+
+- **VerifierFeedback.score** (float): 0.0-1.0 quality estimate.
+
+- **VerifierFeedback.issues** (list[str]): Specific problems found in the result.
+
+- **VerifierFeedback.suggestion** (str): Actionable next-step guidance, used to build the refinement prompt.
+
+- **VerifierFeedback.converged** (bool): `score >= threshold`.
+
+### Common pitfalls
+
+    - A failed grading call returns score 0.0, not an error. If the LLM call raises, or the response can't be parsed as JSON even with the regex fallback, `evaluate()` swallows the exception and returns `VerifierFeedback(score=0.0, ...)` — indistinguishable from a genuinely terrible answer. If your loop seems to never converge, check whether the grading model itself is actually reachable before assuming your agent's output is at fault.
+    - `rubric` is appended text, not a replacement. It's inserted into the default grading prompt as extra criteria — it doesn't change the required JSON response shape (`score`/`issues`/`suggestion`), so a rubric describing a different output format won't be honored.
+    - `evaluate_fn` disables `assess_complexity()`'s real logic. Once you supply a fully custom grader, complexity assessment (used by spawn nesting) always returns `True` — it has no way to reuse your custom function.
+    - `adaptive` and `procedural_memory` both require `verifier`. Neither has any effect if you set them on a `LoopConfig` without also setting `verifier`.
+
+### See also
+
+    - [Looping](looping.html) — how `LoopConfig.verifier` integrates with convergence, adaptive early-stop, and refinement.
+    - [Procedural Memory](procedural-memory.html) — verifier feedback also feeds the evolving playbook.
+    - [Agent Spawning](spawning.html#nested-spawning) — `assess_complexity()` gates nested spawn-tool attachment.
+
+
+---
+
+# Procedural Memory
+`ProceduralMemory` is an opt-in, durable "the system learns from its own past runs" store, inspired by ACE (Agentic Context Engineering, ICLR 2026). It's built on top of any `MemoryProvider` as its backing store and adds structure: each entry is a "helpful" or "harmful" bullet with a usage count and last-seen score. It's read on every run of an agent it's attached to (looped or single-shot), and curated — incrementally merged, never wholesale rewritten — whenever a loop with a `Verifier` converges. This page is a showcase of the ways to use it, end to end.
+
+### How-to: a research agent that gets smarter over time
+
+Same agent, same task type, run repeatedly — each run's high-confidence result and each failure's specific issue become durable strategy bullets injected into the next run's context.
+
+```python
+from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory,
+)
+
+playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    procedural_memory=playbook,   # read on every run, even single-shot
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        procedural_memory=playbook,  # curated after a converged loop
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+# Run the same agent again later (even a new process, with FileMemoryProvider) and
+# it will already know what worked and what to avoid for this task.
+```
+
+Curation requires a `verifier` on the same `LoopConfig` — without one, `procedural_memory` there is a no-op (there's no `VerifierFeedback` to grade the run against). Reading the playbook (`Agent.procedural_memory`) works independently of looping.
+
+### How-to: a shared playbook across an agent pool
+
+Multiple agents that handle the same kind of task (e.g. every "support_triage" agent spawned by an `Orchestrator`) can share one `ProceduralMemory` instance and namespace it with an explicit `task_tag` instead of the default (which is keyed by `agent.name`), so lessons pool together regardless of which specific agent instance ran.
+
+```python
+shared_playbook = ProceduralMemory(FileMemoryProvider("support_playbook.json"))
+
+def make_support_agent(name: str) -> Agent:
+    return Agent(
+        name=name,
+        model="openai/gpt-4o-mini",
+        procedural_memory=shared_playbook,
+        loop_config=LoopConfig(
+            verifier=Verifier(VerifierConfig(threshold=0.8)),
+            procedural_memory=shared_playbook,
+            task_tag="support_triage",  # shared namespace, not tied to agent.name
+        ),
+    )
+
+agent_a = make_support_agent("triage_shift_1")
+agent_b = make_support_agent("triage_shift_2")
+# Both read from and write to the same "support_triage" playbook.
+```
+
+### How-to: inspect the playbook directly
+
+You don't need to run an agent to read or seed a playbook — `ProceduralMemory` is usable standalone for debugging, exporting, or manual curation.
+
+```python
+entries = await playbook.load("researcher")
+for e in entries:
+    print(f"[{e.kind}] {e.content} (used {e.uses}x, last score {e.last_score})")
+
+print(playbook.render(entries))  # the exact text block injected into context
+```
+
+### How curation actually works
+
+`curate()` is deliberately conservative — it never rewrites the playbook wholesale, only ever merges or appends, which is precisely what avoids the "context collapse" failure mode of naive full-rewrite approaches. Each call does exactly this, in order:
+
+    - Loads the existing entries for `task_tag`.
+    - Builds candidate entries from this run: up to the first 3 issues in `feedback.issues` each become a `kind="harmful"` candidate prefixed `"Avoid: "`. If `feedback.score >= 0.8`, the final result's text (truncated to 200 characters, newlines flattened) becomes one `kind="helpful"` candidate prefixed `"Worked well: "`. A low-scoring run with fewer than 3 issues contributes fewer candidates; a run scoring below 0.8 contributes no helpful candidate at all.
+    - Each candidate is checked against existing entries with a cheap similarity heuristic (case-insensitive exact match, or one string being a substring of the other) — not an embedding or LLM-based similarity check. A match bumps that entry's `uses` counter and updates `last_score`; no match appends a new entry.
+    - All entries are sorted by `(uses, last_score)` descending and truncated to `max_entries` — the least-used, lowest-scoring entries are the ones dropped when the playbook is full.
+    - The pruned list is persisted back to the backend, one key per entry index plus a small metadata key recording the count.
+
+Because similarity is substring-based, near-duplicate phrasing ("avoid rate limits" vs. "avoid hitting the rate limit") won't merge — they'll accumulate as separate low-usage entries competing for the same `max_entries` slots. Keep your agent's own issue/summary text reasonably consistent in phrasing if you want related lessons to actually consolidate over time.
+
+### PlaybookEntry reference
+
+- **content** (str): The strategy text itself, already prefixed `"Avoid: "` or `"Worked well: "` by `curate()`.
+
+- **kind** ("helpful" | "harmful"): Rendered as `(helpful)` or `(avoid)` in the injected system-prompt block.
+
+- **uses** (int = 0): Incremented every time a new candidate matches this entry as a near-duplicate. Higher `uses` means this lesson has recurred across more runs, and is sorted first / pruned last.
+
+- **last_score** (float | None): The verifier score of the most recent run that reinforced this entry.
+
+### ProceduralMemory reference
+
+- **ProceduralMemory(backend, max_entries=30)** (MemoryProvider, int): Wraps any `MemoryProvider` as the backing store; caps the playbook at `max_entries`, pruned by usage/score.
+
+- **load(task_tag)** (async -> list[PlaybookEntry]): Returns all persisted entries for the given namespace. Returns an empty list (not an error) if nothing has been curated yet, or if the stored metadata is corrupt/unparseable.
+
+- **render(entries)** (list[PlaybookEntry] -> str): Formats entries as a compact `## Known strategies for this task` bullet block for system-prompt injection; empty string for an empty list (so nothing extra is injected when there's no playbook yet).
+
+- **curate(task_tag, feedback, trajectory)** (async -> int): Reflector+Curator step described above. `trajectory` is the loop's full list of `AgentResult`s so far; only the last one's text is actually used, as the "worked well" summary source.
+
+### Playbook events
+
+```python
+from deepcrew.types import EventType
+
+async for event in run_agent_loop(agent, messages, queue=queue):
+    if event.event == EventType.PLAYBOOK_UPDATED:
+        print(f"Playbook now has {event.data['entry_count']} entries")
+```
+
+### Common pitfalls
+
+    - Curation is a no-op without a converged loop. `LoopConfig.procedural_memory` only curates when the loop exits via convergence (verifier or `convergence_fn`) — an adaptive plateau stop or plain `max_iterations` exhaustion still calls `curate()` internally in the current implementation, but always requires `verifier` to be set for there to be any `VerifierFeedback` to curate from at all.
+    - Similarity matching is substring-based, not semantic. Rephrased near-duplicates won't merge (see "How curation actually works" above) — they'll pile up as separate entries instead.
+    - Only the last 3 issues and 1 summary are ever considered per run. A run with many issues doesn't get them all recorded — extra issues beyond the first 3 are silently dropped from that run's curation pass.
+    - Reading (`Agent.procedural_memory`) and curating (`LoopConfig.procedural_memory`) are two separate assignments. Setting only one of them means either the agent never sees the playbook, or nothing ever gets written to it — you usually want both pointed at the same instance, as in the examples above.
+
+### See also
+
+    - [Verifier](verifier.html) — produces the `VerifierFeedback` that `curate()` consumes.
+    - [Looping](looping.html) — the outer-loop lifecycle procedural memory plugs into.
+    - [Memory Providers](memory.html) — the raw key/value backend procedural memory is built on top of.
+
+
+---
+
+# Multimodal Input
+`image()`, `pdf()`, and `user_message()` build standard OpenAI-format content blocks, forwarded by LiteLLM to whichever provider you're using. Sources can be a URL, a local file path, or raw bytes.
+
+```python
+from deepcrew import Agent, run_agent, image, pdf, user_message
+
+agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
+
+msg = user_message(
+    "Summarize this chart and check it against the report.",
+    image("chart.png"),   # local file, PNG/JPEG/GIF/WEBP auto-detected
+    pdf("report.pdf"),
+)
+result = await run_agent(agent, [msg])
+print(result.text)
+```
+
+> `image()`/`pdf()` also accept an `https://` URL or a `data:` URI directly — no encoding happens for those, they pass straight through. Local files and raw `bytes` are size-checked and base64-encoded automatically, raising `ContentError` on anything invalid or oversized.
+
+### How image()/pdf() dispatch on the source
+
+Both functions accept a `str | Path | bytes` and branch on the source's shape, not on any explicit flag you pass:
+
+    - A string starting with `http://`, `https://`, or `data:` passes straight through, untouched — no size check, no mime sniffing, no encoding. deepcrew trusts you and the receiving provider to handle it.
+    - Anything else (a plain string path, a `Path`, or raw `bytes`) is read into memory (files) or used directly (bytes), checked against a size limit, sniffed for its actual type by magic bytes, and base64-encoded into a `data:` URI.
+
+```python
+from deepcrew import image, pdf
+
+# 1. URL — passthrough, no local I/O at all
+image("https://example.com/chart.png")
+
+# 2. data: URI — passthrough
+image("data:image/png;base64,iVBORw0KGgoAAAANSU...")
+
+# 3. Local path (str or pathlib.Path) — read, sniffed, encoded
+image("./chart.png")
+
+# 4. Raw bytes — sniffed, encoded (no filesystem access at all)
+with open("chart.png", "rb") as f:
+    image(f.read())
+
+# Explicit mime override, e.g. for bytes with no recognizable magic-byte header
+image(some_bytes, mime="image/bmp")
+
+# pdf() works identically, but validates the %PDF header instead of image magic bytes
+pdf("./report.pdf")
+pdf(some_pdf_bytes, filename="q3-report.pdf")  # filename defaults to the source's own name
+```
+
+Image type detection recognizes PNG, JPEG, GIF, and WEBP by their leading magic bytes — nothing else. An unrecognized byte sequence with no `mime=` override raises `ContentError`. `pdf()` is stricter still: it requires the content to literally start with `%PDF`, regardless of file extension — a mislabeled `.pdf` file that isn't actually a PDF is rejected before it ever reaches the LLM.
+
+### Size limits and ContentError
+
+- **MAX_IMAGE_BYTES** (20 * 1024 * 1024 (20 MB)): Enforced only for local files/bytes — URL and `data:` passthrough sources are never size-checked by deepcrew itself (the provider may still reject an oversized payload).
+
+- **MAX_PDF_BYTES** (32 * 1024 * 1024 (32 MB)): Same passthrough exemption as images.
+
+- **ContentError** (exception): Raised for: a missing local file, content over the size limit, an unrecognized image type with no `mime=` override, or bytes/a file that doesn't start with `%PDF` when calling `pdf()`.
+
+Both limits are plain module-level constants in `deepcrew.content` — override them process-wide if you need to (e.g. in tests) with `import deepcrew.content as content; content.MAX_IMAGE_BYTES = 5 * 1024 * 1024`. There's no per-call override parameter.
+
+### ContentPart types
+
+`image()` and `pdf()` return frozen dataclasses, not raw dicts — `ContentPart` is the union type covering all three:
+
+- **TextPart(text)** (-> {"type": "text", "text": ...}): What a bare string gets coerced into inside `user_message()`. You rarely construct this directly.
+
+- **ImagePart(url, detail=None)** (-> {"type": "image_url", "image_url": {...}}): `detail` is an OpenAI-specific hint (`"low"`/`"high"`/`"auto"`) forwarded only if set; harmless no-op on providers that ignore it.
+
+- **DocumentPart(data_url, filename="document.pdf")** (-> {"type": "file", "file": {...}}): The `"file"` content-block shape. See the provider-support callout below.
+
+### extract_text() and describe_attachments()
+
+These two functions are what let the rest of deepcrew (memory injection, the verifier, the loop, the router) work with multimodal messages without needing to know about content blocks themselves.
+
+```python
+from deepcrew import extract_text, describe_attachments, image, pdf
+
+content = [
+    {"type": "text", "text": "What's in this?"},
+    {"type": "image_url", "image_url": {"url": "..."}},
+]
+extract_text(content)          # "What's in this?" — joins only the text blocks
+extract_text("plain string")   # "plain string" — passthrough
+extract_text(None)             # "" — never raises
+
+parts = [image("chart.png"), pdf("report.pdf")]
+describe_attachments(parts)    # "[attachments: 1 image, 1 document]"
+describe_attachments("text")   # "" — no attachments to describe
+```
+
+`extract_text()` is what the memory-injection query, the verifier's grading prompt, and the self-improving loop's convergence checks all run on internally — none of them ever see the raw image/document bytes, only whatever text accompanied them.
+
+### With Orchestrator
+
+```python
+result = await orch.run(
+    "What's in this photo, and does it match the incident report?",
+    attachments=[image("scene.jpg"), pdf("incident_report.pdf")],
+)
+```
+
+The router stays text-only — it never sees the raw attachments, only a summary like `[attachments: 1 image, 1 document]`, so its JSON-mode routing call is never sent binary content. The agent(s) it routes to receive the real attachments. In parallel routing, every agent gets the full attachment set, since the router can't reliably split images across sub-tasks. Spawned sub-agents (see [Agent Spawning](spawning.html)) never automatically inherit attachments either — describe what's relevant directly in the spawn task text.
+
+### Common pitfalls
+
+    - PDF/file-block support is not universal across providers. `image_url` blocks are forwarded by LiteLLM to essentially every vision-capable provider, but `"file"`/document blocks are only reliably supported on OpenAI, Anthropic, and Gemini. `litellm.drop_params` strips unsupported top-level parameters, not content blocks — sending a PDF to a provider without file support fails loudly with an API error, it does not silently degrade.
+    - URL/data: sources bypass every safety check. No size limit, no mime sniffing, no `%PDF` validation — deepcrew trusts the string is well-formed and lets the provider be the final arbiter.
+    - Only user messages carry multimodal content. Assistant and tool messages in the conversation history remain plain strings throughout deepcrew — there's no path for an agent's own output to include images.
+    - Parallel orchestration duplicates attachments to every agent. A 5-agent parallel fan-out with a 10 MB PDF attached means that PDF's bytes are included in 5 separate LLM requests, not one shared reference.
+
+### See also
+
+    - [APEX Synthesizer](apex.html) — synthesizes text results only; it never re-sees the original attachments.
+    - [Agent Spawning](spawning.html) — sub-agents don't inherit attachments automatically.
+    - [FastAPI Integration](fastapi.html) — `create_stream_router` accepts attachments as URLs/data-URIs in the request body.
+
+
+---
+
+# StreamPolicy
+Every agent start/done, tool call/result, memory op, retry, fallback, and verifier score is already a `StreamEvent`. `StreamPolicy` controls which of those a given consumer actually sees, without touching execution, logging, or OpenTelemetry spans.
+
+- **StreamPolicy.chat()** (preset): Response text deltas plus the terminal `done`/`error` events only. For simple chatbot UIs.
+
+- **StreamPolicy.standard()** (preset): Chat events plus tool calls/results/denials and agent/step lifecycle. A good default for most apps.
+
+- **StreamPolicy.verbose()** (preset): Every event type — no filtering. For technical/debug UIs.
+
+- **StreamPolicy(include=..., exclude=...)** (custom): Build your own set. Presets always keep `done`/`error` visible; a fully custom `include` set can exclude them too, at your own risk.
+
+```python
+from deepcrew import Orchestrator, StreamPolicy
+
+# A simple chatbot only wants the reply text
+async for event in orch.stream("Explain quantum entanglement", policy=StreamPolicy.chat()):
+    if event.event == "text_delta":
+        print(event.data["chunk"], end="", flush=True)
+
+# A technical/debug UI wants everything
+async for event in orch.stream("...", policy=StreamPolicy.verbose()):
+    print(event.to_dict())
+```
+
+`WorkflowBuilder.stream()` takes the same `policy=` keyword.
+
+### Which events are in which preset
+
+The presets are fixed sets defined in `stream.py`, not computed dynamically — here is every `EventType` member and exactly which preset(s) include it.
+
+      | Event | chat() | standard() | verbose() |
+
+        | `text_delta` | &#10003; | &#10003; | &#10003; |
+
+        | `done` | &#10003; | &#10003; | &#10003; |
+
+        | `error` | &#10003; | &#10003; | &#10003; |
+
+        | `agent_start` | &#8212; | &#10003; | &#10003; |
+
+        | `agent_done` | &#8212; | &#10003; | &#10003; |
+
+        | `tool_call` | &#8212; | &#10003; | &#10003; |
+
+        | `tool_result` | &#8212; | &#10003; | &#10003; |
+
+        | `step_start` | &#8212; | &#10003; | &#10003; |
+
+        | `step_done` | &#8212; | &#10003; | &#10003; |
+
+        | `spawn_agent` | &#8212; | &#10003; | &#10003; |
+
+        | `thinking_delta` | &#8212; | &#8212; | &#10003; |
+
+        | `tool_denied` | &#8212; | &#8212; | &#10003; |
+
+        | `retry_attempt` | &#8212; | &#8212; | &#10003; |
+
+        | `fallback_triggered` | &#8212; | &#8212; | &#10003; |
+
+        | `memory_store` | &#8212; | &#8212; | &#10003; |
+
+        | `memory_retrieve` | &#8212; | &#8212; | &#10003; |
+
+        | `loop_iteration` | &#8212; | &#8212; | &#10003; |
+
+        | `apex_start` | &#8212; | &#8212; | &#10003; |
+
+        | `apex_done` | &#8212; | &#8212; | &#10003; |
+
+        | `verifier_scored` | &#8212; | &#8212; | &#10003; |
+
+        | `playbook_updated` | &#8212; | &#8212; | &#10003; |
+
+        | `branch_selected` | &#8212; | &#8212; | &#10003; |
+
+        | `skill_extracted` | &#8212; | &#8212; | &#10003; |
+
+Notice `retry_attempt`/`fallback_triggered`, every Self-Improving Loop event (`loop_iteration`, `verifier_scored`, `playbook_updated`, `branch_selected`, `skill_extracted`), and both memory events are `verbose()`-only — a `standard()` consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.
+
+### Custom policies and filter_stream()
+
+`allows()` is a plain include-then-exclude check: if `include` is set, the event type must be in it; then it must not be in `exclude`. You can combine both, or use `filter_stream()` standalone against any async generator of `StreamEvent`s — it isn't tied to `Orchestrator`/`WorkflowBuilder`.
+
+```python
+from deepcrew import StreamPolicy, filter_stream
+from deepcrew.types import EventType
+
+# Only text and tool activity — no lifecycle noise, no terminal events either
+# (a fully custom include set is NOT protected the way presets are — see pitfalls)
+custom = StreamPolicy(include=frozenset({EventType.TEXT_DELTA, EventType.TOOL_CALL}))
+
+async for event in filter_stream(orch.stream("..."), custom):
+    ...
+
+# Or: take a preset and additionally silence one specific event type
+quieter = StreamPolicy(include=None, exclude=frozenset({EventType.SPAWN_AGENT}))
+```
+
+### Common pitfalls
+
+    - A bare `Agent` run via `run_agent()` has no `policy=` parameter. `StreamPolicy` only wires into `Orchestrator.stream()` and `WorkflowBuilder.stream()`. For a single agent, wrap your own queue with `filter_stream()` manually, or use [FastAPI Integration](fastapi.html), which applies a policy uniformly across all three target types.
+    - Presets protect `done`/`error`; fully custom policies don't. If you hand-build a `StreamPolicy(include={...})` that omits `EventType.DONE` and `EventType.ERROR`, your consumer genuinely never learns the stream ended — that's on you, not a bug.
+    - Filtering is view-only. Every event still fires, gets logged, and reaches OpenTelemetry spans regardless of policy — `StreamPolicy` only changes what a specific consumer of the event queue sees, never what actually executes.
+    - The event-to-preset mapping is fixed, not configurable per event. There's no way to make `standard()` include `verifier_scored` without building your own custom policy from scratch.
+
+### See also
+
+    - [FastAPI Integration](fastapi.html) — applies a `StreamPolicy` uniformly to an Agent, Orchestrator, or WorkflowBuilder behind one SSE endpoint.
+    - [Retry & Fallback](retry.html) and [Looping](looping.html) — the features whose events only surface under `verbose()`.
+
+
+---
+
+# FastAPI Integration
+Ship a streaming endpoint in one call. Requires the `fastapi` extra: `pip install deepcrew-ai[fastapi]` — it is never imported unless you use it.
+
+```python
+from fastapi import FastAPI
+from deepcrew import Agent, StreamPolicy
+from deepcrew.integrations.fastapi import create_stream_router
+
+agent = Agent(name="assistant", model="openai/gpt-4o")
+app = FastAPI()
+app.include_router(create_stream_router(agent, policy=StreamPolicy.chat()))
+# POST /chat streams Server-Sent Events; POST /chat/complete returns final JSON.
+```
+
+`create_stream_router` also accepts an `Orchestrator` or `WorkflowBuilder` as the target. The request body accepts `query`, optional `images`/`pdfs` (URLs or data URIs), and — if `allow_policy_override=True` — a per-request `policy` name.
+
+### create_stream_router() reference
+
+- **target*** (Agent | Orchestrator | WorkflowBuilder): Dispatch is by `isinstance` check. A bare `Agent` is wrapped with the same queue-plus-background-task pattern `Orchestrator` uses internally, so streaming behaves consistently across all three target types.
+
+- **path** (str = "/chat"): Route for the streaming endpoint. The non-streaming endpoint is always `f"{path}/complete"` — with the default, that's `/chat/complete`.
+
+- **policy** (StreamPolicy | None = None): Default applied to every request. Falls back to `StreamPolicy.chat()` if omitted — the router is opinionated toward "just the reply text" out of the box, not verbose by default.
+
+- **allow_policy_override** (bool = False): When True, the request body's `policy` field (one of the literal strings `"chat"`, `"standard"`, or `"verbose"`) overrides the router's default for that one request. An unrecognized policy name returns `422`. There is no way to send a fully custom `include`/`exclude` set over the wire — only the three preset names.
+
+### Request/response shapes
+
+      | Field | Type | Notes |
+
+        | `query` | str | Required. The text prompt. |
+
+        | `images` | list[str] = [] | Each a URL or `data:` URI, built into an `ImagePart` via `image()`. Local file paths are not accepted over HTTP — send bytes as a data URI instead. |
+
+        | `pdfs` | list[str] = [] | Same URL/data-URI-only rule, via `pdf()`. |
+
+        | `policy` | str | None | Only read when the router was created with `allow_policy_override=True`. |
+
+`POST {path}` streams `text/event-stream`: each `StreamEvent` serialized via its existing `to_sse()` method, followed by one final `event: done\ndata: {}\n\n` sentinel line appended by the router itself — this is separate from and always sent in addition to any `EventType.DONE` event your policy already lets through, so a client can rely on it unconditionally as the true end-of-stream marker regardless of policy. `POST {path}/complete` runs the same target non-streaming and returns the final result as JSON (a plain dict from `dataclasses.asdict()` on the `AgentResult`/`OrchestratorResult`/`WorkflowResult`).
+
+### Trying it with curl
+
+```python
+curl -N -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Explain quantum entanglement"}'
+
+curl -X POST http://localhost:8000/chat/complete \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Explain quantum entanglement"}'
+```
+
+### WorkflowBuilder and attachments
+
+`WorkflowBuilder` has no `attachments` parameter anywhere in deepcrew — sending `images`/`pdfs` in a request to a router built over a `WorkflowBuilder` target returns `422` before anything runs, rather than silently dropping the attachments.
+
+### Common pitfalls
+
+    - Validation happens before the stream starts, deliberately. Invalid attachments or an unrecognized policy name are checked and rejected with a clean `422` before the `StreamingResponse` begins sending headers — once a streaming response starts, an exception raised from inside the body generator can no longer become a clean HTTP error code, only a broken connection.
+    - The default policy is `chat()`, not `verbose()`. If your endpoint seems to be missing tool-call events, check whether you passed a more permissive `policy=` or set `allow_policy_override=True`.
+    - Only preset names are settable per-request. A custom `StreamPolicy(include=..., exclude=...)` can only be set as the router's fixed default at construction time — there's no JSON representation for it in the request body.
+    - Images/PDFs must be URLs or data URIs over HTTP. Local filesystem paths that work fine when calling `image()`/`pdf()` directly in Python are meaningless to a remote client — encode as base64 data URIs instead.
+
+### See also
+
+    - [StreamPolicy](streampolicy.html) — the presets and event-visibility model this router applies uniformly.
+    - [Multimodal Input](multimodal.html) — how `image()`/`pdf()` validate and encode the `images`/`pdfs` request fields.
+
+
+---
+
+# Structured Output
+Set `response_model` to a pydantic model and the agent's final text is validated against it, landing on `AgentResult.parsed`. One automatic repair attempt is made if the first response isn't valid JSON matching the schema; if that also fails, `OutputParseError` is raised with the raw text attached.
+
+```python
+from pydantic import BaseModel
+from deepcrew import Agent, run_agent
+
+class Verdict(BaseModel):
+    approved: bool
+    reason: str
+
+agent = Agent(name="reviewer", model="openai/gpt-4o", response_model=Verdict)
+result = await run_agent(agent, [{"role": "user", "content": "Review this PR diff: ..."}])
+
+result.parsed.approved  # bool
+result.parsed.reason    # str
+```
+
+### How it actually works
+
+This is prompt-based, not provider-JSON-mode-enforced — worth knowing since it's a weaker guarantee than passing `response_format={"type": "json_object"}` directly to the provider. When `response_model` is set, deepcrew appends one extra system message to the conversation before the first turn:
+
+```python
+Respond ONLY with JSON matching this schema: {"properties": {...}, "required": [...], ...}
+```
+
+...where the schema is `response_model.model_json_schema()`, pydantic's own schema dump. The model is trusted to follow that instruction; nothing on the LiteLLM call itself forces JSON output. Parsing happens once the agent's final turn produces text with no more tool calls:
+
+    - Any leading/trailing ````json ... ```` (or plain `````) fence around the response is stripped first.
+    - The result is validated with `response_model.model_validate_json(...)`.
+    - On failure (invalid JSON, or valid JSON that doesn't match the schema), deepcrew makes exactly one repair attempt: it re-prompts the same model with the full conversation history plus the failed response and the validation error text, asking for corrected JSON.
+    - If the repair attempt also fails to validate, `OutputParseError` is raised — not returned as a degraded result — carrying the repaired (still-invalid) text on `.raw_text`.
+
+```python
+from deepcrew import OutputParseError
+
+try:
+    result = await run_agent(agent, [{"role": "user", "content": "..."}])
+except OutputParseError as exc:
+    print("Model never produced valid JSON, even after one repair attempt:")
+    print(exc.raw_text)  # the raw (still invalid) text from the repair attempt
+```
+
+### Combining with tools and with LoopConfig
+
+An agent with both `response_model` and `tools`/`skills` works fine: the schema instruction is injected once as a system message, and the agent can still make tool calls across multiple turns as usual — parsing only happens against the text of the final turn (the one with no more tool calls), never against intermediate turns.
+
+`response_model` also composes with `loop_config`: every outer-loop iteration runs the schema-instruction + parse-with-repair logic independently, and whichever `AgentResult` the loop ultimately returns (converged, adaptive-stopped, or the last iteration) carries that iteration's own `.parsed` value. If you want convergence to depend on the parsed structure rather than just the raw text, write a `convergence_fn` that inspects `result.parsed` directly — nothing does that for you automatically.
+
+### Common pitfalls
+
+    - This is a prompt instruction, not enforced JSON mode. Weaker models or highly complex schemas can still produce non-JSON text on both the first attempt and the repair attempt, ending in `OutputParseError`.
+    - Only one repair attempt, always. There's no configurable retry count for structured-output parsing specifically (separate from `RetryPolicy`, which governs LLM-call-level failures, not schema-validation failures).
+    - `result.parsed` is `None` whenever `response_model` isn't set. Always None-check it, or make it a habit to only read `.parsed` on agents you know were constructed with a schema.
+    - The repair prompt reuses the same model. There's no way to route the repair attempt to a different (e.g. stronger) model than the one that produced the invalid output.
+
+### See also
+
+    - [Looping](looping.html) — how `response_model` behaves across outer-loop iterations.
+    - [Human-in-the-Loop Hooks](hooks.html) — the other "Agent Behavior" feature, for intercepting tool calls rather than validating final output.
+
+
+---
+
+# Human-in-the-Loop Hooks
+`AgentHooks` intercepts and can alter execution — unlike the observe-only event stream. `approve_tool` returning `False` denies a tool call outright: the callable never runs, the tool result becomes `"Tool call denied by user."`, and a `TOOL_DENIED` event is emitted.
+
+```python
+from deepcrew import Agent, AgentHooks, run_agent
+
+async def approve(tool_name: str, args: dict) -> bool:
+    return tool_name != "delete_file"  # block one specific tool
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    tools=[delete_file, read_file],
+    hooks=AgentHooks(approve_tool=approve),
+)
+```
+
+- **on_agent_start** (() -> Awaitable[None]): Called once before the first LLM call.
+
+- **on_tool_start** ((name, args) -> Awaitable[None]): Called after approval, before the tool runs.
+
+- **on_tool_end** ((name, result) -> Awaitable[None]): Called after the tool returns successfully.
+
+- **approve_tool** ((name, args) -> Awaitable[bool]): Returning `False` denies the call. A raising hook is treated as denial.
+
+> A hook that raises is caught and logged (WARNING) — it never crashes the run, except `approve_tool`, where a raise is treated the same as returning `False`.
+
+### Execution order, per tool call
+
+For each tool call the model requests, hooks fire in this exact order:
+
+    - `approve_tool(name, args)` — if it returns `False` (or raises), the callable never runs. The tool's result becomes the literal string `"Tool call denied by user."`, appended to conversation history as a normal tool message, and a `TOOL_DENIED` event fires. Execution moves straight to step 4 — `on_tool_start`/`on_tool_end` are both skipped entirely for a denied call.
+    - `on_tool_start(name, args)` — fires only if the call was approved (or if `approve_tool` is unset).
+    - The tool actually executes.
+    - `on_tool_end(name, result)` — fires only if execution succeeded without raising. If the tool itself raises an exception, `on_tool_end` is skipped, and the exception is folded into the tool's result content as an error string instead (unrelated to hooks — this is the same error-folding behavior that happens whether or not any hooks are configured).
+
+`on_agent_start` is separate from all of this — it fires exactly once per `run_agent()` call, before the first LLM request, regardless of how many turns or tool calls follow.
+
+### Hooks vs. events — pick the right one
+
+These solve different problems and are easy to reach for interchangeably by mistake:
+
+    - Hooks (`AgentHooks`) run inside the agent's execution, synchronously, and can change what happens — `approve_tool` is the only hook with the power to prevent a tool call outright.
+    - Events (`StreamEvent` via a `queue`, filtered by [StreamPolicy](streampolicy.html)) only ever describe what already happened, for a UI or logging pipeline — nothing consuming the event queue can stop or alter execution, no matter how fast it reacts.
+
+If you need a human to approve a specific tool call before it runs, that's `approve_tool` — there's no way to build that with events alone.
+
+### A realistic human-approval pattern
+
+`approve_tool` is awaited, so it can genuinely pause execution on something slower than a synchronous check — a database lookup, a Slack approval button, a queued request to a human reviewer.
+
+```python
+import asyncio
+from deepcrew import Agent, AgentHooks, run_agent
+
+pending_approvals: dict[str, asyncio.Future] = {}
+
+async def ask_a_human(tool_name: str, args: dict) -> bool:
+    request_id = f"{tool_name}:{id(args)}"
+    future = asyncio.get_event_loop().create_future()
+    pending_approvals[request_id] = future
+    # e.g. post a Slack message with Approve/Deny buttons here, then wait:
+    send_approval_request(request_id, tool_name, args)  # your integration
+    return await future  # resolved elsewhere when the human responds
+
+agent = Agent(
+    name="ops_assistant",
+    model="openai/gpt-4o",
+    tools=[restart_service, delete_records],
+    hooks=AgentHooks(approve_tool=ask_a_human),
+)
+
+# Elsewhere, e.g. in a webhook handler for the Slack button click:
+# pending_approvals[request_id].set_result(True)  # or False to deny
+```
+
+### Common pitfalls
+
+    - A denied call still appears in `AgentResult.tool_calls`. Tool calls are recorded from the model's request, before `approve_tool` is ever consulted — you can't distinguish a denied call from an executed one by looking at `tool_calls` alone; check for a `TOOL_DENIED` event or the literal `"Tool call denied by user."` content instead.
+    - `on_tool_end` doesn't fire on a tool exception. Only a successful, non-denied execution reaches it — don't rely on it for cleanup that must run unconditionally.
+    - Hooks intercept; events only observe. Don't reach for a `StreamPolicy`-filtered event consumer when you actually need to block a tool call — only `approve_tool` can do that.
+    - Hooks apply to one `Agent`, not globally. There's no process-wide hook registry — set `hooks=` on every agent instance that needs interception, including spawned sub-agents, which do not inherit the parent's hooks automatically.
+
+### See also
+
+    - [StreamPolicy](streampolicy.html) — the observe-only counterpart to hooks; both can be used together.
+    - [Agent Spawning](spawning.html) — spawned sub-agents don't inherit the parent's `AgentHooks`.
+
+
+---
+
+# Memory Providers
+Memory providers let agents maintain context across turns, runs, and even restarts. They auto-inject into the LLM call (relevant memories added as a system message), and auto-store tool results for future retrieval.
+
+### InMemoryProvider — short-term context
+
+```python
+from deepcrew import Agent, run_agent, InMemoryProvider
+
+memory = InMemoryProvider()
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a helpful assistant with memory.",
+    memory=memory,
+)
+
+# First interaction
+result1 = await run_agent(agent, [
+    {"role": "user", "content": "My name is Alice and I'm building a Python library."}
+])
+
+# Memory automatically stores tool results and LLM context
+# Second interaction — agent will remember Alice's project
+result2 = await run_agent(agent, [
+    {"role": "user", "content": "What was my project about again?"}
+])
+```
+
+### FileMemoryProvider — persistent context
+
+```python
+from pathlib import Path
+from deepcrew import Agent, run_agent, FileMemoryProvider
+
+# Persists across process restarts
+memory = FileMemoryProvider(Path.home() / ".deepcrew" / "my_agent_memory.json")
+
+agent = Agent(
+    name="persistent_bot",
+    model="openai/gpt-4o-mini",
+    memory=memory,
+)
+
+# All tool results are atomically written to the JSON file
+# On next startup, memories are loaded and injected into context
+```
+
+### Custom MemoryProvider
+
+Need something InMemory/File/Redis don't cover — SQLite, a vector database, an external key-value service? Subclass `MemoryProvider` directly. The one detail every implementer gets wrong at least once: `search()` must return `(key, value)` tuples, not just values — every built-in provider's `render`/injection logic depends on having the key available too.
+
+```python
+import sqlite3
+from deepcrew.memory.base import MemoryProvider
+
+class SQLiteMemoryProvider(MemoryProvider):
+    """Simple SQLite-backed memory — one row per key, LIKE-based search."""
+
+    def __init__(self, path: str) -> None:
+        self._conn = sqlite3.connect(path)
+        self._conn.execute("CREATE TABLE IF NOT EXISTS memory (key TEXT PRIMARY KEY, value TEXT)")
+        self._conn.commit()
+
+    async def store(self, key: str, value: str) -> None:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, value)
+        )
+        self._conn.commit()
+
+    async def retrieve(self, key: str) -> str | None:
+        row = self._conn.execute("SELECT value FROM memory WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]:
+        rows = self._conn.execute(
+            "SELECT key, value FROM memory WHERE key LIKE ? OR value LIKE ? "
+            "ORDER BY key LIMIT ?",
+            (f"%{query}%", f"%{query}%", top_k),
+        ).fetchall()
+        return [(k, v) for k, v in rows]
+
+    async def clear(self) -> None:
+        self._conn.execute("DELETE FROM memory")
+        self._conn.commit()
+
+agent = Agent("persistent", model="openai/gpt-4o", memory=SQLiteMemoryProvider("agent.db"))
+```
+
+This example is deliberately synchronous under the hood (plain `sqlite3`, no `await` inside the query calls) — fine for a single-process CLI tool, but it will block the event loop under real concurrent load. For a multi-process or high-concurrency deployment, use [RedisMemoryProvider](redis-memory.html) instead, or wrap blocking calls in `asyncio.to_thread()`.
+
+### Memory events
+
+`run_agent()` is not an async generator — you cannot `async for` over it directly. If you pass a `queue`, events land in it as they occur, but a bare `run_agent()` call does not put a terminating `None` sentinel on that queue when it finishes (only `Orchestrator`/`WorkflowBuilder`'s own internal queues self-terminate that way). The straightforward pattern is to drain whatever's already in the queue once the call returns:
+
+```python
+import asyncio
+from deepcrew import Agent, run_agent
+from deepcrew.types import EventType
+
+queue: asyncio.Queue = asyncio.Queue()
+result = await run_agent(agent, messages, queue=queue)
+
+while not queue.empty():
+    event = await queue.get()
+    if event.event == EventType.MEMORY_RETRIEVE:
+        print(f"Injected {event.data['count']} memories into context")
+    elif event.event == EventType.MEMORY_STORE:
+        print(f"Stored tool result to memory: {event.data['key']}")
+```
+
+### MemoryProvider ABC
+
+```python
+class MemoryProvider(ABC):
+    @abstractmethod
+    async def store(self, key: str, value: str) -> None: ...
+    @abstractmethod
+    async def retrieve(self, key: str) -> str | None: ...
+    @abstractmethod
+    async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]: ...
+    @abstractmethod
+    async def clear(self) -> None: ...
+```
+
+All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) implement `search()` identically: a case-insensitive substring match on either the key or the value, sorted by key, truncated to `top_k`. This is not semantic search — a query like `"CRISPR gene editing"` will not match a stored value about `"Cas9 mechanism"` unless the substring itself literally overlaps. If you need embedding-based retrieval, that's a natural fit for a custom `MemoryProvider` like the SQLite example above, backed by a vector index instead of a LIKE query.
+
+### Procedural memory (evolving playbook)
+
+`ProceduralMemory` is an opt-in, durable "the system learns from its own past runs" store, built on top of any `MemoryProvider`. See the full [Procedural Memory feature guide](procedural-memory.html) for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.
+
+### Common pitfalls
+
+    - `run_agent()` is not an async generator. Pass a `queue` and drain it manually — see "Memory events" above. Only `Orchestrator.stream()` and `WorkflowBuilder.stream()` return true async generators.
+    - Search is substring matching, not semantic search. All three built-in providers share the same naive case-insensitive substring algorithm — don't expect it to find conceptually related but textually different content.
+    - `FileMemoryProvider` reads the file lazily and caches it in memory. If another process modifies the same JSON file concurrently, your provider instance won't see those changes until it's recreated — there's no file-watching or cross-process invalidation.
+    - Memory injection only looks at the last 3 messages. `run_agent()` builds its search query from the text of the final 3 messages in the conversation you pass it, not the full history — very early context won't influence what gets retrieved.
+
+### See also
+
+    - [Redis Memory Provider](redis-memory.html) — a persistent, shared, multi-process-safe option built into the library.
+    - [Procedural Memory](procedural-memory.html) — a structured playbook layered on top of any provider here.
+
+
+---
+
+# Redis Memory Provider
+`RedisMemoryProvider` implements the same `MemoryProvider` interface as `InMemoryProvider`/`FileMemoryProvider`, backed by Redis for persistence across processes. Requires the `redis` extra: `pip install deepcrew-ai[redis]`.
+
+```python
+from deepcrew import Agent, RedisMemoryProvider
+
+memory = RedisMemoryProvider(url="redis://localhost:6379/0", prefix="myapp:")
+agent = Agent(name="assistant", model="openai/gpt-4o", memory=memory)
+
+# ... run agents ...
+
+await memory.aclose()   # close the underlying redis connection when you're done
+```
+
+`redis` is imported lazily, inside `RedisMemoryProvider.__init__` — not at module import time — so a bare `pip install deepcrew-ai` never pulls it in, and instantiating this class without the extra installed raises a clear `DeepCrewMemoryError` instead of a raw `ModuleNotFoundError`:
+
+```python
+from deepcrew import RedisMemoryProvider, DeepCrewMemoryError
+
+try:
+    memory = RedisMemoryProvider(url="redis://localhost:6379/0")
+except DeepCrewMemoryError as exc:
+    print(exc)  # "The redis package is not installed. Install it with: pip install deepcrew-ai[redis]"
+```
+
+### Constructor reference
+
+- **url** (str = "redis://localhost:6379/0"): Passed straight to `redis.asyncio.from_url(url, decode_responses=True)`. Any URL `redis-py` accepts works, including auth (`redis://:password@host:port/db`) and TLS (`rediss://...`) schemes.
+
+- **prefix** (str = "deepcrew:"): Every key is namespaced under this prefix in Redis, so multiple applications (or multiple agents with different logical stores) can safely share one Redis instance without key collisions. Stripped back off automatically before keys are returned from `search()`.
+
+- **client** (Any | None = None): Pass an already-constructed `redis.asyncio` client to reuse an existing connection pool instead of creating a new one — useful when your application already manages a shared Redis client elsewhere. When set, `url` is ignored entirely and the lazy `redis` import never happens (this is also how the test suite injects an `AsyncMock()` in place of a real connection).
+
+### How search works
+
+Search semantics mirror `InMemoryProvider` exactly: `SCAN` for every key under the configured prefix, `MGET` their values in one round trip, then a case-insensitive substring match on key or value, sorted by key, truncated to `top_k`. This means a search over a very large keyspace still has to scan and fetch everything under the prefix — there's no Redis-native indexing or scoring involved, so performance scales with total entry count, not with how selective your query is.
+
+### Error handling
+
+Every method wraps its Redis call in a broad exception handler and re-raises as `DeepCrewMemoryError` with a descriptive message — a dropped connection, a timeout, or an auth failure all surface the same way, distinguishable from a normal `DeepCrewMemoryError` only by the message text, not a different exception subtype.
+
+```python
+from deepcrew import DeepCrewMemoryError
+
+try:
+    await memory.store("last_query", "...")
+except DeepCrewMemoryError as exc:
+    print(f"Redis memory write failed: {exc}")
+    # fall back to running without memory for this turn, log, alert, etc.
+```
+
+### See also
+
+    - [Memory Providers](memory.html) — the shared `MemoryProvider` interface and the built-in in-process/file alternatives.
+    - [Procedural Memory](procedural-memory.html) — can be layered on top of a `RedisMemoryProvider` for a shared, persistent playbook across an agent pool.
+
+
+---
+
+# Skills
+Skills are higher-level capability bundles. They look identical to tools from the LLM's perspective (both become `ToolDef`), but can wrap multi-step logic, sub-agents, or external APIs internally. Three built-ins are included; you can also create custom skills with the `@skill` decorator.
+
+### Built-in skills
+
+```python
+from deepcrew import Agent, run_agent
+from deepcrew import WebSearchSkill, SummarizeSkill, CodeExecutionSkill
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    system_prompt="You are a versatile AI assistant.",
+    skills=[
+        WebSearchSkill(),                            # DuckDuckGo Instant Answer API
+        SummarizeSkill(model="openai/gpt-4o-mini"),  # LLM-backed summarization
+        CodeExecutionSkill(timeout=15.0),            # sandboxed Python subprocess
+    ],
+)
+
+result = await run_agent(agent, [
+    {"role": "user", "content": "Search for Python async best practices, summarize them, then write a demo script and run it."}
+])
+print(result.text)
+```
+
+### Skill ABC — what every skill needs
+
+Every skill, however you build it, must provide four things: a `name` (the tool name the LLM sees), a `description`, a `parameters` JSON Schema object, and an async `execute(self, **kwargs) -> str` method. `to_tool_def()` is provided by the base class and wraps `execute()` into a `ToolDef` — you never need to override it.
+
+- **name** (str): Must be unique among an agent's tools/skills — if a skill and a plain `@tool` function share a name, whichever ends up later in the merged tool list from `Agent.get_tool_defs()` wins.
+
+- **description** (str): Shown to the LLM verbatim. Also what `ToolAllocator` reads when deciding whether a spawned sub-agent should get this skill — see [Agent Spawning](spawning.html).
+
+- **parameters** (dict): A JSON Schema object (`{"type": "object", "properties": {...}, "required": [...]}`) — exactly the shape OpenAI-style function-calling expects.
+
+- **execute(**kwargs)** (async -> str): Receives the LLM's parsed tool-call arguments as keyword arguments. Must return a string — if your logic naturally produces a dict/list, serialize it yourself (e.g. `str(result)` or `json.dumps(result)`).
+
+### @skill decorator — custom skills
+
+The decorator inspects your function's signature to auto-generate the JSON Schema for you, so you don't hand-write `parameters`. The mapping is intentionally simple: parameters annotated `int` become JSON `"integer"`, `float` becomes `"number"`, `bool` becomes `"boolean"`, and everything else (including `str`, no annotation, or a complex type) becomes `"string"` — there is no support for nested objects, lists, unions, or enums via the decorator's auto-generated schema. A parameter is marked `"required"` whenever it has no default value in the function signature; anything with a default is treated as optional.
+
+```python
+from deepcrew import skill, Agent
+
+@skill(name="translate", description="Translate text to another language")
+async def translate(text: str, target_language: str) -> str:
+    """
+    Args:
+        text (str): The text to translate.
+        target_language (str): Target language code, e.g. 'es', 'fr', 'ja'.
+    """
+    import httpx
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            "https://libretranslate.de/translate",
+            json={"q": text, "source": "auto", "target": target_language},
+        )
+        return r.json()["translatedText"]
+
+@skill(name="send_slack", description="Send a message to a Slack channel")
+async def send_slack(channel: str, message: str) -> str:
+    """
+    Args:
+        channel (str): Slack channel name (without #).
+        message (str): Message text to send.
+    """
+    import os
+    import httpx
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            "https://slack.com/api/chat.postMessage",
+            headers={"Authorization": f"Bearer {os.environ['SLACK_BOT_TOKEN']}"},
+            json={"channel": channel, "text": message},
+        )
+    return f"Message sent to #{channel}"
+
+agent = Agent(
+    "comms",
+    model="openai/gpt-4o",
+    system_prompt="Help with communications and translations.",
+    skills=[translate, send_slack],
+)
+```
+
+### Skill class — full custom implementation
+
+```python
+from deepcrew.skills.base import Skill
+
+class DatabaseQuerySkill(Skill):
+    name = "database_query"
+    description = "Execute a read-only SQL query against the production database"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "sql": {"type": "string", "description": "SQL SELECT query to execute"},
+            "limit": {"type": "integer", "description": "Max rows to return", "default": 100},
+        },
+        "required": ["sql"],
+    }
+
+    def __init__(self, connection_string: str):
+        self._conn_str = connection_string
+
+    async def execute(self, sql: str, limit: int = 100) -> str:
+        import asyncpg
+        conn = await asyncpg.connect(self._conn_str)
+        try:
+            rows = await conn.fetch(f"{sql} LIMIT {limit}")
+            return str([dict(r) for r in rows])
+        finally:
+            await conn.close()
+
+# Use it:
+agent = Agent("db_agent", model="openai/gpt-4o",
+              skills=[DatabaseQuerySkill("postgresql://...")])
+```
+
+### SkillRegistry
+
+```python
+from deepcrew import SkillRegistry
+from deepcrew import WebSearchSkill, SummarizeSkill
+
+# Register globally
+SkillRegistry.register(WebSearchSkill())
+SkillRegistry.register(SummarizeSkill())
+
+# Retrieve by name
+search = SkillRegistry.get("web_search")
+summarize = SkillRegistry.get("summarize")
+
+# List all registered skills
+for skill in SkillRegistry.list_all():
+    print(f"{skill.name}: {skill.description}")
+```
+
+### Built-in skill reference
+
+      | Class | Tool name | Description | Config |
+
+        | `WebSearchSkill` | `web_search` | DuckDuckGo Instant Answer API. Returns top results. | None |
+
+        | `SummarizeSkill` | `summarize` | LLM-backed text summarization. | `model="openai/gpt-4o-mini"` |
+
+        | `CodeExecutionSkill` | `code_exec` | Runs Python in an isolated subprocess. | `timeout=10.0` |
+
+### How-to: self-evolving skills (auto_extract_skill) v0.2.5
+
+With `LoopConfig.auto_extract_skill=True`, a loop run that genuinely converges (via `convergence_fn` or `verifier`) with a quality signal at or above `skill_confidence_threshold` is distilled into a reusable, replayable `Skill` and registered in `SkillRegistry` — Voyager-style. The distilled skill doesn't just memoize the one answer; it re-runs the original agent's `system_prompt`/`tools`/`mcps` against whatever new task text it's called with, so it generalizes to similar future tasks. This never triggers on plain `max_iterations` exhaustion without real convergence, and is off by default.
+
+```python
+from deepcrew import Agent, run_agent, LoopConfig, Verifier, VerifierConfig, SkillRegistry
+
+researcher = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        auto_extract_skill=True,
+        skill_confidence_threshold=0.85,
+    ),
+)
+
+result = await run_agent(researcher, [{"role": "user", "content": "Explain CRISPR"}])
+
+# Later, a completely different agent can reuse the distilled skill by name.
+distilled = [s for s in SkillRegistry.list_all() if s.name.startswith("researcher_")][0]
+writer = Agent(name="writer", model="openai/gpt-4o-mini", skills=[distilled])
+```
+
+Listen for `EventType.SKILL_EXTRACTED` (`{"skill_name": ..., "score": ...}`) to know when a new skill was registered.
+
+### Common pitfalls
+
+    - The `@skill` decorator's auto-schema has no support for complex types. Lists, dicts, unions, and enums all silently become plain `"string"` parameters — write a full `Skill` subclass with a hand-authored `parameters` schema if you need anything beyond int/float/bool/string.
+    - `FunctionSkill.execute()` stringifies whatever your function returns. A function returning a dict or list gets `str(result)` applied to it (Python's default repr), which is rarely what you want an LLM to parse back — return a string yourself, or use `json.dumps(...)` explicitly.
+    - Distilled skills only reuse a fixed subset of the original agent's config. The replay agent copies `system_prompt`, `tools`, `mcps`, `skills`, `max_turns`, `temperature`, `max_tokens`, and `extra_params` — it does not carry over `memory`, `procedural_memory`, `retry_policy`, `fallback_chain`, or `hooks` from the original agent.
+    - `SkillRegistry` is process-global, class-level state. It is not automatically cleared between runs — tests that rely on a clean registry call `SkillRegistry.clear()` themselves in setup/teardown.
+
+### See also
+
+    - [Looping → Skill distillation](looping.html#skill-distillation) — the mechanics of how a converged run becomes a `Skill`.
+    - [Verifier](verifier.html) — the quality signal that gates distillation.
+    - [Agent Spawning](spawning.html) — `ToolAllocator` reads skill descriptions the same way it reads tool descriptions.
+
+
+---
+
+# Retry & Fallback
+Configure per-agent retry behavior with exponential backoff, and model fallback chains that activate when all retries fail.
+
+### Basic retry
+
+```python
+from deepcrew import Agent, RetryPolicy
+
+agent = Agent(
+    name="resilient",
+    model="openai/gpt-4o",
+    system_prompt="Be helpful.",
+    retry_policy=RetryPolicy(
+        max_retries=3,          # try up to 3 more times after the first failure
+        backoff_seconds=1.0,    # base wait between retries
+        exponential=True,       # 1s, 2s, 4s, 8s ... (doubles each time)
+        retry_on=(Exception,),  # retry on any exception (default)
+    ),
+)
+```
+
+### Retry specific exceptions only
+
+```python
+import litellm
+from deepcrew import RetryPolicy
+
+# Only retry on rate limit and connection errors
+agent = Agent(
+    "selective_retry",
+    model="openai/gpt-4o",
+    retry_policy=RetryPolicy(
+        max_retries=5,
+        backoff_seconds=2.0,
+        retry_on=(
+            litellm.RateLimitError,
+            litellm.APIConnectionError,
+            TimeoutError,
+        ),
+    ),
+)
+```
+
+### Fallback chain
+
+```python
+from deepcrew import Agent, RetryPolicy, FallbackChain
+
+agent = Agent(
+    name="fault_tolerant",
+    model="openai/gpt-4o",           # primary model
+    retry_policy=RetryPolicy(
+        max_retries=2,
+        backoff_seconds=1.0,
+    ),
+    fallback_chain=FallbackChain(models=[
+        "anthropic/claude-haiku-4-5-20251001",  # try first if gpt-4o fails all retries
+        "gemini/gemini-2.0-flash",               # try second
+        "ollama/llama3.2",                       # local fallback
+    ]),
+)
+
+# Flow: gpt-4o → retry 1 → retry 2 → claude-haiku → retry 1 → retry 2 → gemini → ...
+```
+
+### How retry and fallback actually interact
+
+This is easy to get an intuition for that's slightly wrong, so it's worth spelling out exactly: `retry_on` doesn't just decide whether to wait-and-retry — it decides whether fallback runs at all for that failure. When an LLM call raises, the wrapper checks the raised exception against `retry_on`. If it matches, the call retries (with backoff) up to `max_retries` times on the same model, and only after those retries are exhausted does it advance to the next model in `fallback_chain`. But if the exception does not match `retry_on`, it is re-raised immediately — the fallback chain is never consulted, even if you configured one. A `ValueError` from a bug in your own tool code, for example, will propagate straight out rather than triggering a fallback to your next model, unless you deliberately included it in `retry_on`.
+
+Each model in the chain gets its own full retry budget: with `max_retries=2` and a 3-model chain (primary + 2 fallbacks), a persistently-failing sequence of retryable errors results in up to `3 attempts × 3 models = 9` total LLM calls before the final exception propagates to your code. If every model in the chain is exhausted, the last exception raised (from the last model tried) is what you ultimately catch — earlier models' specific failures aren't preserved or chained.
+
+Retry/fallback wraps a single `litellm.acompletion` call, scoped to one turn — it has no interaction with `Agent.max_turns` (the tool-call cycle limit) or `LoopConfig` (the outer refinement loop). A retried-and-recovered turn still counts as just one turn toward `max_turns`.
+
+### Retry events
+
+```python
+from deepcrew.types import EventType
+
+while True:
+    event = await queue.get()
+    if event is None: break
+    if event.event == EventType.RETRY_ATTEMPT:
+        data = event.data
+        print(f"Retry {data['attempt']} on {data['model']} — waiting {data['delay']:.1f}s")
+    elif event.event == EventType.FALLBACK_TRIGGERED:
+        print(f"Falling back from {event.data['from_model']} → {event.data['to_model']}")
+```
+
+### RetryPolicy reference
+
+- **max_retries** (int = 3): Number of additional attempts after the first failure. `max_retries=3` means up to 4 total calls per model.
+
+- **backoff_seconds** (float = 1.0): Base wait time in seconds between retries. With `exponential=True`, this doubles each retry.
+
+- **retry_on** (tuple[type[Exception], ...] = (Exception,)): Exception types that trigger a retry. Use specific types like `litellm.RateLimitError` to avoid retrying logic errors.
+
+- **exponential** (bool = True): Whether to double the backoff time on each retry. False gives fixed backoff.
+
+### FallbackChain reference
+
+- **models** (list[str]): LiteLLM model strings tried in order, after the primary `Agent.model` exhausts its own retry budget. Each entry gets the same `RetryPolicy` as the primary model — there's no per-fallback-model override.
+
+### Common pitfalls
+
+    - A non-retryable exception skips fallback entirely. See "How retry and fallback actually interact" above — `retry_on` gates whether fallback is even attempted, not just whether backoff happens.
+    - Setting `fallback_chain` without `retry_policy` still works, but with zero retries per model. Without a `RetryPolicy`, `max_attempts` defaults to 1 — each model in the chain gets exactly one try before moving to the next, no backoff at all.
+    - Every fallback model shares the same retry budget and exception filter. You can't give your local Ollama fallback a longer backoff or a different `retry_on` than your primary OpenAI model.
+    - Total call count multiplies quickly. `max_retries` × number of models in the chain — a generous retry policy on a long fallback chain can mean a slow failure path that's expensive in both time and token spend before it finally gives up.
+
+### See also
+
+    - [Observability](observability.html) — pair retry/fallback with OTel spans to see exactly which model handled a given call.
+    - [StreamPolicy](streampolicy.html) — `RETRY_ATTEMPT`/`FALLBACK_TRIGGERED` are only visible under `.verbose()`, not `.chat()` or `.standard()`.
+
+
+---
+
+# Observability
+deepcrew-ai emits OpenTelemetry spans for every LLM call, tool execution, and workflow step. When `observability=None` (the default), all span context managers are `nullcontext()` — absolutely zero overhead.
+
+### Installation
+
+```python
+pip install "deepcrew-ai[otel]"
+# Installs: opentelemetry-api, opentelemetry-sdk, opentelemetry-exporter-otlp
+```
+
+### Quick start with Jaeger
+
+```python
+from deepcrew import Agent, run_agent, ObservabilityConfig
+
+obs = ObservabilityConfig(
+    otel_endpoint="http://localhost:4317",  # gRPC endpoint
+    service_name="my-ai-app",
+    enabled=True,
+    export_format="grpc",   # or "http" for HTTP/protobuf
+)
+
+agent = Agent("researcher", model="openai/gpt-4o-mini", system_prompt="Research thoroughly.")
+result = await run_agent(
+    agent,
+    [{"role": "user", "content": "Explain blockchain technology"}],
+    observability=obs,
+)
+```
+
+> Note: `Orchestrator` does not currently accept an `ObservabilityConfig` at all — its `run()`/`stream()` methods have no `observability` parameter, and it never passes one through to the individual `run_agent()` calls it makes internally. If you need OTel spans around an orchestrated run today, wrap the whole `orch.run(...)` call in your own manually-created span, or use `WorkflowBuilder` instead (see below), which does support it directly.
+
+### With run_agent()
+
+```python
+from deepcrew import Agent, run_agent, ObservabilityConfig
+
+obs = ObservabilityConfig(otel_endpoint="http://localhost:4317")
+
+result = await run_agent(
+    agent,
+    [{"role": "user", "content": "Hello!"}],
+    observability=obs,   # that's it
+)
+
+# Spans emitted (see "Span attributes" below for exact names —
+# there is no "deepcrew." prefix on the span name itself):
+#   agent.run     → covers entire agent lifecycle
+#     llm.call    → each LLM request, one per turn
+#     tool.call   → each turn's tool executions, grouped into one span
+```
+
+### With WorkflowBuilder
+
+```python
+from deepcrew import WorkflowBuilder, ObservabilityConfig
+
+obs = ObservabilityConfig(otel_endpoint="http://localhost:4317", service_name="workflow-app")
+
+workflow = (
+    WorkflowBuilder(observability=obs)  # pass at construction time
+    .add_agent("step1", agent1, task="{input}")
+    .add_agent("step2", agent2, task="Refine:\n{step1}")
+    .then("step1", "step2")
+)
+
+result = await workflow.run("My query")
+
+# Spans emitted per step:
+#   workflow.step   → covers each DAG node
+#     agent.run     → the agent within the step
+#       llm.call
+#       tool.call
+```
+
+### Start Jaeger locally (Docker)
+
+```python
+docker run -d --name jaeger \
+  -e COLLECTOR_OTLP_ENABLED=true \
+  -p 6831:6831/udp \
+  -p 16686:16686 \
+  -p 4317:4317 \
+  jaegertracing/all-in-one:latest
+
+# Open http://localhost:16686 to view traces
+```
+
+### ObservabilityConfig reference
+
+- **otel_endpoint** (str | None): OTLP collector endpoint. For gRPC: `http://localhost:4317`. For HTTP: `http://localhost:4318/v1/traces`.
+
+- **service_name** (str = "deepcrew"): Service name in traces. Use your app name for easy filtering in Jaeger/Grafana.
+
+- **enabled** (bool = True): Master switch. Set to False for no-op without removing the ObservabilityConfig object.
+
+- **export_format** ("grpc" | "http"): OTLP export protocol. `"grpc"` for port 4317, `"http"` for port 4318.
+
+### Span attributes
+
+Span names are exactly as shown below — there is no `"deepcrew."` or other namespace prefix added to them. Token counts and tool names are not set as span attributes; if you need per-call token accounting, read it off the returned `AgentResult.input_tokens`/`output_tokens` instead, or add your own OTel instrumentation around that.
+
+      | Span name | Attributes actually set | Wraps |
+
+        | `agent.run` | `agent.id`, `agent.model` | The entire agentic loop for one agent, all turns. |
+
+        | `llm.call` | `llm.model`, `agent.id` | One `litellm.acompletion` call — one per turn. |
+
+        | `tool.call` | `tool.name` (comma-joined if multiple tools ran that turn), `agent.id` | All tool calls executed in parallel within one turn, as a single span — not one span per individual tool call. |
+
+        | `workflow.step` | `step.name` | One DAG node in a `WorkflowBuilder` run. Does not carry an `agent.id` attribute even though it wraps an `agent.run` span. |
+
+### Common pitfalls
+
+    - `Orchestrator` has no observability hook at all yet. Neither the router call, the fan-out agents, nor APEX synthesis get wrapped in spans — see the callout above.
+    - `tool.call` is one span per turn, not per tool. If an agent calls three tools in parallel in one turn, that's a single span with a comma-joined `tool.name` attribute, not three separate spans.
+    - Token counts aren't in the spans. Pull them from `AgentResult` after the call, or instrument separately.
+    - `enabled=False` is the cheap way to disable, not deleting the config. Every span helper checks `config is None or not config.enabled` and falls through to a plain `nullcontext()` — flip `enabled` off for a quick toggle without restructuring your code.
+
+
+---
+
+# CLI
+Run declarative YAML workflow files from the terminal. No Python code required for simple workflows.
+
+### Installation check
+
+```python
+pip install deepcrew-ai
+deepcrew --version
+# deepcrew-ai 0.4.0
+```
+
+### Write a workflow YAML
+
+```python
+agents:
+  - name: researcher
+    model: openai/gpt-4o-mini
+    system_prompt: Research the topic thoroughly using all available information.
+    tools:
+      - web_search   # built-in skill by name
+
+  - name: analyst
+    model: anthropic/claude-haiku-4-5-20251001
+    system_prompt: Critically analyze the research findings. Identify gaps and strengths.
+
+  - name: writer
+    model: openai/gpt-4o
+    system_prompt: Write a clear, well-structured executive summary report.
+    tools:
+      - summarize   # built-in summarize skill
+
+workflow:
+  - step: research
+    agent: researcher
+    task: "{input}"
+
+  - step: analysis
+    agent: analyst
+    task: |
+      Analyze this research:
+      {research}
+    depends_on:
+      - research
+
+  - step: report
+    agent: writer
+    task: |
+      Write an executive summary based on:
+
+      Research: {research}
+      Analysis: {analysis}
+    depends_on:
+      - research
+      - analysis
+```
+
+### Run it
+
+```python
+# Stream output to terminal
+deepcrew run workflow.yaml --input "The future of autonomous vehicles"
+
+# Non-streaming (prints only final result)
+deepcrew run workflow.yaml --input "Quantum computing in 2026" --no-stream
+
+# List all agents in a config
+deepcrew agents list --config workflow.yaml
+```
+
+### YAML schema
+
+- **agents[].name*** (str): Agent identifier, referenced in workflow steps.
+
+- **agents[].model*** (str): LiteLLM model string.
+
+- **agents[].system_prompt** (str): Agent's system prompt.
+
+- **agents[].tools** (list[str]): Built-in skill names: `web_search`, `summarize`, `code_exec`. Any name not in that set is silently ignored — it is dropped, not an error, so a typo in a tool name fails silently rather than raising at load time.
+
+- **agents[].max_turns** (int = 10): Max inner loop turns for this agent.
+
+- **agents[].temperature** (float | null): Sampling temperature.
+
+- **agents[].max_tokens** (int | null): Maximum output tokens per LLM call.
+
+- **workflow[].step*** (str): Step name — used as a variable `{step_name}` in subsequent task templates.
+
+- **workflow[].agent*** (str): References an agent by `name`. Referencing a name not defined in `agents:` raises a `ValueError` at load time, before anything runs.
+
+- **workflow[].task** (str = "{input}"): Task template. `{input}` is the CLI `--input` value (or the top-level `input:` YAML field if `--input` is omitted). `{step_name}` is the text output of that step.
+
+- **workflow[].depends_on** (list[str] = []): Step names this step depends on. Steps without overlapping dependencies run in parallel.
+
+- **input** (str | null): Top-level fallback for `{input}` when `--input` isn't passed on the command line.
+
+- **router_model** (str = "openai/gpt-4o-mini"): Parsed from the YAML but currently unused by `deepcrew run` — the CLI always builds an explicit `WorkflowBuilder` DAG from your `workflow:` steps, never an `Orchestrator`, so there's no router LLM call for this to configure. Setting it has no effect today.
+
+### Supported built-in tool names
+
+      | YAML name | Skill class | Description |
+
+        | `web_search` | `WebSearchSkill` | DuckDuckGo search |
+
+        | `summarize` | `SummarizeSkill` | LLM-backed summarization |
+
+        | `code_exec` | `CodeExecutionSkill` | Python subprocess execution |
+
+> For advanced workflows with custom Python tools, memory providers, or observability, use the Python API directly. The CLI is designed for simple, shareable workflows that don't need custom code — there is no YAML way to attach a custom `@tool` function, an MCP server, a `MemoryProvider`, or an `ObservabilityConfig`; only the three built-in skills above are reachable from YAML.
+
+### Common pitfalls
+
+    - Unknown tool names fail silently. A typo like `web_serach` in `agents[].tools` is simply dropped — the agent runs with one fewer tool than you intended, no warning.
+    - `router_model` does nothing yet. The CLI never routes — every workflow you write in YAML is an explicit DAG.
+    - Only three skills are reachable from YAML. There's no config surface for custom tools, MCP servers, memory, or observability — reach for the Python API once you need any of those.
+    - A bad agent reference in `workflow:` fails before any LLM call. This is a fast, cheap validation error — check your step's `agent:` field spelling against your `agents[].name` list first if you see it.
+
+### See also
+
+    - [Skills](skills.html) — the three built-in skills reachable from YAML, and how to write your own (Python API only).
+    - [Memory Providers](memory.html) and [Observability](observability.html) — both require the Python API; there's no YAML equivalent.
+

@@ -26,19 +26,18 @@
   </a>
   <ul class="nav-links">
     <li><a href="index.html" class="active">Docs</a></li>
-    <li><a href="features.html">v0.3.0 Features</a></li>
+    <li><a href="features.html">Features</a></li>
     <li><a href="examples.html">Examples</a></li>
     <li><a href="index.html#api-reference">API</a></li>
   </ul>
   <div class="nav-right">
-    <span class="badge">v0.3.0</span>
+    <span class="badge">v0.4.0</span>
+    <button class="btn-outline copy-page-btn" data-md="md/index.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
-    </a>
-    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener">PyPI →</a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
   </div>
-  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
 </header>
 
 <div class="page-layout">
@@ -47,11 +46,11 @@
     <span class="sidebar-label">Overview</span>
     <a class="sidebar-link active" data-target="hero">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L15 5V11L8 15L1 11V5L8 1Z"/></svg>
-      Introduction
+      <span class="link-text"><span class="link-title">Introduction</span><span class="link-desc">What deepcrew-ai is and why it exists.</span></span>
     </a>
     <a class="sidebar-link" data-target="getting-started">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3l5 5-5 5"/></svg>
-      Getting Started
+      <span class="link-text"><span class="link-title">Getting Started</span><span class="link-desc">Install, set provider keys, and run your first agent.</span></span>
     </a>
   </div>
 
@@ -59,19 +58,19 @@
     <span class="sidebar-label">Core</span>
     <a class="sidebar-link" data-target="agents">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
-      Agents
+      <span class="link-text"><span class="link-title">Agents</span><span class="link-desc">The Agent dataclass: model, prompt, tools, memory, hooks.</span></span>
     </a>
     <a class="sidebar-link" data-target="tools">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l-1.5 1.5L12 5l2-2-2-1zM2 12l5-5 1.5 1.5-5 5H2v-1.5z"/></svg>
-      Python Tools
+      <span class="link-text"><span class="link-title">Python Tools</span><span class="link-desc">Turn any Python function into a callable tool with @tool.</span></span>
     </a>
     <a class="sidebar-link" data-target="runner">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5,3 13,8 5,13"/></svg>
-      Runner
+      <span class="link-text"><span class="link-title">Runner</span><span class="link-desc">The core agentic loop: stream, buffer tool calls, execute, repeat.</span></span>
     </a>
     <a class="sidebar-link" data-target="streaming">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8h2M13 8h2M4 4l1.5 1.5M10.5 10.5 12 12M4 12l1.5-1.5M10.5 5.5 12 4"/><circle cx="8" cy="8" r="3"/></svg>
-      Streaming
+      <span class="link-text"><span class="link-title">Streaming</span><span class="link-desc">True token streaming with selectable event visibility.</span></span>
     </a>
   </div>
 
@@ -79,11 +78,11 @@
     <span class="sidebar-label">Orchestration</span>
     <a class="sidebar-link" data-target="workflow">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="4" rx="1"/><rect x="10" y="1" width="5" height="4" rx="1"/><rect x="5.5" y="11" width="5" height="4" rx="1"/><path d="M3.5 5v2h9V5M8 7v4"/></svg>
-      Workflow Builder
+      <span class="link-text"><span class="link-title">Workflow Builder</span><span class="link-desc">Explicit DAG of agents with automatic parallel scheduling.</span></span>
     </a>
     <a class="sidebar-link" data-target="orchestrator">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5l-3.5 6M8 5l3.5 6M5 13h6"/></svg>
-      Orchestrator
+      <span class="link-text"><span class="link-title">Orchestrator</span><span class="link-desc">Router LLM picks single-agent or parallel fan-out.</span></span>
     </a>
   </div>
 
@@ -91,79 +90,79 @@
     <span class="sidebar-label">MCP Tools</span>
     <a class="sidebar-link" data-target="mcp">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="10" rx="1"/><path d="M5 4V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M1 8h14"/></svg>
-      Overview
+      <span class="link-text"><span class="link-title">Overview</span><span class="link-desc">Connect external MCP servers as tools, over any transport.</span></span>
     </a>
     <a class="sidebar-link" data-target="mcp-stdio">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M4 7l2 2-2 2M8 11h4"/></svg>
-      StdioMCP
+      <span class="link-text"><span class="link-title">StdioMCP</span><span class="link-desc">Spawn a local MCP server process over stdin/stdout.</span></span>
     </a>
     <a class="sidebar-link" data-target="mcp-http">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 3H3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M1 7h14"/></svg>
-      HTTPMCP
+      <span class="link-text"><span class="link-title">HTTPMCP</span><span class="link-desc">Connect to a remote MCP server over streamable HTTP.</span></span>
     </a>
     <a class="sidebar-link" data-target="mcp-sse">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3.5 11A5.5 5.5 0 0 1 3.5 5M6 9.5A2.5 2.5 0 0 1 6 6.5M12.5 5a5.5 5.5 0 0 1 0 6M10 6.5a2.5 2.5 0 0 1 0 3"/><circle cx="8" cy="8" r="1"/></svg>
-      SSEMCP
+      <span class="link-text"><span class="link-title">SSEMCP</span><span class="link-desc">Connect to a remote MCP server over Server-Sent Events.</span></span>
     </a>
     <a class="sidebar-link" data-target="mcp-manager">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="4" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="8" cy="12" r="2"/><path d="M4 6v2l4 2M12 6v2l-4 2"/></svg>
-      MCPManager
+      <span class="link-text"><span class="link-title">MCPManager</span><span class="link-desc">Manage multiple MCP client connections as one unit.</span></span>
     </a>
   </div>
 
   <div class="sidebar-section">
-    <span class="sidebar-label">v0.3.0 · Self-Improving Loop</span>
-    <a class="sidebar-link" href="features.html#looping">
+    <span class="sidebar-label">Self-Improving Loop</span>
+    <a class="sidebar-link" href="guides/looping.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 8A5 5 0 1 1 8 3"/><path d="M13 3v5h-5"/></svg>
-      Looping
+      <span class="link-text"><span class="link-title">Looping</span><span class="link-desc">Outer refinement loop: verifier scoring and adaptive early-stop.</span></span>
     </a>
-    <a class="sidebar-sublink" href="features.html#adaptive-budget">Adaptive budget</a>
-    <a class="sidebar-sublink" href="features.html#branching">Branching</a>
-    <a class="sidebar-link" href="features.html#verifier">
+    <a class="sidebar-sublink" href="guides/looping.html#branching">Branching</a>
+    <a class="sidebar-link" href="guides/verifier.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 4.5L6 12 2.5 8.5"/></svg>
-      Verifier
+      <span class="link-text"><span class="link-title">Verifier</span><span class="link-desc">Scores agent output against the query to drive the loop.</span></span>
     </a>
-    <a class="sidebar-link" href="features.html#procedural-memory">
+    <a class="sidebar-sublink" href="guides/verifier.html#adaptive-budget">Adaptive budget</a>
+    <a class="sidebar-link" href="guides/procedural-memory.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg>
-      Procedural Memory
+      <span class="link-text"><span class="link-title">Procedural Memory</span><span class="link-desc">A durable, evolving playbook layered on any memory provider.</span></span>
     </a>
   </div>
 
   <div class="sidebar-section">
-    <span class="sidebar-label">v0.3.0 · Orchestration</span>
-    <a class="sidebar-link" href="features.html#apex">
+    <span class="sidebar-label">Orchestration</span>
+    <a class="sidebar-link" href="guides/apex.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5h5l-4 3 1.5 5L8 11l-4.5 3L5 9 1 6h5z"/></svg>
-      APEX Synthesizer
+      <span class="link-text"><span class="link-title">APEX Synthesizer</span><span class="link-desc">Merges parallel agent results into one cited answer.</span></span>
     </a>
-    <a class="sidebar-link" href="features.html#spawning">
+    <a class="sidebar-link" href="guides/spawning.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5v3M5.3 11.2L6.8 9M10.7 11.2L9.2 9"/></svg>
-      Agent Spawning
+      <span class="link-text"><span class="link-title">Agent Spawning</span><span class="link-desc">Bounded recursive sub-agent spawning via a meta-tool.</span></span>
     </a>
-    <a class="sidebar-sublink" href="features.html#nested-spawning">Nested spawning</a>
+    <a class="sidebar-sublink" href="guides/spawning.html#nested-spawning">Nested spawning</a>
   </div>
 
   <div class="sidebar-section">
-    <span class="sidebar-label">v0.3.0 · Extensibility & Infra</span>
-    <a class="sidebar-link" href="features.html#skills">
+    <span class="sidebar-label">Extensibility & Infra</span>
+    <a class="sidebar-link" href="guides/skills.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.5 1.5l-1 1 4 4 1-1a2.83 2.83 0 0 0-4-4z"/><path d="M9.5 2.5l-7 7 4 4 7-7"/><path d="M2.5 9.5l-1 4 4-1"/></svg>
-      Skills
+      <span class="link-text"><span class="link-title">Skills</span><span class="link-desc">Reusable tool bundles, including ones the loop distills itself.</span></span>
     </a>
-    <a class="sidebar-sublink" href="features.html#self-evolving-skills">Self-evolving skills</a>
-    <a class="sidebar-link" href="features.html#memory">
+    <a class="sidebar-sublink" href="guides/skills.html#self-evolving-skills">Self-evolving skills</a>
+    <a class="sidebar-link" href="guides/memory.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 7h2M9 7h2M5 10h6"/></svg>
-      Memory
+      <span class="link-text"><span class="link-title">Memory</span><span class="link-desc">Pluggable providers: in-memory, file, and Redis-backed.</span></span>
     </a>
-    <a class="sidebar-link" href="features.html#retry">
+    <a class="sidebar-link" href="guides/retry.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8a4 4 0 1 1 1.5 3.1"/><path d="M4 5V2L1 5"/></svg>
-      Retry & Fallback
+      <span class="link-text"><span class="link-title">Retry & Fallback</span><span class="link-desc">Automatic retries and model fallback chains on failure.</span></span>
     </a>
-    <a class="sidebar-link" href="features.html#observability">
+    <a class="sidebar-link" href="guides/observability.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
-      Observability
+      <span class="link-text"><span class="link-title">Observability</span><span class="link-desc">OpenTelemetry spans across agents, tools, and workflows.</span></span>
     </a>
-    <a class="sidebar-link" href="features.html#cli">
+    <a class="sidebar-link" href="guides/cli.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M4 7l2 2-2 2M9 11h3"/></svg>
-      CLI
+      <span class="link-text"><span class="link-title">CLI</span><span class="link-desc">Run YAML-defined workflows from the command line.</span></span>
     </a>
   </div>
 
@@ -171,15 +170,15 @@
     <span class="sidebar-label">Reference</span>
     <a class="sidebar-link" data-target="api-reference">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M5 6h6M5 9h4"/></svg>
-      API Reference
+      <span class="link-text"><span class="link-title">API Reference</span><span class="link-desc">Full class and function signatures for the public API.</span></span>
     </a>
     <a class="sidebar-link" data-target="events">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h4"/></svg>
-      Stream Events
+      <span class="link-text"><span class="link-title">Stream Events</span><span class="link-desc">Every EventType the library can emit, and when.</span></span>
     </a>
     <a class="sidebar-link" href="examples.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h10v10H3zM6 6l4 4M10 6l-4 4"/></svg>
-      Examples Library →
+      <span class="link-text"><span class="link-title">Examples Library →</span><span class="link-desc">Runnable end-to-end scripts for common patterns.</span></span>
     </a>
   </div>
 </aside>
@@ -239,7 +238,7 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
               <div class="diag-card-title">Orchestrator</div>
               <div class="diag-card-status">
                 <span class="diag-st diag-st--routing">routing request…</span>
-                <span class="diag-st diag-st--routed">✓ dispatched</span>
+                <span class="diag-st diag-st--routed">dispatched</span>
               </div>
             </div>
           </div>
@@ -262,7 +261,7 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
               <div class="diag-gen-bar" style="--tw:74%;--td:0.65s"></div>
               <div class="diag-gen-bar" style="--tw:38%;--td:0.95s"></div>
             </div>
-            <div class="diag-done-tag">✓ done</div>
+            <div class="diag-done-tag">done</div>
           </div>
           <div class="diag-card diag-card--agent" style="--ai:1">
             <div class="diag-agent-head"><span class="diag-agent-dot"></span><span class="diag-agent-name">analyst</span></div>
@@ -273,7 +272,7 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
               <div class="diag-gen-bar" style="--tw:79%;--td:0.7s"></div>
               <div class="diag-gen-bar" style="--tw:33%;--td:1.0s"></div>
             </div>
-            <div class="diag-done-tag">✓ done</div>
+            <div class="diag-done-tag">done</div>
           </div>
           <div class="diag-card diag-card--agent" style="--ai:2">
             <div class="diag-agent-head"><span class="diag-agent-dot"></span><span class="diag-agent-name">writer</span></div>
@@ -284,7 +283,7 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
               <div class="diag-gen-bar" style="--tw:50%;--td:0.75s"></div>
               <div class="diag-gen-bar" style="--tw:65%;--td:1.05s"></div>
             </div>
-            <div class="diag-done-tag">✓ done</div>
+            <div class="diag-done-tag">done</div>
           </div>
         </div>
         <svg class="diag-svg diag-svg--up" viewBox="0 0 300 44" fill="none">
@@ -299,7 +298,7 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
           <div class="diag-card diag-card--synth">
             <div class="diag-glow-ring"></div>
             <div class="diag-card-inner">
-              <div class="diag-synth-check">✓</div>
+              <div class="diag-synth-check">OK</div>
               <div class="diag-card-title">APEX</div>
               <div class="diag-card-status"><span class="diag-st">confidence: 0.94 · ready</span></div>
             </div>
@@ -437,21 +436,17 @@ async def main():
 asyncio.run(main())</code></pre>
   </div>
 
-  <div class="callout">
-    <span class="callout-icon">🚀</span>
-    <div>New to v0.3.0? Check the <a href="features.html">Features guide</a> for APEX synthesis, agent spawning, looping, verifier, adaptive budget, branching, self-evolving skills, memory providers, procedural memory, retry policies, observability, and the CLI.</div>
+  <div class="callout">    <div>Check the <a href="features.html">Features index</a> for APEX synthesis, agent spawning, looping, verifier, adaptive budget, branching, self-evolving skills, memory providers, procedural memory, retry policies, observability, and the CLI — one page per feature, each with a "Copy prompt" button.</div>
   </div>
 
-  <div class="callout">
-    <span class="callout-icon">🧠</span>
-    <div>
+  <div class="callout">    <div>
       <strong>How the Self-Improving Loop fits together:</strong> attach a
-      <a href="features.html#verifier">Verifier</a> to <code>LoopConfig</code> and it grades each
+      <a href="guides/verifier.html">Verifier</a> to <code>LoopConfig</code> and it grades each
       iteration instead of a plain boolean — that structured feedback then drives
-      <a href="features.html#adaptive-budget">adaptive early exit</a>,
-      <a href="features.html#branching">branching</a> (pick the best of several candidates), and
-      <a href="features.html#self-evolving-skills">skill distillation</a> on a genuine convergence.
-      <a href="features.html#procedural-memory">Procedural memory</a> persists what the verifier
+      <a href="guides/verifier.html#adaptive-budget">adaptive early exit</a>,
+      <a href="guides/looping.html#branching">branching</a> (pick the best of several candidates), and
+      <a href="guides/skills.html#self-evolving-skills">skill distillation</a> on a genuine convergence.
+      <a href="guides/procedural-memory.html">Procedural memory</a> persists what the verifier
       learned across runs. All five pieces are independent <code>LoopConfig</code> fields — turn on
       only what you need.
     </div>
@@ -706,7 +701,7 @@ async for event in workflow.stream("My topic"):
     elif event.event == EventType.TEXT_DELTA:
         print(event.data["chunk"], end="", flush=True)
     elif event.event == EventType.STEP_DONE:
-        print(f"\n✓ {event.data['node']} done")
+        print(f"\n{event.data['node']} done")
     elif event.event == EventType.DONE:
         print(f"\n\nFinal answer ready")</code></pre>
   </div>
@@ -756,9 +751,7 @@ async for event in orch.stream("..."):
     print(event.to_sse(), end="")</code></pre>
   </div>
 
-  <div class="callout">
-    <span class="callout-icon">💡</span>
-    <div>See the full <a href="features.html">v0.3.0 Features page</a> for detailed docs on APEX, agent spawning, bounded nested spawning, and intelligent tool allocation.</div>
+  <div class="callout">    <div>See the full <a href="guides/apex.html">APEX</a>, <a href="guides/spawning.html">Agent Spawning</a> guides, or the <a href="features.html">Features index</a>, for detailed docs and intelligent tool allocation.</div>
   </div>
 </section>
 
@@ -1090,13 +1083,14 @@ def make_spawn_tool(
 
 <footer>
   <div class="footer-left">
-    Built with ♥ — <strong>deepcrew-ai</strong> v0.3.0 — MIT License
+    Built with <strong>deepcrew-ai</strong> — MIT License
   </div>
   <div class="footer-links">
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
     <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
     <a href="features.html">Features</a>
     <a href="examples.html">Examples</a>
+    <a href="llms.txt">llms.txt</a>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai/blob/main/CHANGELOG.md" target="_blank">Changelog</a>
   </div>
 </footer>
@@ -1106,6 +1100,71 @@ def make_spawn_tool(
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# deepcrew-ai
+
+Multi-agent AI library for Python, built on LiteLLM (100+ providers via one interface).
+
+## Install
+
+```bash
+pip install deepcrew-ai
+# optional extras
+pip install deepcrew-ai[fastapi]   # SSE streaming endpoint
+pip install deepcrew-ai[redis]     # Redis-backed memory
+pip install deepcrew-ai[otel]      # OpenTelemetry tracing
+```
+
+Set the API key env var for whichever provider(s) you use: `OPENAI_API_KEY`,
+`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, etc. The `model` string on each `Agent` determines the
+provider, e.g. `"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, `"ollama/llama3.2"` (local).
+
+## Quick start
+
+```python
+from deepcrew import Agent, run_agent
+
+agent = Agent(name="assistant", model="openai/gpt-4o", system_prompt="You are helpful.")
+result = await run_agent(agent, [{"role": "user", "content": "Hello!"}])
+print(result.text)
+```
+
+## Core building blocks
+
+- **`Agent`** — model, system prompt, tools, memory, hooks, optional `response_model`.
+- **`run_agent()`** — the agentic loop: stream → buffer tool calls → execute in parallel → repeat.
+- **`Orchestrator`** — an LLM router picks a single agent or fans out to several in parallel, then
+  `APEXSynthesizer` merges parallel results with confidence scoring and optional citations.
+- **`WorkflowBuilder`** — an explicit DAG of agents; independent nodes at the same level run in
+  parallel automatically.
+- **`LoopConfig`** — an outer refinement loop: a `Verifier` scores each iteration and drives
+  targeted refinement, with optional adaptive early-stop and self-consistency branching.
+- **Bounded agent spawning** — `Orchestrator(enable_spawn=True)` lets agents dynamically spawn
+  sub-agents mid-run via a `spawn_agent` meta-tool, hard-capped by `max_spawn_depth`.
+- **`MemoryProvider`** — pluggable context store (`InMemoryProvider`, `FileMemoryProvider`,
+  `RedisMemoryProvider`), auto-injected into each LLM call.
+- **MCP tools** — `StdioMCP`, `SSEMCP`, `HTTPMCP`, `MCPManager` for attaching MCP servers.
+- **`StreamEvent`/`StreamPolicy`** — every consequential action streams as an event; `StreamPolicy`
+  controls which event types a given consumer sees (`chat()`, `standard()`, `verbose()`, custom).
+
+## Latest additions
+
+Multimodal input (`image()`, `pdf()`, `user_message()`), selectable streaming visibility
+(`StreamPolicy`), an optional FastAPI SSE integration, structured output (`response_model`),
+human-in-the-loop tool approval (`AgentHooks`), and a Redis memory provider. See the
+[features index](features.html) and [migration guide](guides/migration.html).
+
+## Documentation map
+
+- [Features](features.html) — every feature has its own page: APEX, agent spawning, looping,
+  verifier, procedural memory, skills, memory providers, retry/fallback, observability, CLI,
+  multimodal input, StreamPolicy, FastAPI integration, structured output, human-in-the-loop hooks,
+  and the Redis memory provider. Each page has a "Copy prompt" button for AI-assisted implementation.
+- [Examples](examples.html) — runnable end-to-end scripts and domain walkthroughs.
+- [Migration Guide](guides/migration.html) — coming from CrewAI or Google ADK.
+- [llms.txt](llms.txt) / [llms-full.txt](llms-full.txt) — machine-readable docs index for LLM tools.
+
+</script>
 <script src="assets/js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLI — deepcrew-ai</title>
+  <meta name="description" content="deepcrew run workflow.yaml — declarative workflow execution from the terminal." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Infrastructure</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/cli.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="cli-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Infrastructure</span>
+    <span class="sidebar-page">CLI</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Unknown tool names in YAML fail silently at run time.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="cli" data-section="cli">
+  <div class="section-eyebrow">Infrastructure</div>
+  <h2>CLI — deepcrew run</h2>
+  <p>Run declarative YAML workflow files from the terminal. No Python code required for simple workflows.</p>
+
+  <h3>Installation check</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash">pip install deepcrew-ai
+deepcrew --version
+# deepcrew-ai 0.4.0</code></pre>
+  </div>
+
+  <h3>Write a workflow YAML</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">workflow.yaml</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-yaml">agents:
+  - name: researcher
+    model: openai/gpt-4o-mini
+    system_prompt: Research the topic thoroughly using all available information.
+    tools:
+      - web_search   # built-in skill by name
+
+  - name: analyst
+    model: anthropic/claude-haiku-4-5-20251001
+    system_prompt: Critically analyze the research findings. Identify gaps and strengths.
+
+  - name: writer
+    model: openai/gpt-4o
+    system_prompt: Write a clear, well-structured executive summary report.
+    tools:
+      - summarize   # built-in summarize skill
+
+workflow:
+  - step: research
+    agent: researcher
+    task: "{input}"
+
+  - step: analysis
+    agent: analyst
+    task: |
+      Analyze this research:
+      {research}
+    depends_on:
+      - research
+
+  - step: report
+    agent: writer
+    task: |
+      Write an executive summary based on:
+
+      Research: {research}
+      Analysis: {analysis}
+    depends_on:
+      - research
+      - analysis</code></pre>
+  </div>
+
+  <h3>Run it</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash"># Stream output to terminal
+deepcrew run workflow.yaml --input "The future of autonomous vehicles"
+
+# Non-streaming (prints only final result)
+deepcrew run workflow.yaml --input "Quantum computing in 2026" --no-stream
+
+# List all agents in a config
+deepcrew agents list --config workflow.yaml</code></pre>
+  </div>
+
+  <h3>YAML schema</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">agents[].name<span class="param-required">*</span></div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Agent identifier, referenced in workflow steps.</div></div>
+    <div class="param-row"><div class="param-cell param-name">agents[].model<span class="param-required">*</span></div><div class="param-cell param-type">str</div><div class="param-cell param-desc">LiteLLM model string.</div></div>
+    <div class="param-row"><div class="param-cell param-name">agents[].system_prompt</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Agent's system prompt.</div></div>
+    <div class="param-row"><div class="param-cell param-name">agents[].tools</div><div class="param-cell param-type">list[str]</div><div class="param-cell param-desc">Built-in skill names: <code>web_search</code>, <code>summarize</code>, <code>code_exec</code>. Any name not in that set is silently ignored — it is dropped, not an error, so a typo in a tool name fails silently rather than raising at load time.</div></div>
+    <div class="param-row"><div class="param-cell param-name">agents[].max_turns</div><div class="param-cell param-type">int = 10</div><div class="param-cell param-desc">Max inner loop turns for this agent.</div></div>
+    <div class="param-row"><div class="param-cell param-name">agents[].temperature</div><div class="param-cell param-type">float | null</div><div class="param-cell param-desc">Sampling temperature.</div></div>
+    <div class="param-row"><div class="param-cell param-name">agents[].max_tokens</div><div class="param-cell param-type">int | null</div><div class="param-cell param-desc">Maximum output tokens per LLM call.</div></div>
+    <div class="param-row"><div class="param-cell param-name">workflow[].step<span class="param-required">*</span></div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Step name — used as a variable <code>{step_name}</code> in subsequent task templates.</div></div>
+    <div class="param-row"><div class="param-cell param-name">workflow[].agent<span class="param-required">*</span></div><div class="param-cell param-type">str</div><div class="param-cell param-desc">References an agent by <code>name</code>. Referencing a name not defined in <code>agents:</code> raises a <code>ValueError</code> at load time, before anything runs.</div></div>
+    <div class="param-row"><div class="param-cell param-name">workflow[].task</div><div class="param-cell param-type">str = "{input}"</div><div class="param-cell param-desc">Task template. <code>{input}</code> is the CLI <code>--input</code> value (or the top-level <code>input:</code> YAML field if <code>--input</code> is omitted). <code>{step_name}</code> is the text output of that step.</div></div>
+    <div class="param-row"><div class="param-cell param-name">workflow[].depends_on</div><div class="param-cell param-type">list[str] = []</div><div class="param-cell param-desc">Step names this step depends on. Steps without overlapping dependencies run in parallel.</div></div>
+    <div class="param-row"><div class="param-cell param-name">input</div><div class="param-cell param-type">str | null</div><div class="param-cell param-desc">Top-level fallback for <code>{input}</code> when <code>--input</code> isn't passed on the command line.</div></div>
+    <div class="param-row"><div class="param-cell param-name">router_model</div><div class="param-cell param-type">str = "openai/gpt-4o-mini"</div><div class="param-cell param-desc">Parsed from the YAML but currently <strong>unused</strong> by <code>deepcrew run</code> — the CLI always builds an explicit <code>WorkflowBuilder</code> DAG from your <code>workflow:</code> steps, never an <code>Orchestrator</code>, so there's no router LLM call for this to configure. Setting it has no effect today.</div></div>
+  </div>
+
+  <h3>Supported built-in tool names</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>YAML name</th><th>Skill class</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>web_search</code></td><td><code>WebSearchSkill</code></td><td>DuckDuckGo search</td></tr>
+        <tr><td><code>summarize</code></td><td><code>SummarizeSkill</code></td><td>LLM-backed summarization</td></tr>
+        <tr><td><code>code_exec</code></td><td><code>CodeExecutionSkill</code></td><td>Python subprocess execution</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout--tip">
+    <div>For advanced workflows with custom Python tools, memory providers, or observability, use the Python API directly. The CLI is designed for simple, shareable workflows that don't need custom code — there is no YAML way to attach a custom <code>@tool</code> function, an MCP server, a <code>MemoryProvider</code>, or an <code>ObservabilityConfig</code>; only the three built-in skills above are reachable from YAML.</div>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>Unknown tool names fail silently.</strong> A typo like <code>web_serach</code> in <code>agents[].tools</code> is simply dropped — the agent runs with one fewer tool than you intended, no warning.</li>
+    <li><strong><code>router_model</code> does nothing yet.</strong> The CLI never routes — every workflow you write in YAML is an explicit DAG.</li>
+    <li><strong>Only three skills are reachable from YAML.</strong> There's no config surface for custom tools, MCP servers, memory, or observability — reach for the Python API once you need any of those.</li>
+    <li><strong>A bad agent reference in <code>workflow:</code> fails before any LLM call.</strong> This is a fast, cheap validation error — check your step's <code>agent:</code> field spelling against your <code>agents[].name</code> list first if you see it.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="skills.html">Skills</a> — the three built-in skills reachable from YAML, and how to write your own (Python API only).</li>
+    <li><a href="memory.html">Memory Providers</a> and <a href="observability.html">Observability</a> — both require the Python API; there's no YAML equivalent.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="cli-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "CLI" feature: deepcrew run workflow.yaml — declarative workflow execution from the terminal.
+
+How it works: Author a workflow.yaml describing agents and DAG steps, then run it with `deepcrew run workflow.yaml --input "..."` or inspect it with `deepcrew agents list --config workflow.yaml`.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='CLI') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up CLI for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# CLI
+Run declarative YAML workflow files from the terminal. No Python code required for simple workflows.
+
+### Installation check
+
+```python
+pip install deepcrew-ai
+deepcrew --version
+# deepcrew-ai 0.4.0
+```
+
+### Write a workflow YAML
+
+```python
+agents:
+  - name: researcher
+    model: openai/gpt-4o-mini
+    system_prompt: Research the topic thoroughly using all available information.
+    tools:
+      - web_search   # built-in skill by name
+
+  - name: analyst
+    model: anthropic/claude-haiku-4-5-20251001
+    system_prompt: Critically analyze the research findings. Identify gaps and strengths.
+
+  - name: writer
+    model: openai/gpt-4o
+    system_prompt: Write a clear, well-structured executive summary report.
+    tools:
+      - summarize   # built-in summarize skill
+
+workflow:
+  - step: research
+    agent: researcher
+    task: "{input}"
+
+  - step: analysis
+    agent: analyst
+    task: |
+      Analyze this research:
+      {research}
+    depends_on:
+      - research
+
+  - step: report
+    agent: writer
+    task: |
+      Write an executive summary based on:
+
+      Research: {research}
+      Analysis: {analysis}
+    depends_on:
+      - research
+      - analysis
+```
+
+### Run it
+
+```python
+# Stream output to terminal
+deepcrew run workflow.yaml --input "The future of autonomous vehicles"
+
+# Non-streaming (prints only final result)
+deepcrew run workflow.yaml --input "Quantum computing in 2026" --no-stream
+
+# List all agents in a config
+deepcrew agents list --config workflow.yaml
+```
+
+### YAML schema
+
+- **agents[].name*** (str): Agent identifier, referenced in workflow steps.
+
+- **agents[].model*** (str): LiteLLM model string.
+
+- **agents[].system_prompt** (str): Agent's system prompt.
+
+- **agents[].tools** (list[str]): Built-in skill names: `web_search`, `summarize`, `code_exec`. Any name not in that set is silently ignored — it is dropped, not an error, so a typo in a tool name fails silently rather than raising at load time.
+
+- **agents[].max_turns** (int = 10): Max inner loop turns for this agent.
+
+- **agents[].temperature** (float | null): Sampling temperature.
+
+- **agents[].max_tokens** (int | null): Maximum output tokens per LLM call.
+
+- **workflow[].step*** (str): Step name — used as a variable `{step_name}` in subsequent task templates.
+
+- **workflow[].agent*** (str): References an agent by `name`. Referencing a name not defined in `agents:` raises a `ValueError` at load time, before anything runs.
+
+- **workflow[].task** (str = "{input}"): Task template. `{input}` is the CLI `--input` value (or the top-level `input:` YAML field if `--input` is omitted). `{step_name}` is the text output of that step.
+
+- **workflow[].depends_on** (list[str] = []): Step names this step depends on. Steps without overlapping dependencies run in parallel.
+
+- **input** (str | null): Top-level fallback for `{input}` when `--input` isn't passed on the command line.
+
+- **router_model** (str = "openai/gpt-4o-mini"): Parsed from the YAML but currently unused by `deepcrew run` — the CLI always builds an explicit `WorkflowBuilder` DAG from your `workflow:` steps, never an `Orchestrator`, so there's no router LLM call for this to configure. Setting it has no effect today.
+
+### Supported built-in tool names
+
+      | YAML name | Skill class | Description |
+
+        | `web_search` | `WebSearchSkill` | DuckDuckGo search |
+
+        | `summarize` | `SummarizeSkill` | LLM-backed summarization |
+
+        | `code_exec` | `CodeExecutionSkill` | Python subprocess execution |
+
+> For advanced workflows with custom Python tools, memory providers, or observability, use the Python API directly. The CLI is designed for simple, shareable workflows that don't need custom code — there is no YAML way to attach a custom `@tool` function, an MCP server, a `MemoryProvider`, or an `ObservabilityConfig`; only the three built-in skills above are reachable from YAML.
+
+### Common pitfalls
+
+    - Unknown tool names fail silently. A typo like `web_serach` in `agents[].tools` is simply dropped — the agent runs with one fewer tool than you intended, no warning.
+    - `router_model` does nothing yet. The CLI never routes — every workflow you write in YAML is an explicit DAG.
+    - Only three skills are reachable from YAML. There's no config surface for custom tools, MCP servers, memory, or observability — reach for the Python API once you need any of those.
+    - A bad agent reference in `workflow:` fails before any LLM call. This is a fast, cheap validation error — check your step's `agent:` field spelling against your `agents[].name` list first if you see it.
+
+### See also
+
+    - [Skills](skills.html) — the three built-in skills reachable from YAML, and how to write your own (Python API only).
+    - [Memory Providers](memory.html) and [Observability](observability.html) — both require the Python API; there's no YAML equivalent.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

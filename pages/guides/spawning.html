@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Spawning — deepcrew-ai</title>
+  <meta name="description" content="Agents dynamically spawn sub-agents mid-loop, with bounded nested delegation and smart tool allocation." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Orchestration</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/spawning.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="spawning-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Orchestration</span>
+    <span class="sidebar-page">Agent Spawning</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#nested-spawning"><span class="toc-title">Nested spawning</span><span class="toc-desc">How spawned sub-agents can themselves spawn, bounded by max_spawn_depth.</span></a>
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Depth limits, tool inheritance, and other spawn_agent gotchas.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="spawning" data-section="spawning">
+  <div class="section-eyebrow">Orchestration</div>
+  <h2>Agent Spawning</h2>
+  <p>deepcrew-ai v0.2.0 introduces Claude Code-style dynamic agent spawning. Any running agent can call a built-in <code>spawn_agent</code> tool to create a sub-agent mid-loop, with tools automatically selected from a global pool by the <code>ToolAllocator</code>.</p>
+
+  <h3>How it works</h3>
+  <ol>
+    <li>You provide a <code>global_tools</code> pool to <code>Orchestrator</code></li>
+    <li>With <code>enable_spawn=True</code>, every agent gets a <code>spawn_agent(task, tools, model)</code> tool injected</li>
+    <li>When an agent calls <code>spawn_agent</code>, <code>ToolAllocator</code> uses the router LLM to pick the most relevant tools from the global pool for that specific task</li>
+    <li>A fresh sub-agent is created and runs to completion, its result returned to the parent</li>
+    <li>A <code>SPAWN_AGENT</code> stream event is emitted for observability</li>
+  </ol>
+
+  <h3>Enable spawning via Orchestrator</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">spawning_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, Orchestrator, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web."
+    ...
+
+@tool
+def read_file(path: str) -> str:
+    "Read a local file."
+    ...
+
+@tool
+def run_sql(query: str) -> list[dict]:
+    "Execute a SQL query."
+    ...
+
+@tool
+def call_api(url: str, method: str = "GET") -> dict:
+    "Make an HTTP API call."
+    ...
+
+master = Agent(
+    name="coordinator",
+    model="openai/gpt-4o",
+    system_prompt="""You are a coordinator agent. For complex subtasks,
+    use the spawn_agent tool to delegate to a specialized sub-agent.""",
+)
+
+orch = Orchestrator(
+    agents=[master],
+    router_model="openai/gpt-4o-mini",
+    apex_model="openai/gpt-4o",
+    global_tools=[search_web, read_file, run_sql, call_api],  # pool
+    enable_spawn=True,   # injects spawn_agent tool into master
+)
+
+result = await orch.run(
+    "Research the top 3 AI papers from last month and summarize key findings."
+)
+print(result.final_text)</code></pre>
+  </div>
+
+  <h3>Standalone spawning</h3>
+  <p>Calling <code>spawn_agent()</code> directly bypasses <code>Orchestrator</code> entirely — useful if you're building your own custom control flow. It needs a pool of <code>ToolDef</code> objects (not raw <code>@tool</code>-decorated functions), so convert with <code>fn_to_tool_def()</code> first:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import asyncio
+from deepcrew import spawn_agent, SpawnRequest, fn_to_tool_def
+
+all_tool_defs = [fn_to_tool_def(search_web), fn_to_tool_def(read_file)]
+
+request = SpawnRequest(
+    task="Find all Python files that import pandas and list their names.",
+    tools=["read_file", "search_web"],   # hint: names from the pool above
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a code analysis assistant.",
+    max_turns=5,
+)
+
+queue: asyncio.Queue = asyncio.Queue()
+
+result = await spawn_agent(
+    request=request,
+    all_tool_defs=all_tool_defs,
+    parent_queue=queue,             # None is fine if you don't need SPAWN_AGENT events
+    router_model="openai/gpt-4o-mini",
+    parent_agent_id="coordinator",
+    max_depth=2,                    # default; see "Bounded nested spawning" below
+)
+
+print(result.text)</code></pre>
+  </div>
+  <p>Note that <code>request.tools</code> is only a <em>hint</em>: <code>spawn_agent()</code> always runs the full <code>ToolAllocator</code> pass first (see below), then intersects the allocator's picks with your hinted names if you gave any — it never trusts the hint blindly, and falls back to the allocator's full selection if the intersection is empty.</p>
+
+  <h3>ToolAllocator</h3>
+  <p>This is the piece that decides which tools a spawned sub-agent actually gets — an LLM call, not a keyword match, so tool <em>descriptions</em> matter as much as names.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import ToolAllocator
+
+allocator = ToolAllocator(router_model="openai/gpt-4o-mini")
+
+# Given a task description and a large pool of tools,
+# returns only the most relevant subset (up to max_tools)
+relevant_tools = await allocator.allocate(
+    task="Analyze sentiment in customer reviews and generate a report",
+    all_tools=my_tool_defs,   # list[ToolDef] — could be dozens of tools
+    max_tools=5,              # default is 10 if you omit this
+)
+
+print([t.name for t in relevant_tools])</code></pre>
+  </div>
+  <div class="callout">
+    <div>The allocator prompts the router model with each tool's <code>name</code> and <code>description</code> and asks for a JSON array of names back. It accepts either a bare array or an object wrapping one array value (some models prefer <code>{"tools": [...]}</code> over a bare array). If the response fails to parse as JSON at all, or the router call itself raises, <code>allocate()</code> degrades gracefully to returning the first <code>max_tools</code> tools from the pool <em>in whatever order you passed them in</em> — not a random or relevance-based subset. A good tool description dramatically improves allocation accuracy in the common case, and also matters for what you get in that fallback case, since pool order is your responsibility.</div>
+  </div>
+
+  <h3>SpawnRequest reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">task<span class="param-required">*</span></div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Natural language description of the sub-task. Used both for tool allocation and as the sub-agent's first user message — the sub-agent never sees the parent's conversation history, only this string.</div></div>
+    <div class="param-row"><div class="param-cell param-name">tools</div><div class="param-cell param-type">list[str] = []</div><div class="param-cell param-desc">Optional hint: tool names the parent agent thinks the sub-agent should have. <code>ToolAllocator</code> still runs first and makes the real decision; this hint only filters its output (see "Standalone spawning" above).</div></div>
+    <div class="param-row"><div class="param-cell param-name">model</div><div class="param-cell param-type">str | None = None</div><div class="param-cell param-desc">Model string for the sub-agent. Falls back to <code>router_model</code> if omitted — <strong>not</strong> the parent agent's model, despite that being the more intuitive default.</div></div>
+    <div class="param-row"><div class="param-cell param-name">system_prompt</div><div class="param-cell param-type">str | None = None</div><div class="param-cell param-desc">Optional system prompt override for the sub-agent. Defaults to a generic <code>"You are a helpful sub-agent. Complete the given task."</code> when omitted.</div></div>
+    <div class="param-row"><div class="param-cell param-name">max_turns</div><div class="param-cell param-type">int = 5</div><div class="param-cell param-desc">Max tool-call cycles for the sub-agent — independent of and typically smaller than the parent's own <code>max_turns</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">depth</div><div class="param-cell param-type">int = 0</div><div class="param-cell param-desc">Nesting depth this spawn happens at. Set automatically by the <code>spawn_agent</code> tool wrapper (<code>make_spawn_tool</code>) when the LLM calls it; you only need to set this yourself when calling <code>spawn_agent()</code> from inside your own already-nested custom logic.</div></div>
+  </div>
+
+  <span class="anchor" id="nested-spawning"></span>
+  <h3>How-to: bounded nested spawning</h3>
+  <p>A spawned sub-agent can itself spawn further sub-agents — useful when a delegated sub-task is still too large to handle directly. This is strictly <strong>depth</strong>-bounded, never sibling/fan-out-bounded: each level can still spawn as many sub-agents as it wants, but nesting depth is capped by <code>max_spawn_depth</code>. Below that hard cap, an optional <code>spawn_complexity_check</code> gate can skip attaching a nested spawn tool when the sub-task doesn't look worth decomposing further.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">nested_spawning.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, Orchestrator, Verifier
+
+orch = Orchestrator(
+    agents=[master_agent],
+    global_tools=[search_web, read_file],
+    enable_spawn=True,
+    max_spawn_depth=3,                    # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),     # optional: skip nesting for simple sub-tasks
+)</code></pre>
+  </div>
+  <p>When a sub-agent tries to spawn beyond <code>max_spawn_depth</code>, it simply has no <code>spawn_agent</code> tool available — nothing to invoke, so it completes the task directly instead. A defense-in-depth check inside the tool itself also returns <code>"Maximum nesting depth reached; complete this task directly without further delegation."</code> as a plain string result for any caller that bypasses the normal attach logic — never an exception.</p>
+  <p><code>spawn_complexity_check</code> takes any <code>Verifier</code> instance and calls its <code>assess_complexity(task, default_model=...)</code> method — a lightweight, separate LLM judgment ("does this task genuinely need decomposing, or can one agent handle it directly?") distinct from the answer-grading <code>evaluate()</code> method the same class exposes for the <a href="verifier.html">Verifier</a> feature. If you pass a <code>Verifier</code> constructed with <code>evaluate_fn</code> (a custom grading callback), <code>assess_complexity</code> has no notion of pre-execution complexity and always stays permissive — it returns <code>True</code> unconditionally rather than trying to call your custom function for a purpose it wasn't written for.</p>
+
+  <h3>Manual wiring with <code>make_spawn_tool</code></h3>
+  <p><code>Orchestrator(enable_spawn=True)</code> is a convenience wrapper — internally, it calls <code>make_spawn_tool()</code> once per orchestration to build the actual <code>ToolDef</code> that gets injected into each agent's tool list. Call it yourself if you're wiring spawning into an <code>Agent</code> you're running with <code>run_agent()</code> directly, outside of <code>Orchestrator</code> altogether:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, make_spawn_tool, fn_to_tool_def
+
+pool = [fn_to_tool_def(search_web), fn_to_tool_def(read_file)]
+
+spawn_tool = make_spawn_tool(
+    all_tool_defs=pool,
+    parent_queue=None,
+    router_model="openai/gpt-4o-mini",
+    parent_agent_id="solo-agent",
+    current_depth=0,
+    max_depth=2,
+)
+
+agent = Agent(
+    name="solo-agent",
+    model="openai/gpt-4o",
+    tools=[],
+    # ToolDef instances aren't plain @tool functions, so they don't go in `tools=` —
+    # merge them into tool_defs when you call run_agent() instead:
+)
+result = await run_agent(agent, [{"role": "user", "content": "..."}], tool_defs=[spawn_tool])</code></pre>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>Sub-agents never see multimodal attachments.</strong> If the parent agent received images/PDFs via <a href="multimodal.html">multimodal input</a>, a spawned sub-agent gets none of them automatically — describe what's relevant directly in the <code>task</code> string.</li>
+    <li><strong><code>SpawnRequest.model</code> defaults to <code>router_model</code>, not the parent's model.</strong> If you want the sub-agent on the same model as its parent, pass it explicitly.</li>
+    <li><strong>Depth is a hard ceiling, fan-out is not.</strong> <code>max_spawn_depth</code> only bounds how many levels deep delegation can go — it does nothing to limit how many sibling sub-agents one level spawns, which is a separate cost/runaway concern you may need to bound yourself (e.g. via your own tool-call counting or a stricter <code>max_turns</code>).</li>
+    <li><strong><code>ToolAllocator</code>'s failure mode is silent.</strong> A malformed JSON response or a router-call exception both fall back to "first <code>max_tools</code> tools in pool order," not an error — if allocation looks wrong, check whether the router is actually returning parseable JSON before assuming your tool descriptions are the problem.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="apex.html">APEX Synthesizer</a> — merges results when the router fans out to multiple top-level agents; spawning is delegation <em>within</em> one agent's turn.</li>
+    <li><a href="verifier.html">Verifier</a> — the same class that grades loop iterations also powers <code>spawn_complexity_check</code>.</li>
+    <li><a href="multimodal.html">Multimodal Input</a> — attachments and spawning interact; see the pitfall above.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="spawning-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Agent Spawning" feature: Agents dynamically spawn sub-agents mid-loop, with bounded nested delegation and smart tool allocation.
+
+How it works: Enable Orchestrator(enable_spawn=True, max_spawn_depth=...) so agents can call a spawn_agent meta-tool to delegate sub-tasks to fresh agents, bounded by a hard depth cap.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Agent Spawning') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Agent Spawning for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Agent Spawning
+deepcrew-ai v0.2.0 introduces Claude Code-style dynamic agent spawning. Any running agent can call a built-in `spawn_agent` tool to create a sub-agent mid-loop, with tools automatically selected from a global pool by the `ToolAllocator`.
+
+### How it works
+
+    - You provide a `global_tools` pool to `Orchestrator`
+    - With `enable_spawn=True`, every agent gets a `spawn_agent(task, tools, model)` tool injected
+    - When an agent calls `spawn_agent`, `ToolAllocator` uses the router LLM to pick the most relevant tools from the global pool for that specific task
+    - A fresh sub-agent is created and runs to completion, its result returned to the parent
+    - A `SPAWN_AGENT` stream event is emitted for observability
+
+### Enable spawning via Orchestrator
+
+```python
+from deepcrew import Agent, Orchestrator, tool
+
+@tool
+def search_web(query: str) -> str:
+    "Search the web."
+    ...
+
+@tool
+def read_file(path: str) -> str:
+    "Read a local file."
+    ...
+
+@tool
+def run_sql(query: str) -> list[dict]:
+    "Execute a SQL query."
+    ...
+
+@tool
+def call_api(url: str, method: str = "GET") -> dict:
+    "Make an HTTP API call."
+    ...
+
+master = Agent(
+    name="coordinator",
+    model="openai/gpt-4o",
+    system_prompt="""You are a coordinator agent. For complex subtasks,
+    use the spawn_agent tool to delegate to a specialized sub-agent.""",
+)
+
+orch = Orchestrator(
+    agents=[master],
+    router_model="openai/gpt-4o-mini",
+    apex_model="openai/gpt-4o",
+    global_tools=[search_web, read_file, run_sql, call_api],  # pool
+    enable_spawn=True,   # injects spawn_agent tool into master
+)
+
+result = await orch.run(
+    "Research the top 3 AI papers from last month and summarize key findings."
+)
+print(result.final_text)
+```
+
+### Standalone spawning
+
+Calling `spawn_agent()` directly bypasses `Orchestrator` entirely — useful if you're building your own custom control flow. It needs a pool of `ToolDef` objects (not raw `@tool`-decorated functions), so convert with `fn_to_tool_def()` first:
+
+```python
+import asyncio
+from deepcrew import spawn_agent, SpawnRequest, fn_to_tool_def
+
+all_tool_defs = [fn_to_tool_def(search_web), fn_to_tool_def(read_file)]
+
+request = SpawnRequest(
+    task="Find all Python files that import pandas and list their names.",
+    tools=["read_file", "search_web"],   # hint: names from the pool above
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a code analysis assistant.",
+    max_turns=5,
+)
+
+queue: asyncio.Queue = asyncio.Queue()
+
+result = await spawn_agent(
+    request=request,
+    all_tool_defs=all_tool_defs,
+    parent_queue=queue,             # None is fine if you don't need SPAWN_AGENT events
+    router_model="openai/gpt-4o-mini",
+    parent_agent_id="coordinator",
+    max_depth=2,                    # default; see "Bounded nested spawning" below
+)
+
+print(result.text)
+```
+
+Note that `request.tools` is only a hint: `spawn_agent()` always runs the full `ToolAllocator` pass first (see below), then intersects the allocator's picks with your hinted names if you gave any — it never trusts the hint blindly, and falls back to the allocator's full selection if the intersection is empty.
+
+### ToolAllocator
+
+This is the piece that decides which tools a spawned sub-agent actually gets — an LLM call, not a keyword match, so tool descriptions matter as much as names.
+
+```python
+from deepcrew import ToolAllocator
+
+allocator = ToolAllocator(router_model="openai/gpt-4o-mini")
+
+# Given a task description and a large pool of tools,
+# returns only the most relevant subset (up to max_tools)
+relevant_tools = await allocator.allocate(
+    task="Analyze sentiment in customer reviews and generate a report",
+    all_tools=my_tool_defs,   # list[ToolDef] — could be dozens of tools
+    max_tools=5,              # default is 10 if you omit this
+)
+
+print([t.name for t in relevant_tools])
+```
+
+> The allocator prompts the router model with each tool's `name` and `description` and asks for a JSON array of names back. It accepts either a bare array or an object wrapping one array value (some models prefer `{"tools": [...]}` over a bare array). If the response fails to parse as JSON at all, or the router call itself raises, `allocate()` degrades gracefully to returning the first `max_tools` tools from the pool in whatever order you passed them in — not a random or relevance-based subset. A good tool description dramatically improves allocation accuracy in the common case, and also matters for what you get in that fallback case, since pool order is your responsibility.
+
+### SpawnRequest reference
+
+- **task*** (str): Natural language description of the sub-task. Used both for tool allocation and as the sub-agent's first user message — the sub-agent never sees the parent's conversation history, only this string.
+
+- **tools** (list[str] = []): Optional hint: tool names the parent agent thinks the sub-agent should have. `ToolAllocator` still runs first and makes the real decision; this hint only filters its output (see "Standalone spawning" above).
+
+- **model** (str | None = None): Model string for the sub-agent. Falls back to `router_model` if omitted — not the parent agent's model, despite that being the more intuitive default.
+
+- **system_prompt** (str | None = None): Optional system prompt override for the sub-agent. Defaults to a generic `"You are a helpful sub-agent. Complete the given task."` when omitted.
+
+- **max_turns** (int = 5): Max tool-call cycles for the sub-agent — independent of and typically smaller than the parent's own `max_turns`.
+
+- **depth** (int = 0): Nesting depth this spawn happens at. Set automatically by the `spawn_agent` tool wrapper (`make_spawn_tool`) when the LLM calls it; you only need to set this yourself when calling `spawn_agent()` from inside your own already-nested custom logic.
+
+### How-to: bounded nested spawning
+
+A spawned sub-agent can itself spawn further sub-agents — useful when a delegated sub-task is still too large to handle directly. This is strictly depth-bounded, never sibling/fan-out-bounded: each level can still spawn as many sub-agents as it wants, but nesting depth is capped by `max_spawn_depth`. Below that hard cap, an optional `spawn_complexity_check` gate can skip attaching a nested spawn tool when the sub-task doesn't look worth decomposing further.
+
+```python
+from deepcrew import Agent, Orchestrator, Verifier
+
+orch = Orchestrator(
+    agents=[master_agent],
+    global_tools=[search_web, read_file],
+    enable_spawn=True,
+    max_spawn_depth=3,                    # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),     # optional: skip nesting for simple sub-tasks
+)
+```
+
+When a sub-agent tries to spawn beyond `max_spawn_depth`, it simply has no `spawn_agent` tool available — nothing to invoke, so it completes the task directly instead. A defense-in-depth check inside the tool itself also returns `"Maximum nesting depth reached; complete this task directly without further delegation."` as a plain string result for any caller that bypasses the normal attach logic — never an exception.
+
+`spawn_complexity_check` takes any `Verifier` instance and calls its `assess_complexity(task, default_model=...)` method — a lightweight, separate LLM judgment ("does this task genuinely need decomposing, or can one agent handle it directly?") distinct from the answer-grading `evaluate()` method the same class exposes for the [Verifier](verifier.html) feature. If you pass a `Verifier` constructed with `evaluate_fn` (a custom grading callback), `assess_complexity` has no notion of pre-execution complexity and always stays permissive — it returns `True` unconditionally rather than trying to call your custom function for a purpose it wasn't written for.
+
+### Manual wiring with `make_spawn_tool`
+
+`Orchestrator(enable_spawn=True)` is a convenience wrapper — internally, it calls `make_spawn_tool()` once per orchestration to build the actual `ToolDef` that gets injected into each agent's tool list. Call it yourself if you're wiring spawning into an `Agent` you're running with `run_agent()` directly, outside of `Orchestrator` altogether:
+
+```python
+from deepcrew import Agent, run_agent, make_spawn_tool, fn_to_tool_def
+
+pool = [fn_to_tool_def(search_web), fn_to_tool_def(read_file)]
+
+spawn_tool = make_spawn_tool(
+    all_tool_defs=pool,
+    parent_queue=None,
+    router_model="openai/gpt-4o-mini",
+    parent_agent_id="solo-agent",
+    current_depth=0,
+    max_depth=2,
+)
+
+agent = Agent(
+    name="solo-agent",
+    model="openai/gpt-4o",
+    tools=[],
+    # ToolDef instances aren't plain @tool functions, so they don't go in `tools=` —
+    # merge them into tool_defs when you call run_agent() instead:
+)
+result = await run_agent(agent, [{"role": "user", "content": "..."}], tool_defs=[spawn_tool])
+```
+
+### Common pitfalls
+
+    - Sub-agents never see multimodal attachments. If the parent agent received images/PDFs via [multimodal input](multimodal.html), a spawned sub-agent gets none of them automatically — describe what's relevant directly in the `task` string.
+    - `SpawnRequest.model` defaults to `router_model`, not the parent's model. If you want the sub-agent on the same model as its parent, pass it explicitly.
+    - Depth is a hard ceiling, fan-out is not. `max_spawn_depth` only bounds how many levels deep delegation can go — it does nothing to limit how many sibling sub-agents one level spawns, which is a separate cost/runaway concern you may need to bound yourself (e.g. via your own tool-call counting or a stricter `max_turns`).
+    - `ToolAllocator`'s failure mode is silent. A malformed JSON response or a router-call exception both fall back to "first `max_tools` tools in pool order," not an error — if allocation looks wrong, check whether the router is actually returning parseable JSON before assuming your tool descriptions are the problem.
+
+### See also
+
+    - [APEX Synthesizer](apex.html) — merges results when the router fans out to multiple top-level agents; spawning is delegation within one agent's turn.
+    - [Verifier](verifier.html) — the same class that grades loop iterations also powers `spawn_complexity_check`.
+    - [Multimodal Input](multimodal.html) — attachments and spawning interact; see the pitfall above.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

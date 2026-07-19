@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Providers — deepcrew-ai</title>
+  <meta name="description" content="Pluggable context stores — InMemory, File, and Redis-backed — auto-injected into each LLM call." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Memory</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/memory.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="memory-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Memory</span>
+    <span class="sidebar-page">Memory Providers</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Custom providers, event timing, and the search() return shape.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="memory" data-section="memory">
+  <div class="section-eyebrow">Infrastructure</div>
+  <h2>Memory Providers</h2>
+  <p>Memory providers let agents maintain context across turns, runs, and even restarts. They auto-inject into the LLM call (relevant memories added as a system message), and auto-store tool results for future retrieval.</p>
+
+  <h3>InMemoryProvider — short-term context</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">memory_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent, InMemoryProvider
+
+memory = InMemoryProvider()
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a helpful assistant with memory.",
+    memory=memory,
+)
+
+# First interaction
+result1 = await run_agent(agent, [
+    {"role": "user", "content": "My name is Alice and I'm building a Python library."}
+])
+
+# Memory automatically stores tool results and LLM context
+# Second interaction — agent will remember Alice's project
+result2 = await run_agent(agent, [
+    {"role": "user", "content": "What was my project about again?"}
+])</code></pre>
+  </div>
+
+  <h3>FileMemoryProvider — persistent context</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from pathlib import Path
+from deepcrew import Agent, run_agent, FileMemoryProvider
+
+# Persists across process restarts
+memory = FileMemoryProvider(Path.home() / ".deepcrew" / "my_agent_memory.json")
+
+agent = Agent(
+    name="persistent_bot",
+    model="openai/gpt-4o-mini",
+    memory=memory,
+)
+
+# All tool results are atomically written to the JSON file
+# On next startup, memories are loaded and injected into context</code></pre>
+  </div>
+
+  <h3>Custom MemoryProvider</h3>
+  <p>Need something InMemory/File/Redis don't cover — SQLite, a vector database, an external key-value service? Subclass <code>MemoryProvider</code> directly. The one detail every implementer gets wrong at least once: <code>search()</code> must return <code>(key, value)</code> tuples, not just values — every built-in provider's <code>render</code>/injection logic depends on having the key available too.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import sqlite3
+from deepcrew.memory.base import MemoryProvider
+
+class SQLiteMemoryProvider(MemoryProvider):
+    """Simple SQLite-backed memory — one row per key, LIKE-based search."""
+
+    def __init__(self, path: str) -> None:
+        self._conn = sqlite3.connect(path)
+        self._conn.execute("CREATE TABLE IF NOT EXISTS memory (key TEXT PRIMARY KEY, value TEXT)")
+        self._conn.commit()
+
+    async def store(self, key: str, value: str) -> None:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, value)
+        )
+        self._conn.commit()
+
+    async def retrieve(self, key: str) -> str | None:
+        row = self._conn.execute("SELECT value FROM memory WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]:
+        rows = self._conn.execute(
+            "SELECT key, value FROM memory WHERE key LIKE ? OR value LIKE ? "
+            "ORDER BY key LIMIT ?",
+            (f"%{query}%", f"%{query}%", top_k),
+        ).fetchall()
+        return [(k, v) for k, v in rows]
+
+    async def clear(self) -> None:
+        self._conn.execute("DELETE FROM memory")
+        self._conn.commit()
+
+agent = Agent("persistent", model="openai/gpt-4o", memory=SQLiteMemoryProvider("agent.db"))</code></pre>
+  </div>
+  <p>This example is deliberately synchronous under the hood (plain <code>sqlite3</code>, no <code>await</code> inside the query calls) — fine for a single-process CLI tool, but it will block the event loop under real concurrent load. For a multi-process or high-concurrency deployment, use <a href="redis-memory.html">RedisMemoryProvider</a> instead, or wrap blocking calls in <code>asyncio.to_thread()</code>.</p>
+
+  <h3>Memory events</h3>
+  <p><code>run_agent()</code> is not an async generator — you cannot <code>async for</code> over it directly. If you pass a <code>queue</code>, events land in it as they occur, but a bare <code>run_agent()</code> call does <strong>not</strong> put a terminating <code>None</code> sentinel on that queue when it finishes (only <code>Orchestrator</code>/<code>WorkflowBuilder</code>'s own internal queues self-terminate that way). The straightforward pattern is to drain whatever's already in the queue once the call returns:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import asyncio
+from deepcrew import Agent, run_agent
+from deepcrew.types import EventType
+
+queue: asyncio.Queue = asyncio.Queue()
+result = await run_agent(agent, messages, queue=queue)
+
+while not queue.empty():
+    event = await queue.get()
+    if event.event == EventType.MEMORY_RETRIEVE:
+        print(f"Injected {event.data['count']} memories into context")
+    elif event.event == EventType.MEMORY_STORE:
+        print(f"Stored tool result to memory: {event.data['key']}")</code></pre>
+  </div>
+
+  <h3>MemoryProvider ABC</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span></div>
+    <pre><code class="language-python">class MemoryProvider(ABC):
+    @abstractmethod
+    async def store(self, key: str, value: str) -> None: ...
+    @abstractmethod
+    async def retrieve(self, key: str) -> str | None: ...
+    @abstractmethod
+    async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]: ...
+    @abstractmethod
+    async def clear(self) -> None: ...</code></pre>
+  </div>
+  <p>All three built-in providers (<code>InMemoryProvider</code>, <code>FileMemoryProvider</code>, <code>RedisMemoryProvider</code>) implement <code>search()</code> identically: a case-insensitive substring match on either the key or the value, sorted by key, truncated to <code>top_k</code>. This is not semantic search — a query like <code>"CRISPR gene editing"</code> will not match a stored value about <code>"Cas9 mechanism"</code> unless the substring itself literally overlaps. If you need embedding-based retrieval, that's a natural fit for a custom <code>MemoryProvider</code> like the SQLite example above, backed by a vector index instead of a LIKE query.</p>
+
+  <h3>Procedural memory (evolving playbook)</h3>
+  <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, built on top of any <code>MemoryProvider</code>. See the full <a href="procedural-memory.html">Procedural Memory feature guide</a> for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.</p>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong><code>run_agent()</code> is not an async generator.</strong> Pass a <code>queue</code> and drain it manually — see "Memory events" above. Only <code>Orchestrator.stream()</code> and <code>WorkflowBuilder.stream()</code> return true async generators.</li>
+    <li><strong>Search is substring matching, not semantic search.</strong> All three built-in providers share the same naive case-insensitive substring algorithm — don't expect it to find conceptually related but textually different content.</li>
+    <li><strong><code>FileMemoryProvider</code> reads the file lazily and caches it in memory.</strong> If another process modifies the same JSON file concurrently, your provider instance won't see those changes until it's recreated — there's no file-watching or cross-process invalidation.</li>
+    <li><strong>Memory injection only looks at the last 3 messages.</strong> <code>run_agent()</code> builds its search query from the text of the final 3 messages in the conversation you pass it, not the full history — very early context won't influence what gets retrieved.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="redis-memory.html">Redis Memory Provider</a> — a persistent, shared, multi-process-safe option built into the library.</li>
+    <li><a href="procedural-memory.html">Procedural Memory</a> — a structured playbook layered on top of any provider here.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="memory-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Memory Providers" feature: Pluggable context stores — InMemory, File, and Redis-backed — auto-injected into each LLM call.
+
+How it works: Attach a MemoryProvider (InMemoryProvider, FileMemoryProvider, or RedisMemoryProvider) to Agent(memory=...) so relevant past context is retrieved and injected before each run, and tool results are stored automatically.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Memory Providers') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Memory Providers for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Memory Providers
+Memory providers let agents maintain context across turns, runs, and even restarts. They auto-inject into the LLM call (relevant memories added as a system message), and auto-store tool results for future retrieval.
+
+### InMemoryProvider — short-term context
+
+```python
+from deepcrew import Agent, run_agent, InMemoryProvider
+
+memory = InMemoryProvider()
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a helpful assistant with memory.",
+    memory=memory,
+)
+
+# First interaction
+result1 = await run_agent(agent, [
+    {"role": "user", "content": "My name is Alice and I'm building a Python library."}
+])
+
+# Memory automatically stores tool results and LLM context
+# Second interaction — agent will remember Alice's project
+result2 = await run_agent(agent, [
+    {"role": "user", "content": "What was my project about again?"}
+])
+```
+
+### FileMemoryProvider — persistent context
+
+```python
+from pathlib import Path
+from deepcrew import Agent, run_agent, FileMemoryProvider
+
+# Persists across process restarts
+memory = FileMemoryProvider(Path.home() / ".deepcrew" / "my_agent_memory.json")
+
+agent = Agent(
+    name="persistent_bot",
+    model="openai/gpt-4o-mini",
+    memory=memory,
+)
+
+# All tool results are atomically written to the JSON file
+# On next startup, memories are loaded and injected into context
+```
+
+### Custom MemoryProvider
+
+Need something InMemory/File/Redis don't cover — SQLite, a vector database, an external key-value service? Subclass `MemoryProvider` directly. The one detail every implementer gets wrong at least once: `search()` must return `(key, value)` tuples, not just values — every built-in provider's `render`/injection logic depends on having the key available too.
+
+```python
+import sqlite3
+from deepcrew.memory.base import MemoryProvider
+
+class SQLiteMemoryProvider(MemoryProvider):
+    """Simple SQLite-backed memory — one row per key, LIKE-based search."""
+
+    def __init__(self, path: str) -> None:
+        self._conn = sqlite3.connect(path)
+        self._conn.execute("CREATE TABLE IF NOT EXISTS memory (key TEXT PRIMARY KEY, value TEXT)")
+        self._conn.commit()
+
+    async def store(self, key: str, value: str) -> None:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, value)
+        )
+        self._conn.commit()
+
+    async def retrieve(self, key: str) -> str | None:
+        row = self._conn.execute("SELECT value FROM memory WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]:
+        rows = self._conn.execute(
+            "SELECT key, value FROM memory WHERE key LIKE ? OR value LIKE ? "
+            "ORDER BY key LIMIT ?",
+            (f"%{query}%", f"%{query}%", top_k),
+        ).fetchall()
+        return [(k, v) for k, v in rows]
+
+    async def clear(self) -> None:
+        self._conn.execute("DELETE FROM memory")
+        self._conn.commit()
+
+agent = Agent("persistent", model="openai/gpt-4o", memory=SQLiteMemoryProvider("agent.db"))
+```
+
+This example is deliberately synchronous under the hood (plain `sqlite3`, no `await` inside the query calls) — fine for a single-process CLI tool, but it will block the event loop under real concurrent load. For a multi-process or high-concurrency deployment, use [RedisMemoryProvider](redis-memory.html) instead, or wrap blocking calls in `asyncio.to_thread()`.
+
+### Memory events
+
+`run_agent()` is not an async generator — you cannot `async for` over it directly. If you pass a `queue`, events land in it as they occur, but a bare `run_agent()` call does not put a terminating `None` sentinel on that queue when it finishes (only `Orchestrator`/`WorkflowBuilder`'s own internal queues self-terminate that way). The straightforward pattern is to drain whatever's already in the queue once the call returns:
+
+```python
+import asyncio
+from deepcrew import Agent, run_agent
+from deepcrew.types import EventType
+
+queue: asyncio.Queue = asyncio.Queue()
+result = await run_agent(agent, messages, queue=queue)
+
+while not queue.empty():
+    event = await queue.get()
+    if event.event == EventType.MEMORY_RETRIEVE:
+        print(f"Injected {event.data['count']} memories into context")
+    elif event.event == EventType.MEMORY_STORE:
+        print(f"Stored tool result to memory: {event.data['key']}")
+```
+
+### MemoryProvider ABC
+
+```python
+class MemoryProvider(ABC):
+    @abstractmethod
+    async def store(self, key: str, value: str) -> None: ...
+    @abstractmethod
+    async def retrieve(self, key: str) -> str | None: ...
+    @abstractmethod
+    async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]: ...
+    @abstractmethod
+    async def clear(self) -> None: ...
+```
+
+All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) implement `search()` identically: a case-insensitive substring match on either the key or the value, sorted by key, truncated to `top_k`. This is not semantic search — a query like `"CRISPR gene editing"` will not match a stored value about `"Cas9 mechanism"` unless the substring itself literally overlaps. If you need embedding-based retrieval, that's a natural fit for a custom `MemoryProvider` like the SQLite example above, backed by a vector index instead of a LIKE query.
+
+### Procedural memory (evolving playbook)
+
+`ProceduralMemory` is an opt-in, durable "the system learns from its own past runs" store, built on top of any `MemoryProvider`. See the full [Procedural Memory feature guide](procedural-memory.html) for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.
+
+### Common pitfalls
+
+    - `run_agent()` is not an async generator. Pass a `queue` and drain it manually — see "Memory events" above. Only `Orchestrator.stream()` and `WorkflowBuilder.stream()` return true async generators.
+    - Search is substring matching, not semantic search. All three built-in providers share the same naive case-insensitive substring algorithm — don't expect it to find conceptually related but textually different content.
+    - `FileMemoryProvider` reads the file lazily and caches it in memory. If another process modifies the same JSON file concurrently, your provider instance won't see those changes until it's recreated — there's no file-watching or cross-process invalidation.
+    - Memory injection only looks at the last 3 messages. `run_agent()` builds its search query from the text of the final 3 messages in the conversation you pass it, not the full history — very early context won't influence what gets retrieved.
+
+### See also
+
+    - [Redis Memory Provider](redis-memory.html) — a persistent, shared, multi-process-safe option built into the library.
+    - [Procedural Memory](procedural-memory.html) — a structured playbook layered on top of any provider here.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

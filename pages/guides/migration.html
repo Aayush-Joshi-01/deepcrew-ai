@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migration Guide — deepcrew-ai</title>
+  <meta name="description" content="Migrate to deepcrew-ai from CrewAI or Google ADK: a concept map plus what deepcrew adds — true streaming visibility, self-improving loops, bounded spawning, and skill distillation." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">v0.4.0</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/migration.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Migration</span>
+    <a class="sidebar-link active" data-target="crewai">From CrewAI</a>
+    <a class="sidebar-link" data-target="adk">From Google ADK</a>
+    <a class="sidebar-link" data-target="what-deepcrew-adds">What deepcrew adds</a>
+  </div>
+</aside>
+
+<main>
+  <section class="hero hero--compact">
+    <div class="hero-eyebrow">Guide</div>
+    <h1>Migrating to deepcrew-ai</h1>
+    <p>A concept map for teams coming from CrewAI or Google's Agent Development Kit (ADK), plus what deepcrew adds once you're here.</p>
+  </section>
+
+<section class="section" id="crewai" data-section="crewai">
+  <div class="section-eyebrow">Migration</div>
+  <h2>From CrewAI</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CrewAI concept</th><th>deepcrew equivalent</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>Agent(role=, goal=, backstory=)</code></td><td><code>Agent(name=, system_prompt=)</code></td><td>Fold role/goal/backstory into one system prompt.</td></tr>
+        <tr><td><code>Crew(process=Process.sequential)</code></td><td><code>WorkflowBuilder().add_agent(...).then(...)</code></td><td>Explicit DAG edges instead of implicit list order.</td></tr>
+        <tr><td><code>Crew(process=Process.hierarchical)</code></td><td><code>Orchestrator(agents=[...])</code></td><td>An LLM router picks single-agent or parallel fan-out.</td></tr>
+        <tr><td><code>@tool</code> / <code>BaseTool</code></td><td><code>@tool</code> on a plain function</td><td>Schema auto-generated from type hints.</td></tr>
+        <tr><td><code>output_pydantic=Model</code></td><td><code>response_model=Model</code></td><td>Result lands on <code>AgentResult.parsed</code>; one repair attempt on invalid JSON.</td></tr>
+        <tr><td><code>Task(human_input=True)</code></td><td><code>AgentHooks(approve_tool=...)</code></td><td>Per-tool-call, not per-task; return <code>False</code> to deny.</td></tr>
+        <tr><td><code>Crew(verbose=True)</code></td><td><code>StreamPolicy.verbose()</code></td><td>Streaming events, not console printing.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Before (CrewAI)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from crewai import Agent, Crew, Task, Process
+
+researcher = Agent(role="Researcher", goal="Find facts", backstory="...")
+crew = Crew(agents=[researcher], tasks=[Task(description="...", agent=researcher)],
+            process=Process.sequential)
+result = crew.kickoff()</code></pre>
+  </div>
+
+  <h3>After (deepcrew)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent
+
+researcher = Agent(name="researcher", model="openai/gpt-4o", system_prompt="You find facts.")
+result = await run_agent(researcher, [{"role": "user", "content": "..."}])</code></pre>
+  </div>
+
+  <h3>Structured output</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python"># CrewAI
+researcher = Agent(role="Researcher", goal="...", output_pydantic=Report)
+
+# deepcrew
+researcher = Agent(name="researcher", model="openai/gpt-4o", response_model=Report)
+result = await run_agent(researcher, messages)
+result.parsed  # a validated Report instance</code></pre>
+  </div>
+</section>
+
+<section class="section" id="adk" data-section="adk">
+  <div class="section-eyebrow">Migration</div>
+  <h2>From Google ADK</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ADK concept</th><th>deepcrew equivalent</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>LlmAgent(model=, instruction=)</code></td><td><code>Agent(model=, system_prompt=)</code></td><td><code>model</code> is a LiteLLM string, e.g. <code>"openai/gpt-4o"</code>.</td></tr>
+        <tr><td>ADK <code>FunctionTool</code></td><td><code>@tool</code> function or <code>Skill</code></td><td>Simple callables become tools; multi-step capabilities become Skills.</td></tr>
+        <tr><td>ADK callbacks</td><td><code>AgentHooks</code> + <code>StreamEvent</code> queue</td><td>Hooks intercept (can deny); events only observe.</td></tr>
+        <tr><td>ADK <code>Session</code> / state</td><td><code>MemoryProvider</code></td><td>InMemory, File, or Redis-backed.</td></tr>
+        <tr><td>ADK <code>SequentialAgent</code>/<code>ParallelAgent</code></td><td><code>WorkflowBuilder</code></td><td>Independent DAG nodes run in parallel automatically.</td></tr>
+        <tr><td>ADK <code>LoopAgent</code></td><td><code>LoopConfig</code> + <code>run_agent_loop</code></td><td>Verifier-driven convergence rather than a fixed iteration count.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Before (ADK)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from google.adk.agents import LlmAgent
+
+agent = LlmAgent(model="gemini-2.0-flash", name="assistant", instruction="You are helpful.")</code></pre>
+  </div>
+
+  <h3>After (deepcrew)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, run_agent
+
+agent = Agent(name="assistant", model="gemini/gemini-2.0-flash", system_prompt="You are helpful.")
+result = await run_agent(agent, [{"role": "user", "content": "Hello!"}])</code></pre>
+  </div>
+</section>
+
+<section class="section" id="what-deepcrew-adds" data-section="what-deepcrew-adds">
+  <div class="section-eyebrow">Migration</div>
+  <h2>What deepcrew adds</h2>
+  <ul>
+    <li><strong>True token streaming with selectable visibility</strong> — every agent, tool call, memory op, retry, and verifier score is a <code>StreamEvent</code>. <code>StreamPolicy</code> controls what a given UI sees without changing execution.</li>
+    <li><strong>Self-improving loop</strong> — a <code>Verifier</code> critiques each iteration and drives refinement, with adaptive early-stopping and self-consistency branching.</li>
+    <li><strong>Bounded recursive spawning</strong> — agents dynamically spawn sub-agents mid-run via a <code>spawn_agent</code> meta-tool, capped by a hard <code>max_spawn_depth</code>.</li>
+    <li><strong>Skill distillation</strong> — a converged, high-confidence loop result can be distilled into a replayable <code>Skill</code>, Voyager-style.</li>
+    <li><strong>Multimodal input</strong> — <code>image()</code>/<code>pdf()</code>/<code>user_message()</code> attach images and documents as standard content blocks.</li>
+  </ul>
+  <p>See the <a href="../features.html">Features index</a> for the full list of what deepcrew-ai can do.</p>
+</section>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Migrating to deepcrew-ai
+
+A concept map for teams coming from CrewAI or Google's Agent Development Kit (ADK), plus what
+deepcrew adds once you're here.
+
+## From CrewAI
+
+| CrewAI concept | deepcrew equivalent | Notes |
+|---|---|---|
+| `Agent(role=, goal=, backstory=)` | `Agent(name=, system_prompt=)` | deepcrew doesn't split role/goal/backstory into separate fields — fold them into one `system_prompt`. |
+| `Crew(agents=[...], process=Process.sequential)` | `WorkflowBuilder().add_agent(...).then(...)` | Explicit DAG edges instead of an implicit list order. |
+| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | An LLM router picks single-agent or fan-out parallel execution; no manager agent to configure. |
+| `@tool` / `BaseTool` subclass | `@tool` decorator on a plain function | Schema is auto-generated from type hints — no separate schema class. |
+| `Agent(..., output_pydantic=Model)` | `Agent(..., response_model=Model)` | Validated result lands on `AgentResult.parsed`; one automatic repair attempt on invalid JSON. |
+| `Task(human_input=True)` | `AgentHooks(approve_tool=...)` | deepcrew's human-in-the-loop is per-tool-call, not per-task; return `False` from `approve_tool` to deny. |
+| Crew `verbose=True` | `StreamPolicy.verbose()` | Streaming, not console printing — see [Streaming guide](streaming.html). |
+
+**Before (CrewAI):**
+```python
+from crewai import Agent, Crew, Task, Process
+
+researcher = Agent(role="Researcher", goal="Find facts", backstory="...")
+crew = Crew(agents=[researcher], tasks=[Task(description="...", agent=researcher)],
+            process=Process.sequential)
+result = crew.kickoff()
+```
+
+**After (deepcrew):**
+```python
+from deepcrew import Agent, run_agent
+
+researcher = Agent(name="researcher", model="openai/gpt-4o", system_prompt="You find facts.")
+result = await run_agent(researcher, [{"role": "user", "content": "..."}])
+```
+
+**Before (CrewAI, structured output):**
+```python
+researcher = Agent(role="Researcher", goal="...", output_pydantic=Report)
+```
+
+**After (deepcrew):**
+```python
+researcher = Agent(name="researcher", model="openai/gpt-4o", response_model=Report)
+result = await run_agent(researcher, messages)
+result.parsed  # a validated Report instance
+```
+
+## From Google ADK
+
+| ADK concept | deepcrew equivalent | Notes |
+|---|---|---|
+| `LlmAgent(model=, instruction=)` | `Agent(model=, system_prompt=)` | Same shape; `model` is a LiteLLM string (`"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, ...) rather than an ADK model object. |
+| ADK `FunctionTool` | `@tool`-decorated function or `Skill` | Simple callables become tools; multi-step capabilities become `Skill` subclasses. |
+| ADK callbacks (`before_tool_callback`, etc.) | `AgentHooks` + the `StreamEvent` queue | Hooks *intercept* (can deny a tool call); events only *observe*. Use `StreamPolicy` to control what a UI sees. |
+| ADK `Session` / state | `MemoryProvider` (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) | Pluggable backend; attach via `Agent(memory=...)`. |
+| ADK `SequentialAgent` / `ParallelAgent` | `WorkflowBuilder` | Explicit `.then()` edges; independent nodes at the same DAG level run in parallel automatically. |
+| ADK `LoopAgent` | `LoopConfig` + `run_agent_loop` | deepcrew's loop is verifier-driven (a critic scores each iteration) rather than a fixed iteration count, with optional adaptive early-stop and self-consistency branching. |
+
+**Before (ADK):**
+```python
+from google.adk.agents import LlmAgent
+
+agent = LlmAgent(model="gemini-2.0-flash", name="assistant", instruction="You are helpful.")
+```
+
+**After (deepcrew):**
+```python
+from deepcrew import Agent, run_agent
+
+agent = Agent(name="assistant", model="gemini/gemini-2.0-flash", system_prompt="You are helpful.")
+result = await run_agent(agent, [{"role": "user", "content": "Hello!"}])
+```
+
+## What deepcrew adds
+
+- **True token streaming with selectable visibility** — every agent, tool call, memory op, retry,
+  and verifier score is a `StreamEvent`. `StreamPolicy.chat()` / `.standard()` / `.verbose()` (or a
+  custom include/exclude set) control what a given UI actually sees, without changing execution.
+- **Self-improving loop** — `LoopConfig` with a `Verifier` critiques each iteration and drives
+  refinement, with optional adaptive early-stopping and self-consistency branching across parallel
+  candidates.
+- **Bounded recursive spawning** — agents can dynamically spawn sub-agents mid-run via a
+  `spawn_agent` meta-tool, capped by a hard `max_spawn_depth` so delegation can't recurse forever.
+- **Skill distillation** — a converged, high-confidence loop result can be distilled into a
+  replayable `Skill` and registered for reuse, Voyager-style.
+- **Multimodal input** — `image()` / `pdf()` / `user_message()` attach images and documents as
+  standard OpenAI-format content blocks, forwarded by LiteLLM to whichever provider you're using.
+
+See the [Streaming guide](streaming.html) and [Loop guide](guides/loop.html) for details.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

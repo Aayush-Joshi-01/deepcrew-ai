@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procedural Memory — deepcrew-ai</title>
+  <meta name="description" content="An ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Self-Improving Loop</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/procedural-memory.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="procedural-memory-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Self-Improving Loop</span>
+    <span class="sidebar-page">Procedural Memory</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#curation-algorithm"><span class="toc-title">Curation algorithm</span><span class="toc-desc">How entries are merged, scored, and pruned as the playbook grows.</span></a>
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Similarity merging, max_entries pruning, and other playbook quirks.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="procedural-memory" data-section="procedural-memory">
+  <div class="section-eyebrow">Self-Improving Loop <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div>
+  <h2>Procedural Memory</h2>
+  <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, inspired by ACE (Agentic Context Engineering, ICLR 2026). It's built <em>on top of</em> any <code>MemoryProvider</code> as its backing store and adds structure: each entry is a "helpful" or "harmful" bullet with a usage count and last-seen score. It's read on every run of an agent it's attached to (looped or single-shot), and curated — incrementally merged, never wholesale rewritten — whenever a loop with a <code>Verifier</code> converges. This page is a showcase of the ways to use it, end to end.</p>
+
+  <h3>How-to: a research agent that gets smarter over time</h3>
+  <p>Same agent, same task type, run repeatedly — each run's high-confidence result and each failure's specific issue become durable strategy bullets injected into the next run's context.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">procedural_memory_basic.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory,
+)
+
+playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    procedural_memory=playbook,   # read on every run, even single-shot
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        procedural_memory=playbook,  # curated after a converged loop
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+# Run the same agent again later (even a new process, with FileMemoryProvider) and
+# it will already know what worked and what to avoid for this task.</code></pre>
+  </div>
+  <p>Curation requires a <code>verifier</code> on the same <code>LoopConfig</code> — without one, <code>procedural_memory</code> there is a no-op (there's no <code>VerifierFeedback</code> to grade the run against). Reading the playbook (<code>Agent.procedural_memory</code>) works independently of looping.</p>
+
+  <h3>How-to: a shared playbook across an agent pool</h3>
+  <p>Multiple agents that handle the same kind of task (e.g. every "support_triage" agent spawned by an <code>Orchestrator</code>) can share one <code>ProceduralMemory</code> instance and namespace it with an explicit <code>task_tag</code> instead of the default (which is keyed by <code>agent.name</code>), so lessons pool together regardless of which specific agent instance ran.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">procedural_memory_shared.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">shared_playbook = ProceduralMemory(FileMemoryProvider("support_playbook.json"))
+
+def make_support_agent(name: str) -> Agent:
+    return Agent(
+        name=name,
+        model="openai/gpt-4o-mini",
+        procedural_memory=shared_playbook,
+        loop_config=LoopConfig(
+            verifier=Verifier(VerifierConfig(threshold=0.8)),
+            procedural_memory=shared_playbook,
+            task_tag="support_triage",  # shared namespace, not tied to agent.name
+        ),
+    )
+
+agent_a = make_support_agent("triage_shift_1")
+agent_b = make_support_agent("triage_shift_2")
+# Both read from and write to the same "support_triage" playbook.</code></pre>
+  </div>
+
+  <h3>How-to: inspect the playbook directly</h3>
+  <p>You don't need to run an agent to read or seed a playbook — <code>ProceduralMemory</code> is usable standalone for debugging, exporting, or manual curation.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">procedural_memory_inspect.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">entries = await playbook.load("researcher")
+for e in entries:
+    print(f"[{e.kind}] {e.content} (used {e.uses}x, last score {e.last_score})")
+
+print(playbook.render(entries))  # the exact text block injected into context</code></pre>
+  </div>
+
+  <span class="anchor" id="curation-algorithm"></span>
+  <h3>How curation actually works</h3>
+  <p><code>curate()</code> is deliberately conservative — it never rewrites the playbook wholesale, only ever merges or appends, which is precisely what avoids the "context collapse" failure mode of naive full-rewrite approaches. Each call does exactly this, in order:</p>
+  <ol>
+    <li>Loads the existing entries for <code>task_tag</code>.</li>
+    <li>Builds candidate entries from this run: up to the <strong>first 3</strong> issues in <code>feedback.issues</code> each become a <code>kind="harmful"</code> candidate prefixed <code>"Avoid: "</code>. If <code>feedback.score >= 0.8</code>, the final result's text (truncated to 200 characters, newlines flattened) becomes one <code>kind="helpful"</code> candidate prefixed <code>"Worked well: "</code>. A low-scoring run with fewer than 3 issues contributes fewer candidates; a run scoring below 0.8 contributes no helpful candidate at all.</li>
+    <li>Each candidate is checked against existing entries with a cheap similarity heuristic (case-insensitive exact match, or one string being a substring of the other) — <strong>not</strong> an embedding or LLM-based similarity check. A match bumps that entry's <code>uses</code> counter and updates <code>last_score</code>; no match appends a new entry.</li>
+    <li>All entries are sorted by <code>(uses, last_score)</code> descending and truncated to <code>max_entries</code> — the least-used, lowest-scoring entries are the ones dropped when the playbook is full.</li>
+    <li>The pruned list is persisted back to the backend, one key per entry index plus a small metadata key recording the count.</li>
+  </ol>
+  <p>Because similarity is substring-based, near-duplicate phrasing ("avoid rate limits" vs. "avoid hitting the rate limit") won't merge — they'll accumulate as separate low-usage entries competing for the same <code>max_entries</code> slots. Keep your agent's own issue/summary text reasonably consistent in phrasing if you want related lessons to actually consolidate over time.</p>
+
+  <h3>PlaybookEntry reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">content</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">The strategy text itself, already prefixed <code>"Avoid: "</code> or <code>"Worked well: "</code> by <code>curate()</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">kind</div><div class="param-cell param-type">"helpful" | "harmful"</div><div class="param-cell param-desc">Rendered as <code>(helpful)</code> or <code>(avoid)</code> in the injected system-prompt block.</div></div>
+    <div class="param-row"><div class="param-cell param-name">uses</div><div class="param-cell param-type">int = 0</div><div class="param-cell param-desc">Incremented every time a new candidate matches this entry as a near-duplicate. Higher <code>uses</code> means this lesson has recurred across more runs, and is sorted first / pruned last.</div></div>
+    <div class="param-row"><div class="param-cell param-name">last_score</div><div class="param-cell param-type">float | None</div><div class="param-cell param-desc">The verifier score of the most recent run that reinforced this entry.</div></div>
+  </div>
+
+  <h3>ProceduralMemory reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">ProceduralMemory(backend, max_entries=30)</div><div class="param-cell param-type">MemoryProvider, int</div><div class="param-cell param-desc">Wraps any <code>MemoryProvider</code> as the backing store; caps the playbook at <code>max_entries</code>, pruned by usage/score.</div></div>
+    <div class="param-row"><div class="param-cell param-name">load(task_tag)</div><div class="param-cell param-type">async -> list[PlaybookEntry]</div><div class="param-cell param-desc">Returns all persisted entries for the given namespace. Returns an empty list (not an error) if nothing has been curated yet, or if the stored metadata is corrupt/unparseable.</div></div>
+    <div class="param-row"><div class="param-cell param-name">render(entries)</div><div class="param-cell param-type">list[PlaybookEntry] -> str</div><div class="param-cell param-desc">Formats entries as a compact <code>## Known strategies for this task</code> bullet block for system-prompt injection; empty string for an empty list (so nothing extra is injected when there's no playbook yet).</div></div>
+    <div class="param-row"><div class="param-cell param-name">curate(task_tag, feedback, trajectory)</div><div class="param-cell param-type">async -> int</div><div class="param-cell param-desc">Reflector+Curator step described above. <code>trajectory</code> is the loop's full list of <code>AgentResult</code>s so far; only the <em>last</em> one's text is actually used, as the "worked well" summary source.</div></div>
+  </div>
+
+  <h3>Playbook events</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew.types import EventType
+
+async for event in run_agent_loop(agent, messages, queue=queue):
+    if event.event == EventType.PLAYBOOK_UPDATED:
+        print(f"Playbook now has {event.data['entry_count']} entries")</code></pre>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>Curation is a no-op without a converged loop.</strong> <code>LoopConfig.procedural_memory</code> only curates when the loop exits via convergence (verifier or <code>convergence_fn</code>) — an adaptive plateau stop or plain <code>max_iterations</code> exhaustion still calls <code>curate()</code> internally in the current implementation, but always requires <code>verifier</code> to be set for there to be any <code>VerifierFeedback</code> to curate from at all.</li>
+    <li><strong>Similarity matching is substring-based, not semantic.</strong> Rephrased near-duplicates won't merge (see "How curation actually works" above) — they'll pile up as separate entries instead.</li>
+    <li><strong>Only the last 3 issues and 1 summary are ever considered per run.</strong> A run with many issues doesn't get them all recorded — extra issues beyond the first 3 are silently dropped from that run's curation pass.</li>
+    <li><strong>Reading (<code>Agent.procedural_memory</code>) and curating (<code>LoopConfig.procedural_memory</code>) are two separate assignments.</strong> Setting only one of them means either the agent never sees the playbook, or nothing ever gets written to it — you usually want both pointed at the same instance, as in the examples above.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="verifier.html">Verifier</a> — produces the <code>VerifierFeedback</code> that <code>curate()</code> consumes.</li>
+    <li><a href="looping.html">Looping</a> — the outer-loop lifecycle procedural memory plugs into.</li>
+    <li><a href="memory.html">Memory Providers</a> — the raw key/value backend procedural memory is built on top of.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="procedural-memory-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Procedural Memory" feature: An ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs.
+
+How it works: Wrap a MemoryProvider in a ProceduralMemory and set it on both Agent(procedural_memory=...) and LoopConfig(procedural_memory=...) so successful strategies are curated into a durable playbook across runs, without full-context rewrites.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Procedural Memory') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Procedural Memory for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Procedural Memory
+`ProceduralMemory` is an opt-in, durable "the system learns from its own past runs" store, inspired by ACE (Agentic Context Engineering, ICLR 2026). It's built on top of any `MemoryProvider` as its backing store and adds structure: each entry is a "helpful" or "harmful" bullet with a usage count and last-seen score. It's read on every run of an agent it's attached to (looped or single-shot), and curated — incrementally merged, never wholesale rewritten — whenever a loop with a `Verifier` converges. This page is a showcase of the ways to use it, end to end.
+
+### How-to: a research agent that gets smarter over time
+
+Same agent, same task type, run repeatedly — each run's high-confidence result and each failure's specific issue become durable strategy bullets injected into the next run's context.
+
+```python
+from deepcrew import (
+    Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
+    FileMemoryProvider, ProceduralMemory,
+)
+
+playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
+
+agent = Agent(
+    name="researcher",
+    model="openai/gpt-4o-mini",
+    tools=[search_web],
+    procedural_memory=playbook,   # read on every run, even single-shot
+    loop_config=LoopConfig(
+        max_iterations=4,
+        verifier=Verifier(VerifierConfig(threshold=0.85)),
+        procedural_memory=playbook,  # curated after a converged loop
+    ),
+)
+
+result = await run_agent(agent, [{"role": "user", "content": "Explain CRISPR"}])
+# Run the same agent again later (even a new process, with FileMemoryProvider) and
+# it will already know what worked and what to avoid for this task.
+```
+
+Curation requires a `verifier` on the same `LoopConfig` — without one, `procedural_memory` there is a no-op (there's no `VerifierFeedback` to grade the run against). Reading the playbook (`Agent.procedural_memory`) works independently of looping.
+
+### How-to: a shared playbook across an agent pool
+
+Multiple agents that handle the same kind of task (e.g. every "support_triage" agent spawned by an `Orchestrator`) can share one `ProceduralMemory` instance and namespace it with an explicit `task_tag` instead of the default (which is keyed by `agent.name`), so lessons pool together regardless of which specific agent instance ran.
+
+```python
+shared_playbook = ProceduralMemory(FileMemoryProvider("support_playbook.json"))
+
+def make_support_agent(name: str) -> Agent:
+    return Agent(
+        name=name,
+        model="openai/gpt-4o-mini",
+        procedural_memory=shared_playbook,
+        loop_config=LoopConfig(
+            verifier=Verifier(VerifierConfig(threshold=0.8)),
+            procedural_memory=shared_playbook,
+            task_tag="support_triage",  # shared namespace, not tied to agent.name
+        ),
+    )
+
+agent_a = make_support_agent("triage_shift_1")
+agent_b = make_support_agent("triage_shift_2")
+# Both read from and write to the same "support_triage" playbook.
+```
+
+### How-to: inspect the playbook directly
+
+You don't need to run an agent to read or seed a playbook — `ProceduralMemory` is usable standalone for debugging, exporting, or manual curation.
+
+```python
+entries = await playbook.load("researcher")
+for e in entries:
+    print(f"[{e.kind}] {e.content} (used {e.uses}x, last score {e.last_score})")
+
+print(playbook.render(entries))  # the exact text block injected into context
+```
+
+### How curation actually works
+
+`curate()` is deliberately conservative — it never rewrites the playbook wholesale, only ever merges or appends, which is precisely what avoids the "context collapse" failure mode of naive full-rewrite approaches. Each call does exactly this, in order:
+
+    - Loads the existing entries for `task_tag`.
+    - Builds candidate entries from this run: up to the first 3 issues in `feedback.issues` each become a `kind="harmful"` candidate prefixed `"Avoid: "`. If `feedback.score >= 0.8`, the final result's text (truncated to 200 characters, newlines flattened) becomes one `kind="helpful"` candidate prefixed `"Worked well: "`. A low-scoring run with fewer than 3 issues contributes fewer candidates; a run scoring below 0.8 contributes no helpful candidate at all.
+    - Each candidate is checked against existing entries with a cheap similarity heuristic (case-insensitive exact match, or one string being a substring of the other) — not an embedding or LLM-based similarity check. A match bumps that entry's `uses` counter and updates `last_score`; no match appends a new entry.
+    - All entries are sorted by `(uses, last_score)` descending and truncated to `max_entries` — the least-used, lowest-scoring entries are the ones dropped when the playbook is full.
+    - The pruned list is persisted back to the backend, one key per entry index plus a small metadata key recording the count.
+
+Because similarity is substring-based, near-duplicate phrasing ("avoid rate limits" vs. "avoid hitting the rate limit") won't merge — they'll accumulate as separate low-usage entries competing for the same `max_entries` slots. Keep your agent's own issue/summary text reasonably consistent in phrasing if you want related lessons to actually consolidate over time.
+
+### PlaybookEntry reference
+
+- **content** (str): The strategy text itself, already prefixed `"Avoid: "` or `"Worked well: "` by `curate()`.
+
+- **kind** ("helpful" | "harmful"): Rendered as `(helpful)` or `(avoid)` in the injected system-prompt block.
+
+- **uses** (int = 0): Incremented every time a new candidate matches this entry as a near-duplicate. Higher `uses` means this lesson has recurred across more runs, and is sorted first / pruned last.
+
+- **last_score** (float | None): The verifier score of the most recent run that reinforced this entry.
+
+### ProceduralMemory reference
+
+- **ProceduralMemory(backend, max_entries=30)** (MemoryProvider, int): Wraps any `MemoryProvider` as the backing store; caps the playbook at `max_entries`, pruned by usage/score.
+
+- **load(task_tag)** (async -> list[PlaybookEntry]): Returns all persisted entries for the given namespace. Returns an empty list (not an error) if nothing has been curated yet, or if the stored metadata is corrupt/unparseable.
+
+- **render(entries)** (list[PlaybookEntry] -> str): Formats entries as a compact `## Known strategies for this task` bullet block for system-prompt injection; empty string for an empty list (so nothing extra is injected when there's no playbook yet).
+
+- **curate(task_tag, feedback, trajectory)** (async -> int): Reflector+Curator step described above. `trajectory` is the loop's full list of `AgentResult`s so far; only the last one's text is actually used, as the "worked well" summary source.
+
+### Playbook events
+
+```python
+from deepcrew.types import EventType
+
+async for event in run_agent_loop(agent, messages, queue=queue):
+    if event.event == EventType.PLAYBOOK_UPDATED:
+        print(f"Playbook now has {event.data['entry_count']} entries")
+```
+
+### Common pitfalls
+
+    - Curation is a no-op without a converged loop. `LoopConfig.procedural_memory` only curates when the loop exits via convergence (verifier or `convergence_fn`) — an adaptive plateau stop or plain `max_iterations` exhaustion still calls `curate()` internally in the current implementation, but always requires `verifier` to be set for there to be any `VerifierFeedback` to curate from at all.
+    - Similarity matching is substring-based, not semantic. Rephrased near-duplicates won't merge (see "How curation actually works" above) — they'll pile up as separate entries instead.
+    - Only the last 3 issues and 1 summary are ever considered per run. A run with many issues doesn't get them all recorded — extra issues beyond the first 3 are silently dropped from that run's curation pass.
+    - Reading (`Agent.procedural_memory`) and curating (`LoopConfig.procedural_memory`) are two separate assignments. Setting only one of them means either the agent never sees the playbook, or nothing ever gets written to it — you usually want both pointed at the same instance, as in the examples above.
+
+### See also
+
+    - [Verifier](verifier.html) — produces the `VerifierFeedback` that `curate()` consumes.
+    - [Looping](looping.html) — the outer-loop lifecycle procedural memory plugs into.
+    - [Memory Providers](memory.html) — the raw key/value backend procedural memory is built on top of.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

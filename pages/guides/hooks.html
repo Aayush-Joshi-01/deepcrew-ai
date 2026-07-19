@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Human-in-the-Loop Hooks — deepcrew-ai</title>
+  <meta name="description" content="AgentHooks.approve_tool can deny individual tool calls before they run." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Agent Behavior</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/hooks.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="hooks-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Agent Behavior</span>
+    <span class="sidebar-page">Human-in-the-Loop Hooks</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Denied calls still appear in tool_calls; spawned sub-agents don't inherit hooks.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="hooks" data-section="hooks">
+  <div class="section-eyebrow">Agent behavior</div>
+  <h2>Human-in-the-Loop Hooks</h2>
+  <p><code>AgentHooks</code> intercepts and can alter execution — unlike the observe-only event stream. <code>approve_tool</code> returning <code>False</code> denies a tool call outright: the callable never runs, the tool result becomes <code>"Tool call denied by user."</code>, and a <code>TOOL_DENIED</code> event is emitted.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">hooks_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, AgentHooks, run_agent
+
+async def approve(tool_name: str, args: dict) -> bool:
+    return tool_name != "delete_file"  # block one specific tool
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    tools=[delete_file, read_file],
+    hooks=AgentHooks(approve_tool=approve),
+)</code></pre>
+  </div>
+
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">on_agent_start</div><div class="param-cell param-type">() -&gt; Awaitable[None]</div><div class="param-cell param-desc">Called once before the first LLM call.</div></div>
+    <div class="param-row"><div class="param-cell param-name">on_tool_start</div><div class="param-cell param-type">(name, args) -&gt; Awaitable[None]</div><div class="param-cell param-desc">Called after approval, before the tool runs.</div></div>
+    <div class="param-row"><div class="param-cell param-name">on_tool_end</div><div class="param-cell param-type">(name, result) -&gt; Awaitable[None]</div><div class="param-cell param-desc">Called after the tool returns successfully.</div></div>
+    <div class="param-row"><div class="param-cell param-name">approve_tool</div><div class="param-cell param-type">(name, args) -&gt; Awaitable[bool]</div><div class="param-cell param-desc">Returning <code>False</code> denies the call. A raising hook is treated as denial.</div></div>
+  </div>
+
+  <div class="callout">
+    <div>A hook that raises is caught and logged (WARNING) — it never crashes the run, except <code>approve_tool</code>, where a raise is treated the same as returning <code>False</code>.</div>
+  </div>
+
+  <h3>Execution order, per tool call</h3>
+  <p>For each tool call the model requests, hooks fire in this exact order:</p>
+  <ol>
+    <li><code>approve_tool(name, args)</code> — if it returns <code>False</code> (or raises), the callable never runs. The tool's result becomes the literal string <code>"Tool call denied by user."</code>, appended to conversation history as a normal tool message, and a <code>TOOL_DENIED</code> event fires. Execution moves straight to step 4 — <code>on_tool_start</code>/<code>on_tool_end</code> are both skipped entirely for a denied call.</li>
+    <li><code>on_tool_start(name, args)</code> — fires only if the call was approved (or if <code>approve_tool</code> is unset).</li>
+    <li>The tool actually executes.</li>
+    <li><code>on_tool_end(name, result)</code> — fires only if execution succeeded without raising. If the tool itself raises an exception, <code>on_tool_end</code> is skipped, and the exception is folded into the tool's result content as an error string instead (unrelated to hooks — this is the same error-folding behavior that happens whether or not any hooks are configured).</li>
+  </ol>
+  <p><code>on_agent_start</code> is separate from all of this — it fires exactly once per <code>run_agent()</code> call, before the first LLM request, regardless of how many turns or tool calls follow.</p>
+
+  <h3>Hooks vs. events — pick the right one</h3>
+  <p>These solve different problems and are easy to reach for interchangeably by mistake:</p>
+  <ul>
+    <li><strong>Hooks (<code>AgentHooks</code>)</strong> run <em>inside</em> the agent's execution, synchronously, and can change what happens — <code>approve_tool</code> is the only hook with the power to prevent a tool call outright.</li>
+    <li><strong>Events (<code>StreamEvent</code> via a <code>queue</code>, filtered by <a href="streampolicy.html">StreamPolicy</a>)</strong> only ever describe what already happened, for a UI or logging pipeline — nothing consuming the event queue can stop or alter execution, no matter how fast it reacts.</li>
+  </ul>
+  <p>If you need a human to approve a specific tool call before it runs, that's <code>approve_tool</code> — there's no way to build that with events alone.</p>
+
+  <h3>A realistic human-approval pattern</h3>
+  <p><code>approve_tool</code> is awaited, so it can genuinely pause execution on something slower than a synchronous check — a database lookup, a Slack approval button, a queued request to a human reviewer.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">human_approval.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">import asyncio
+from deepcrew import Agent, AgentHooks, run_agent
+
+pending_approvals: dict[str, asyncio.Future] = {}
+
+async def ask_a_human(tool_name: str, args: dict) -> bool:
+    request_id = f"{tool_name}:{id(args)}"
+    future = asyncio.get_event_loop().create_future()
+    pending_approvals[request_id] = future
+    # e.g. post a Slack message with Approve/Deny buttons here, then wait:
+    send_approval_request(request_id, tool_name, args)  # your integration
+    return await future  # resolved elsewhere when the human responds
+
+agent = Agent(
+    name="ops_assistant",
+    model="openai/gpt-4o",
+    tools=[restart_service, delete_records],
+    hooks=AgentHooks(approve_tool=ask_a_human),
+)
+
+# Elsewhere, e.g. in a webhook handler for the Slack button click:
+# pending_approvals[request_id].set_result(True)  # or False to deny</code></pre>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>A denied call still appears in <code>AgentResult.tool_calls</code>.</strong> Tool calls are recorded from the model's request, before <code>approve_tool</code> is ever consulted — you can't distinguish a denied call from an executed one by looking at <code>tool_calls</code> alone; check for a <code>TOOL_DENIED</code> event or the literal <code>"Tool call denied by user."</code> content instead.</li>
+    <li><strong><code>on_tool_end</code> doesn't fire on a tool exception.</strong> Only a successful, non-denied execution reaches it — don't rely on it for cleanup that must run unconditionally.</li>
+    <li><strong>Hooks intercept; events only observe.</strong> Don't reach for a <code>StreamPolicy</code>-filtered event consumer when you actually need to block a tool call — only <code>approve_tool</code> can do that.</li>
+    <li><strong>Hooks apply to one <code>Agent</code>, not globally.</strong> There's no process-wide hook registry — set <code>hooks=</code> on every agent instance that needs interception, including spawned sub-agents, which do not inherit the parent's hooks automatically.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="streampolicy.html">StreamPolicy</a> — the observe-only counterpart to hooks; both can be used together.</li>
+    <li><a href="spawning.html">Agent Spawning</a> — spawned sub-agents don't inherit the parent's <code>AgentHooks</code>.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="hooks-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Human-in-the-Loop Hooks" feature: AgentHooks.approve_tool can deny individual tool calls before they run.
+
+How it works: Pass Agent(hooks=AgentHooks(approve_tool=..., on_tool_start=..., on_tool_end=..., on_agent_start=...)) to intercept and optionally deny individual tool calls before they execute — distinct from the observe-only event stream.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Human-in-the-Loop Hooks') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Human-in-the-Loop Hooks for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Human-in-the-Loop Hooks
+`AgentHooks` intercepts and can alter execution — unlike the observe-only event stream. `approve_tool` returning `False` denies a tool call outright: the callable never runs, the tool result becomes `"Tool call denied by user."`, and a `TOOL_DENIED` event is emitted.
+
+```python
+from deepcrew import Agent, AgentHooks, run_agent
+
+async def approve(tool_name: str, args: dict) -> bool:
+    return tool_name != "delete_file"  # block one specific tool
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    tools=[delete_file, read_file],
+    hooks=AgentHooks(approve_tool=approve),
+)
+```
+
+- **on_agent_start** (() -> Awaitable[None]): Called once before the first LLM call.
+
+- **on_tool_start** ((name, args) -> Awaitable[None]): Called after approval, before the tool runs.
+
+- **on_tool_end** ((name, result) -> Awaitable[None]): Called after the tool returns successfully.
+
+- **approve_tool** ((name, args) -> Awaitable[bool]): Returning `False` denies the call. A raising hook is treated as denial.
+
+> A hook that raises is caught and logged (WARNING) — it never crashes the run, except `approve_tool`, where a raise is treated the same as returning `False`.
+
+### Execution order, per tool call
+
+For each tool call the model requests, hooks fire in this exact order:
+
+    - `approve_tool(name, args)` — if it returns `False` (or raises), the callable never runs. The tool's result becomes the literal string `"Tool call denied by user."`, appended to conversation history as a normal tool message, and a `TOOL_DENIED` event fires. Execution moves straight to step 4 — `on_tool_start`/`on_tool_end` are both skipped entirely for a denied call.
+    - `on_tool_start(name, args)` — fires only if the call was approved (or if `approve_tool` is unset).
+    - The tool actually executes.
+    - `on_tool_end(name, result)` — fires only if execution succeeded without raising. If the tool itself raises an exception, `on_tool_end` is skipped, and the exception is folded into the tool's result content as an error string instead (unrelated to hooks — this is the same error-folding behavior that happens whether or not any hooks are configured).
+
+`on_agent_start` is separate from all of this — it fires exactly once per `run_agent()` call, before the first LLM request, regardless of how many turns or tool calls follow.
+
+### Hooks vs. events — pick the right one
+
+These solve different problems and are easy to reach for interchangeably by mistake:
+
+    - Hooks (`AgentHooks`) run inside the agent's execution, synchronously, and can change what happens — `approve_tool` is the only hook with the power to prevent a tool call outright.
+    - Events (`StreamEvent` via a `queue`, filtered by [StreamPolicy](streampolicy.html)) only ever describe what already happened, for a UI or logging pipeline — nothing consuming the event queue can stop or alter execution, no matter how fast it reacts.
+
+If you need a human to approve a specific tool call before it runs, that's `approve_tool` — there's no way to build that with events alone.
+
+### A realistic human-approval pattern
+
+`approve_tool` is awaited, so it can genuinely pause execution on something slower than a synchronous check — a database lookup, a Slack approval button, a queued request to a human reviewer.
+
+```python
+import asyncio
+from deepcrew import Agent, AgentHooks, run_agent
+
+pending_approvals: dict[str, asyncio.Future] = {}
+
+async def ask_a_human(tool_name: str, args: dict) -> bool:
+    request_id = f"{tool_name}:{id(args)}"
+    future = asyncio.get_event_loop().create_future()
+    pending_approvals[request_id] = future
+    # e.g. post a Slack message with Approve/Deny buttons here, then wait:
+    send_approval_request(request_id, tool_name, args)  # your integration
+    return await future  # resolved elsewhere when the human responds
+
+agent = Agent(
+    name="ops_assistant",
+    model="openai/gpt-4o",
+    tools=[restart_service, delete_records],
+    hooks=AgentHooks(approve_tool=ask_a_human),
+)
+
+# Elsewhere, e.g. in a webhook handler for the Slack button click:
+# pending_approvals[request_id].set_result(True)  # or False to deny
+```
+
+### Common pitfalls
+
+    - A denied call still appears in `AgentResult.tool_calls`. Tool calls are recorded from the model's request, before `approve_tool` is ever consulted — you can't distinguish a denied call from an executed one by looking at `tool_calls` alone; check for a `TOOL_DENIED` event or the literal `"Tool call denied by user."` content instead.
+    - `on_tool_end` doesn't fire on a tool exception. Only a successful, non-denied execution reaches it — don't rely on it for cleanup that must run unconditionally.
+    - Hooks intercept; events only observe. Don't reach for a `StreamPolicy`-filtered event consumer when you actually need to block a tool call — only `approve_tool` can do that.
+    - Hooks apply to one `Agent`, not globally. There's no process-wide hook registry — set `hooks=` on every agent instance that needs interception, including spawned sub-agents, which do not inherit the parent's hooks automatically.
+
+### See also
+
+    - [StreamPolicy](streampolicy.html) — the observe-only counterpart to hooks; both can be used together.
+    - [Agent Spawning](spawning.html) — spawned sub-agents don't inherit the parent's `AgentHooks`.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

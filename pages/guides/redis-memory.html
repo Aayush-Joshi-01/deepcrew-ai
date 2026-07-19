@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redis Memory Provider — deepcrew-ai</title>
+  <meta name="description" content="A persistent, shared MemoryProvider backed by Redis." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Memory</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/redis-memory.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="redis-memory-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Memory</span>
+    <span class="sidebar-page">Redis Memory Provider</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#constructor-reference"><span class="toc-title">Constructor reference</span><span class="toc-desc">url, prefix, and client parameters for RedisMemoryProvider.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="redis-memory" data-section="redis-memory">
+  <div class="section-eyebrow">Memory</div>
+  <h2>Redis Memory Provider</h2>
+  <p><code>RedisMemoryProvider</code> implements the same <code>MemoryProvider</code> interface as <code>InMemoryProvider</code>/<code>FileMemoryProvider</code>, backed by Redis for persistence across processes. Requires the <code>redis</code> extra: <code>pip install deepcrew-ai[redis]</code>.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">redis_memory_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Agent, RedisMemoryProvider
+
+memory = RedisMemoryProvider(url="redis://localhost:6379/0", prefix="myapp:")
+agent = Agent(name="assistant", model="openai/gpt-4o", memory=memory)
+
+# ... run agents ...
+
+await memory.aclose()   # close the underlying redis connection when you're done</code></pre>
+  </div>
+
+  <p><code>redis</code> is imported lazily, inside <code>RedisMemoryProvider.__init__</code> — not at module import time — so a bare <code>pip install deepcrew-ai</code> never pulls it in, and instantiating this class without the extra installed raises a clear <code>DeepCrewMemoryError</code> instead of a raw <code>ModuleNotFoundError</code>:</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import RedisMemoryProvider, DeepCrewMemoryError
+
+try:
+    memory = RedisMemoryProvider(url="redis://localhost:6379/0")
+except DeepCrewMemoryError as exc:
+    print(exc)  # "The redis package is not installed. Install it with: pip install deepcrew-ai[redis]"</code></pre>
+  </div>
+
+  <span class="anchor" id="constructor-reference"></span>
+  <h3>Constructor reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">url</div><div class="param-cell param-type">str = "redis://localhost:6379/0"</div><div class="param-cell param-desc">Passed straight to <code>redis.asyncio.from_url(url, decode_responses=True)</code>. Any URL <code>redis-py</code> accepts works, including auth (<code>redis://:password@host:port/db</code>) and TLS (<code>rediss://...</code>) schemes.</div></div>
+    <div class="param-row"><div class="param-cell param-name">prefix</div><div class="param-cell param-type">str = "deepcrew:"</div><div class="param-cell param-desc">Every key is namespaced under this prefix in Redis, so multiple applications (or multiple agents with different logical stores) can safely share one Redis instance without key collisions. Stripped back off automatically before keys are returned from <code>search()</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">client</div><div class="param-cell param-type">Any | None = None</div><div class="param-cell param-desc">Pass an already-constructed <code>redis.asyncio</code> client to reuse an existing connection pool instead of creating a new one — useful when your application already manages a shared Redis client elsewhere. When set, <code>url</code> is ignored entirely and the lazy <code>redis</code> import never happens (this is also how the test suite injects an <code>AsyncMock()</code> in place of a real connection).</div></div>
+  </div>
+
+  <h3>How search works</h3>
+  <p>Search semantics mirror <code>InMemoryProvider</code> exactly: <code>SCAN</code> for every key under the configured prefix, <code>MGET</code> their values in one round trip, then a case-insensitive substring match on key or value, sorted by key, truncated to <code>top_k</code>. This means a search over a very large keyspace still has to scan and fetch everything under the prefix — there's no Redis-native indexing or scoring involved, so performance scales with total entry count, not with how selective your query is.</p>
+
+  <h3>Error handling</h3>
+  <p>Every method wraps its Redis call in a broad exception handler and re-raises as <code>DeepCrewMemoryError</code> with a descriptive message — a dropped connection, a timeout, or an auth failure all surface the same way, distinguishable from a normal <code>DeepCrewMemoryError</code> only by the message text, not a different exception subtype.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import DeepCrewMemoryError
+
+try:
+    await memory.store("last_query", "...")
+except DeepCrewMemoryError as exc:
+    print(f"Redis memory write failed: {exc}")
+    # fall back to running without memory for this turn, log, alert, etc.</code></pre>
+  </div>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="memory.html">Memory Providers</a> — the shared <code>MemoryProvider</code> interface and the built-in in-process/file alternatives.</li>
+    <li><a href="procedural-memory.html">Procedural Memory</a> — can be layered on top of a <code>RedisMemoryProvider</code> for a shared, persistent playbook across an agent pool.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="redis-memory-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Redis Memory Provider" feature: A persistent, shared MemoryProvider backed by Redis.
+
+How it works: Install the redis extra and use RedisMemoryProvider(url=..., prefix=...) as Agent(memory=...) for a persistent, shared memory store across processes, with the same search semantics as InMemoryProvider.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Redis Memory Provider') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up Redis Memory Provider for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Redis Memory Provider
+`RedisMemoryProvider` implements the same `MemoryProvider` interface as `InMemoryProvider`/`FileMemoryProvider`, backed by Redis for persistence across processes. Requires the `redis` extra: `pip install deepcrew-ai[redis]`.
+
+```python
+from deepcrew import Agent, RedisMemoryProvider
+
+memory = RedisMemoryProvider(url="redis://localhost:6379/0", prefix="myapp:")
+agent = Agent(name="assistant", model="openai/gpt-4o", memory=memory)
+
+# ... run agents ...
+
+await memory.aclose()   # close the underlying redis connection when you're done
+```
+
+`redis` is imported lazily, inside `RedisMemoryProvider.__init__` — not at module import time — so a bare `pip install deepcrew-ai` never pulls it in, and instantiating this class without the extra installed raises a clear `DeepCrewMemoryError` instead of a raw `ModuleNotFoundError`:
+
+```python
+from deepcrew import RedisMemoryProvider, DeepCrewMemoryError
+
+try:
+    memory = RedisMemoryProvider(url="redis://localhost:6379/0")
+except DeepCrewMemoryError as exc:
+    print(exc)  # "The redis package is not installed. Install it with: pip install deepcrew-ai[redis]"
+```
+
+### Constructor reference
+
+- **url** (str = "redis://localhost:6379/0"): Passed straight to `redis.asyncio.from_url(url, decode_responses=True)`. Any URL `redis-py` accepts works, including auth (`redis://:password@host:port/db`) and TLS (`rediss://...`) schemes.
+
+- **prefix** (str = "deepcrew:"): Every key is namespaced under this prefix in Redis, so multiple applications (or multiple agents with different logical stores) can safely share one Redis instance without key collisions. Stripped back off automatically before keys are returned from `search()`.
+
+- **client** (Any | None = None): Pass an already-constructed `redis.asyncio` client to reuse an existing connection pool instead of creating a new one — useful when your application already manages a shared Redis client elsewhere. When set, `url` is ignored entirely and the lazy `redis` import never happens (this is also how the test suite injects an `AsyncMock()` in place of a real connection).
+
+### How search works
+
+Search semantics mirror `InMemoryProvider` exactly: `SCAN` for every key under the configured prefix, `MGET` their values in one round trip, then a case-insensitive substring match on key or value, sorted by key, truncated to `top_k`. This means a search over a very large keyspace still has to scan and fetch everything under the prefix — there's no Redis-native indexing or scoring involved, so performance scales with total entry count, not with how selective your query is.
+
+### Error handling
+
+Every method wraps its Redis call in a broad exception handler and re-raises as `DeepCrewMemoryError` with a descriptive message — a dropped connection, a timeout, or an auth failure all surface the same way, distinguishable from a normal `DeepCrewMemoryError` only by the message text, not a different exception subtype.
+
+```python
+from deepcrew import DeepCrewMemoryError
+
+try:
+    await memory.store("last_query", "...")
+except DeepCrewMemoryError as exc:
+    print(f"Redis memory write failed: {exc}")
+    # fall back to running without memory for this turn, log, alert, etc.
+```
+
+### See also
+
+    - [Memory Providers](memory.html) — the shared `MemoryProvider` interface and the built-in in-process/file alternatives.
+    - [Procedural Memory](procedural-memory.html) — can be layered on top of a `RedisMemoryProvider` for a shared, persistent playbook across an agent pool.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

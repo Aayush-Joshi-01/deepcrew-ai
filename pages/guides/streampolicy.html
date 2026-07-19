@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamPolicy — deepcrew-ai</title>
+  <meta name="description" content="Choose exactly which event types a consumer sees — chat-only, standard, or fully verbose." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Streaming</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/streampolicy.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="streampolicy-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Streaming</span>
+    <span class="sidebar-page">StreamPolicy</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">A bare Agent has no policy= — presets only apply at the streaming surface.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="streampolicy" data-section="streampolicy">
+  <div class="section-eyebrow">Streaming</div>
+  <h2>StreamPolicy — selectable event visibility</h2>
+  <p>Every agent start/done, tool call/result, memory op, retry, fallback, and verifier score is already a <code>StreamEvent</code>. <code>StreamPolicy</code> controls which of those a given consumer actually sees, without touching execution, logging, or OpenTelemetry spans.</p>
+
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">StreamPolicy.chat()</div><div class="param-cell param-type">preset</div><div class="param-cell param-desc">Response text deltas plus the terminal <code>done</code>/<code>error</code> events only. For simple chatbot UIs.</div></div>
+    <div class="param-row"><div class="param-cell param-name">StreamPolicy.standard()</div><div class="param-cell param-type">preset</div><div class="param-cell param-desc">Chat events plus tool calls/results/denials and agent/step lifecycle. A good default for most apps.</div></div>
+    <div class="param-row"><div class="param-cell param-name">StreamPolicy.verbose()</div><div class="param-cell param-type">preset</div><div class="param-cell param-desc">Every event type — no filtering. For technical/debug UIs.</div></div>
+    <div class="param-row"><div class="param-cell param-name">StreamPolicy(include=..., exclude=...)</div><div class="param-cell param-type">custom</div><div class="param-cell param-desc">Build your own set. Presets always keep <code>done</code>/<code>error</code> visible; a fully custom <code>include</code> set can exclude them too, at your own risk.</div></div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">stream_policy_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import Orchestrator, StreamPolicy
+
+# A simple chatbot only wants the reply text
+async for event in orch.stream("Explain quantum entanglement", policy=StreamPolicy.chat()):
+    if event.event == "text_delta":
+        print(event.data["chunk"], end="", flush=True)
+
+# A technical/debug UI wants everything
+async for event in orch.stream("...", policy=StreamPolicy.verbose()):
+    print(event.to_dict())</code></pre>
+  </div>
+
+  <p><code>WorkflowBuilder.stream()</code> takes the same <code>policy=</code> keyword.</p>
+
+  <h3>Which events are in which preset</h3>
+  <p>The presets are fixed sets defined in <code>stream.py</code>, not computed dynamically — here is every <code>EventType</code> member and exactly which preset(s) include it.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Event</th><th>chat()</th><th>standard()</th><th>verbose()</th></tr></thead>
+      <tbody>
+        <tr><td><code>text_delta</code></td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>done</code></td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>error</code></td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>agent_start</code></td><td>&#8212;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>agent_done</code></td><td>&#8212;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>tool_call</code></td><td>&#8212;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>tool_result</code></td><td>&#8212;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>step_start</code></td><td>&#8212;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>step_done</code></td><td>&#8212;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>spawn_agent</code></td><td>&#8212;</td><td>&#10003;</td><td>&#10003;</td></tr>
+        <tr><td><code>thinking_delta</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>tool_denied</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>retry_attempt</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>fallback_triggered</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>memory_store</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>memory_retrieve</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>loop_iteration</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>apex_start</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>apex_done</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>verifier_scored</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>playbook_updated</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>branch_selected</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>skill_extracted</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Notice <code>retry_attempt</code>/<code>fallback_triggered</code>, every Self-Improving Loop event (<code>loop_iteration</code>, <code>verifier_scored</code>, <code>playbook_updated</code>, <code>branch_selected</code>, <code>skill_extracted</code>), and both memory events are <code>verbose()</code>-only — a <code>standard()</code> consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.</p>
+
+  <h3>Custom policies and filter_stream()</h3>
+  <p><code>allows()</code> is a plain include-then-exclude check: if <code>include</code> is set, the event type must be in it; then it must not be in <code>exclude</code>. You can combine both, or use <code>filter_stream()</code> standalone against any async generator of <code>StreamEvent</code>s — it isn't tied to <code>Orchestrator</code>/<code>WorkflowBuilder</code>.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import StreamPolicy, filter_stream
+from deepcrew.types import EventType
+
+# Only text and tool activity — no lifecycle noise, no terminal events either
+# (a fully custom include set is NOT protected the way presets are — see pitfalls)
+custom = StreamPolicy(include=frozenset({EventType.TEXT_DELTA, EventType.TOOL_CALL}))
+
+async for event in filter_stream(orch.stream("..."), custom):
+    ...
+
+# Or: take a preset and additionally silence one specific event type
+quieter = StreamPolicy(include=None, exclude=frozenset({EventType.SPAWN_AGENT}))</code></pre>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>A bare <code>Agent</code> run via <code>run_agent()</code> has no <code>policy=</code> parameter.</strong> <code>StreamPolicy</code> only wires into <code>Orchestrator.stream()</code> and <code>WorkflowBuilder.stream()</code>. For a single agent, wrap your own queue with <code>filter_stream()</code> manually, or use <a href="fastapi.html">FastAPI Integration</a>, which applies a policy uniformly across all three target types.</li>
+    <li><strong>Presets protect <code>done</code>/<code>error</code>; fully custom policies don't.</strong> If you hand-build a <code>StreamPolicy(include={...})</code> that omits <code>EventType.DONE</code> and <code>EventType.ERROR</code>, your consumer genuinely never learns the stream ended — that's on you, not a bug.</li>
+    <li><strong>Filtering is view-only.</strong> Every event still fires, gets logged, and reaches OpenTelemetry spans regardless of policy — <code>StreamPolicy</code> only changes what a specific consumer of the event queue sees, never what actually executes.</li>
+    <li><strong>The event-to-preset mapping is fixed, not configurable per event.</strong> There's no way to make <code>standard()</code> include <code>verifier_scored</code> without building your own custom policy from scratch.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="fastapi.html">FastAPI Integration</a> — applies a <code>StreamPolicy</code> uniformly to an Agent, Orchestrator, or WorkflowBuilder behind one SSE endpoint.</li>
+    <li><a href="retry.html">Retry &amp; Fallback</a> and <a href="looping.html">Looping</a> — the features whose events only surface under <code>verbose()</code>.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="streampolicy-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "StreamPolicy" feature: Choose exactly which event types a consumer sees — chat-only, standard, or fully verbose.
+
+How it works: Pass policy=StreamPolicy.chat()/.standard()/.verbose() (or a custom StreamPolicy(include=..., exclude=...)) to Orchestrator.stream()/WorkflowBuilder.stream() to control which StreamEvent types a given UI sees, without changing execution.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='StreamPolicy') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up StreamPolicy for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# StreamPolicy
+Every agent start/done, tool call/result, memory op, retry, fallback, and verifier score is already a `StreamEvent`. `StreamPolicy` controls which of those a given consumer actually sees, without touching execution, logging, or OpenTelemetry spans.
+
+- **StreamPolicy.chat()** (preset): Response text deltas plus the terminal `done`/`error` events only. For simple chatbot UIs.
+
+- **StreamPolicy.standard()** (preset): Chat events plus tool calls/results/denials and agent/step lifecycle. A good default for most apps.
+
+- **StreamPolicy.verbose()** (preset): Every event type — no filtering. For technical/debug UIs.
+
+- **StreamPolicy(include=..., exclude=...)** (custom): Build your own set. Presets always keep `done`/`error` visible; a fully custom `include` set can exclude them too, at your own risk.
+
+```python
+from deepcrew import Orchestrator, StreamPolicy
+
+# A simple chatbot only wants the reply text
+async for event in orch.stream("Explain quantum entanglement", policy=StreamPolicy.chat()):
+    if event.event == "text_delta":
+        print(event.data["chunk"], end="", flush=True)
+
+# A technical/debug UI wants everything
+async for event in orch.stream("...", policy=StreamPolicy.verbose()):
+    print(event.to_dict())
+```
+
+`WorkflowBuilder.stream()` takes the same `policy=` keyword.
+
+### Which events are in which preset
+
+The presets are fixed sets defined in `stream.py`, not computed dynamically — here is every `EventType` member and exactly which preset(s) include it.
+
+      | Event | chat() | standard() | verbose() |
+
+        | `text_delta` | &#10003; | &#10003; | &#10003; |
+
+        | `done` | &#10003; | &#10003; | &#10003; |
+
+        | `error` | &#10003; | &#10003; | &#10003; |
+
+        | `agent_start` | &#8212; | &#10003; | &#10003; |
+
+        | `agent_done` | &#8212; | &#10003; | &#10003; |
+
+        | `tool_call` | &#8212; | &#10003; | &#10003; |
+
+        | `tool_result` | &#8212; | &#10003; | &#10003; |
+
+        | `step_start` | &#8212; | &#10003; | &#10003; |
+
+        | `step_done` | &#8212; | &#10003; | &#10003; |
+
+        | `spawn_agent` | &#8212; | &#10003; | &#10003; |
+
+        | `thinking_delta` | &#8212; | &#8212; | &#10003; |
+
+        | `tool_denied` | &#8212; | &#8212; | &#10003; |
+
+        | `retry_attempt` | &#8212; | &#8212; | &#10003; |
+
+        | `fallback_triggered` | &#8212; | &#8212; | &#10003; |
+
+        | `memory_store` | &#8212; | &#8212; | &#10003; |
+
+        | `memory_retrieve` | &#8212; | &#8212; | &#10003; |
+
+        | `loop_iteration` | &#8212; | &#8212; | &#10003; |
+
+        | `apex_start` | &#8212; | &#8212; | &#10003; |
+
+        | `apex_done` | &#8212; | &#8212; | &#10003; |
+
+        | `verifier_scored` | &#8212; | &#8212; | &#10003; |
+
+        | `playbook_updated` | &#8212; | &#8212; | &#10003; |
+
+        | `branch_selected` | &#8212; | &#8212; | &#10003; |
+
+        | `skill_extracted` | &#8212; | &#8212; | &#10003; |
+
+Notice `retry_attempt`/`fallback_triggered`, every Self-Improving Loop event (`loop_iteration`, `verifier_scored`, `playbook_updated`, `branch_selected`, `skill_extracted`), and both memory events are `verbose()`-only — a `standard()` consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.
+
+### Custom policies and filter_stream()
+
+`allows()` is a plain include-then-exclude check: if `include` is set, the event type must be in it; then it must not be in `exclude`. You can combine both, or use `filter_stream()` standalone against any async generator of `StreamEvent`s — it isn't tied to `Orchestrator`/`WorkflowBuilder`.
+
+```python
+from deepcrew import StreamPolicy, filter_stream
+from deepcrew.types import EventType
+
+# Only text and tool activity — no lifecycle noise, no terminal events either
+# (a fully custom include set is NOT protected the way presets are — see pitfalls)
+custom = StreamPolicy(include=frozenset({EventType.TEXT_DELTA, EventType.TOOL_CALL}))
+
+async for event in filter_stream(orch.stream("..."), custom):
+    ...
+
+# Or: take a preset and additionally silence one specific event type
+quieter = StreamPolicy(include=None, exclude=frozenset({EventType.SPAWN_AGENT}))
+```
+
+### Common pitfalls
+
+    - A bare `Agent` run via `run_agent()` has no `policy=` parameter. `StreamPolicy` only wires into `Orchestrator.stream()` and `WorkflowBuilder.stream()`. For a single agent, wrap your own queue with `filter_stream()` manually, or use [FastAPI Integration](fastapi.html), which applies a policy uniformly across all three target types.
+    - Presets protect `done`/`error`; fully custom policies don't. If you hand-build a `StreamPolicy(include={...})` that omits `EventType.DONE` and `EventType.ERROR`, your consumer genuinely never learns the stream ended — that's on you, not a bug.
+    - Filtering is view-only. Every event still fires, gets logged, and reaches OpenTelemetry spans regardless of policy — `StreamPolicy` only changes what a specific consumer of the event queue sees, never what actually executes.
+    - The event-to-preset mapping is fixed, not configurable per event. There's no way to make `standard()` include `verifier_scored` without building your own custom policy from scratch.
+
+### See also
+
+    - [FastAPI Integration](fastapi.html) — applies a `StreamPolicy` uniformly to an Agent, Orchestrator, or WorkflowBuilder behind one SSE endpoint.
+    - [Retry & Fallback](retry.html) and [Looping](looping.html) — the features whose events only surface under `verbose()`.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

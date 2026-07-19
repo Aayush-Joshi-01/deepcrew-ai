@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FastAPI Integration — deepcrew-ai</title>
+  <meta name="description" content="One call turns any Agent, Orchestrator, or WorkflowBuilder into an SSE endpoint." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Streaming</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/fastapi.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="fastapi-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Streaming</span>
+    <span class="sidebar-page">FastAPI Integration</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Requests are validated before streaming starts, so bad input never opens a stream.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="fastapi" data-section="fastapi">
+  <div class="section-eyebrow">Streaming</div>
+  <h2>Optional FastAPI Integration</h2>
+  <p>Ship a streaming endpoint in one call. Requires the <code>fastapi</code> extra: <code>pip install deepcrew-ai[fastapi]</code> — it is never imported unless you use it.</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">fastapi_example.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from fastapi import FastAPI
+from deepcrew import Agent, StreamPolicy
+from deepcrew.integrations.fastapi import create_stream_router
+
+agent = Agent(name="assistant", model="openai/gpt-4o")
+app = FastAPI()
+app.include_router(create_stream_router(agent, policy=StreamPolicy.chat()))
+# POST /chat streams Server-Sent Events; POST /chat/complete returns final JSON.</code></pre>
+  </div>
+
+  <p><code>create_stream_router</code> also accepts an <code>Orchestrator</code> or <code>WorkflowBuilder</code> as the target. The request body accepts <code>query</code>, optional <code>images</code>/<code>pdfs</code> (URLs or data URIs), and — if <code>allow_policy_override=True</code> — a per-request <code>policy</code> name.</p>
+
+  <h3>create_stream_router() reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">target<span class="param-required">*</span></div><div class="param-cell param-type">Agent | Orchestrator | WorkflowBuilder</div><div class="param-cell param-desc">Dispatch is by <code>isinstance</code> check. A bare <code>Agent</code> is wrapped with the same queue-plus-background-task pattern <code>Orchestrator</code> uses internally, so streaming behaves consistently across all three target types.</div></div>
+    <div class="param-row"><div class="param-cell param-name">path</div><div class="param-cell param-type">str = "/chat"</div><div class="param-cell param-desc">Route for the streaming endpoint. The non-streaming endpoint is always <code>f"{path}/complete"</code> — with the default, that's <code>/chat/complete</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">policy</div><div class="param-cell param-type">StreamPolicy | None = None</div><div class="param-cell param-desc">Default applied to every request. Falls back to <code>StreamPolicy.chat()</code> if omitted — the router is opinionated toward "just the reply text" out of the box, not verbose by default.</div></div>
+    <div class="param-row"><div class="param-cell param-name">allow_policy_override</div><div class="param-cell param-type">bool = False</div><div class="param-cell param-desc">When True, the request body's <code>policy</code> field (one of the literal strings <code>"chat"</code>, <code>"standard"</code>, or <code>"verbose"</code>) overrides the router's default for that one request. An unrecognized policy name returns <code>422</code>. There is no way to send a fully custom <code>include</code>/<code>exclude</code> set over the wire — only the three preset names.</div></div>
+  </div>
+
+  <h3>Request/response shapes</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>query</code></td><td>str</td><td>Required. The text prompt.</td></tr>
+        <tr><td><code>images</code></td><td>list[str] = []</td><td>Each a URL or <code>data:</code> URI, built into an <code>ImagePart</code> via <code>image()</code>. Local file paths are not accepted over HTTP — send bytes as a data URI instead.</td></tr>
+        <tr><td><code>pdfs</code></td><td>list[str] = []</td><td>Same URL/data-URI-only rule, via <code>pdf()</code>.</td></tr>
+        <tr><td><code>policy</code></td><td>str | None</td><td>Only read when the router was created with <code>allow_policy_override=True</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><code>POST {path}</code> streams <code>text/event-stream</code>: each <code>StreamEvent</code> serialized via its existing <code>to_sse()</code> method, followed by one final <code>event: done\ndata: {}\n\n</code> sentinel line appended by the router itself — this is separate from and always sent in addition to any <code>EventType.DONE</code> event your policy already lets through, so a client can rely on it unconditionally as the true end-of-stream marker regardless of policy. <code>POST {path}/complete</code> runs the same target non-streaming and returns the final result as JSON (a plain dict from <code>dataclasses.asdict()</code> on the <code>AgentResult</code>/<code>OrchestratorResult</code>/<code>WorkflowResult</code>).</p>
+
+  <h3>Trying it with curl</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash">curl -N -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Explain quantum entanglement"}'
+
+curl -X POST http://localhost:8000/chat/complete \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Explain quantum entanglement"}'</code></pre>
+  </div>
+
+  <h3>WorkflowBuilder and attachments</h3>
+  <p><code>WorkflowBuilder</code> has no <code>attachments</code> parameter anywhere in deepcrew — sending <code>images</code>/<code>pdfs</code> in a request to a router built over a <code>WorkflowBuilder</code> target returns <code>422</code> before anything runs, rather than silently dropping the attachments.</p>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>Validation happens before the stream starts, deliberately.</strong> Invalid attachments or an unrecognized policy name are checked and rejected with a clean <code>422</code> <em>before</em> the <code>StreamingResponse</code> begins sending headers — once a streaming response starts, an exception raised from inside the body generator can no longer become a clean HTTP error code, only a broken connection.</li>
+    <li><strong>The default policy is <code>chat()</code>, not <code>verbose()</code>.</strong> If your endpoint seems to be missing tool-call events, check whether you passed a more permissive <code>policy=</code> or set <code>allow_policy_override=True</code>.</li>
+    <li><strong>Only preset names are settable per-request.</strong> A custom <code>StreamPolicy(include=..., exclude=...)</code> can only be set as the router's fixed default at construction time — there's no JSON representation for it in the request body.</li>
+    <li><strong>Images/PDFs must be URLs or data URIs over HTTP.</strong> Local filesystem paths that work fine when calling <code>image()</code>/<code>pdf()</code> directly in Python are meaningless to a remote client — encode as base64 data URIs instead.</li>
+  </ul>
+
+  <h3>See also</h3>
+  <ul>
+    <li><a href="streampolicy.html">StreamPolicy</a> — the presets and event-visibility model this router applies uniformly.</li>
+    <li><a href="multimodal.html">Multimodal Input</a> — how <code>image()</code>/<code>pdf()</code> validate and encode the <code>images</code>/<code>pdfs</code> request fields.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="fastapi-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "FastAPI Integration" feature: One call turns any Agent, Orchestrator, or WorkflowBuilder into an SSE endpoint.
+
+How it works: Install the fastapi extra and call deepcrew.integrations.fastapi.create_stream_router(target, policy=...) to mount a POST /chat SSE streaming endpoint and a POST /chat/complete JSON endpoint on a FastAPI app.
+
+Please:
+1. Read the relevant deepcrew-ai API (model='FastAPI Integration') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that wires up FastAPI Integration for my use case.
+3. Explain any configuration choices you made and any edge cases I should handle.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# FastAPI Integration
+Ship a streaming endpoint in one call. Requires the `fastapi` extra: `pip install deepcrew-ai[fastapi]` — it is never imported unless you use it.
+
+```python
+from fastapi import FastAPI
+from deepcrew import Agent, StreamPolicy
+from deepcrew.integrations.fastapi import create_stream_router
+
+agent = Agent(name="assistant", model="openai/gpt-4o")
+app = FastAPI()
+app.include_router(create_stream_router(agent, policy=StreamPolicy.chat()))
+# POST /chat streams Server-Sent Events; POST /chat/complete returns final JSON.
+```
+
+`create_stream_router` also accepts an `Orchestrator` or `WorkflowBuilder` as the target. The request body accepts `query`, optional `images`/`pdfs` (URLs or data URIs), and — if `allow_policy_override=True` — a per-request `policy` name.
+
+### create_stream_router() reference
+
+- **target*** (Agent | Orchestrator | WorkflowBuilder): Dispatch is by `isinstance` check. A bare `Agent` is wrapped with the same queue-plus-background-task pattern `Orchestrator` uses internally, so streaming behaves consistently across all three target types.
+
+- **path** (str = "/chat"): Route for the streaming endpoint. The non-streaming endpoint is always `f"{path}/complete"` — with the default, that's `/chat/complete`.
+
+- **policy** (StreamPolicy | None = None): Default applied to every request. Falls back to `StreamPolicy.chat()` if omitted — the router is opinionated toward "just the reply text" out of the box, not verbose by default.
+
+- **allow_policy_override** (bool = False): When True, the request body's `policy` field (one of the literal strings `"chat"`, `"standard"`, or `"verbose"`) overrides the router's default for that one request. An unrecognized policy name returns `422`. There is no way to send a fully custom `include`/`exclude` set over the wire — only the three preset names.
+
+### Request/response shapes
+
+      | Field | Type | Notes |
+
+        | `query` | str | Required. The text prompt. |
+
+        | `images` | list[str] = [] | Each a URL or `data:` URI, built into an `ImagePart` via `image()`. Local file paths are not accepted over HTTP — send bytes as a data URI instead. |
+
+        | `pdfs` | list[str] = [] | Same URL/data-URI-only rule, via `pdf()`. |
+
+        | `policy` | str | None | Only read when the router was created with `allow_policy_override=True`. |
+
+`POST {path}` streams `text/event-stream`: each `StreamEvent` serialized via its existing `to_sse()` method, followed by one final `event: done\ndata: {}\n\n` sentinel line appended by the router itself — this is separate from and always sent in addition to any `EventType.DONE` event your policy already lets through, so a client can rely on it unconditionally as the true end-of-stream marker regardless of policy. `POST {path}/complete` runs the same target non-streaming and returns the final result as JSON (a plain dict from `dataclasses.asdict()` on the `AgentResult`/`OrchestratorResult`/`WorkflowResult`).
+
+### Trying it with curl
+
+```python
+curl -N -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Explain quantum entanglement"}'
+
+curl -X POST http://localhost:8000/chat/complete \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Explain quantum entanglement"}'
+```
+
+### WorkflowBuilder and attachments
+
+`WorkflowBuilder` has no `attachments` parameter anywhere in deepcrew — sending `images`/`pdfs` in a request to a router built over a `WorkflowBuilder` target returns `422` before anything runs, rather than silently dropping the attachments.
+
+### Common pitfalls
+
+    - Validation happens before the stream starts, deliberately. Invalid attachments or an unrecognized policy name are checked and rejected with a clean `422` before the `StreamingResponse` begins sending headers — once a streaming response starts, an exception raised from inside the body generator can no longer become a clean HTTP error code, only a broken connection.
+    - The default policy is `chat()`, not `verbose()`. If your endpoint seems to be missing tool-call events, check whether you passed a more permissive `policy=` or set `allow_policy_override=True`.
+    - Only preset names are settable per-request. A custom `StreamPolicy(include=..., exclude=...)` can only be set as the router's fixed default at construction time — there's no JSON representation for it in the request body.
+    - Images/PDFs must be URLs or data URIs over HTTP. Local filesystem paths that work fine when calling `image()`/`pdf()` directly in Python are meaningless to a remote client — encode as base64 data URIs instead.
+
+### See also
+
+    - [StreamPolicy](streampolicy.html) — the presets and event-visibility model this router applies uniformly.
+    - [Multimodal Input](multimodal.html) — how `image()`/`pdf()` validate and encode the `images`/`pdfs` request fields.
+
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

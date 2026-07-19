@@ -1,0 +1,38 @@
+# deepcrew-ai
+
+> Async, LiteLLM-backed multi-agent Python library with a self-improving refinement loop
+> (verifier-scored, adaptive, self-consistency branching, skill distillation), bounded recursive
+> agent spawning, APEX multi-agent synthesis, multimodal input, and streaming with selectable
+> event visibility (StreamPolicy). `pip install deepcrew-ai`.
+
+## Docs
+
+- [Overview & quick start](md/index.md): install, core building blocks, documentation map.
+- [Features index](md/features.md): index of every feature page below.
+- [Examples](md/examples.md): index of runnable scripts in `examples/`.
+- [Migration guide](md/migration.md): concept map from CrewAI and Google ADK, plus what deepcrew
+  adds.
+
+## Feature guides
+
+- [APEX Synthesizer](md/guides/apex.md)
+- [Agent Spawning](md/guides/spawning.md)
+- [Looping](md/guides/looping.md)
+- [Verifier](md/guides/verifier.md)
+- [Procedural Memory](md/guides/procedural-memory.md)
+- [Multimodal Input](md/guides/multimodal.md)
+- [StreamPolicy](md/guides/streampolicy.md)
+- [FastAPI Integration](md/guides/fastapi.md)
+- [Structured Output](md/guides/structured-output.md)
+- [Human-in-the-Loop Hooks](md/guides/hooks.md)
+- [Memory Providers](md/guides/memory.md)
+- [Redis Memory Provider](md/guides/redis-memory.md)
+- [Skills](md/guides/skills.md)
+- [Retry & Fallback](md/guides/retry.md)
+- [Observability](md/guides/observability.md)
+- [CLI](md/guides/cli.md)
+
+## Optional
+
+- [llms-full.txt](llms-full.txt): full concatenated text of every page above, for pasting into an
+  LLM context window in one shot.

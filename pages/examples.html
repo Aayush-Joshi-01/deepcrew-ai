@@ -23,19 +23,18 @@
   </a>
   <ul class="nav-links">
     <li><a href="index.html">Docs</a></li>
-    <li><a href="features.html">v0.3.0 Features</a></li>
+    <li><a href="features.html">Features</a></li>
     <li><a href="examples.html" class="active">Examples</a></li>
     <li><a href="index.html#api-reference">API</a></li>
   </ul>
   <div class="nav-right">
-    <span class="badge">v0.3.0</span>
+    <span class="badge">v0.4.0</span>
+    <button class="btn-outline copy-page-btn" data-md="md/examples.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
-    </a>
-    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener">PyPI →</a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
   </div>
-  <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
 </header>
 
 <div class="page-layout">
@@ -135,6 +134,9 @@
     <h1>Real-world examples<br/><em>across every domain.</em></h1>
     <p>Complete, runnable examples for legal, financial, medical, DevOps, e-commerce, and more — using OpenAI, Anthropic, Gemini, Bedrock, Azure, and local Ollama models. New in v0.3.0: three examples built around the self-improving loop.</p>
   </section>
+
+  <div class="callout callout--tip">    <div>Every example on this page — plus the v0.4.0 ones (multimodal, structured output, human-in-the-loop, FastAPI streaming) — is also a runnable script in <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai/tree/main/examples" target="_blank" rel="noopener"><code>examples/</code></a> in the repository. See <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai/blob/main/examples/README.md" target="_blank" rel="noopener"><code>examples/README.md</code></a> for the full index and required environment variables.</div>
+  </div>
 
   <div class="examples-grid">
     <a class="ex-card" href="#ex-selfimproving">
@@ -356,9 +358,7 @@ async def main():
 asyncio.run(main())</code></pre>
   </div>
 
-  <div class="callout">
-    <span class="callout-icon">💡</span>
-    <div>Delete <code>research_playbook.json</code> and run again to see the "cold start" behavior — without it, the agent has no prior strategies injected and typically takes more iterations to converge.</div>
+  <div class="callout">    <div>Delete <code>research_playbook.json</code> and run again to see the "cold start" behavior — without it, the agent has no prior strategies injected and typically takes more iterations to converge.</div>
   </div>
 </section>
 
@@ -426,9 +426,7 @@ async def main():
 asyncio.run(main())</code></pre>
   </div>
 
-  <div class="callout">
-    <span class="callout-icon">⚠️</span>
-    <div><code>branches=3</code> triples the LLM calls made per iteration. Reserve branching for reviews where getting it right matters more than the extra cost — a security-sensitive diff, not a typo fix.</div>
+  <div class="callout">    <div><code>branches=3</code> triples the LLM calls made per iteration. Reserve branching for reviews where getting it right matters more than the extra cost — a security-sensitive diff, not a typo fix.</div>
   </div>
 </section>
 
@@ -498,9 +496,7 @@ async def main():
 asyncio.run(main())</code></pre>
   </div>
 
-  <div class="callout">
-    <span class="callout-icon">💡</span>
-    <div>This is depth-bounded, not fan-out-bounded — each level can still spawn as many sibling sub-agents as it needs. A sub-agent that hits <code>max_spawn_depth</code> simply has no <code>spawn_agent</code> tool available and completes its slice directly instead of delegating further.</div>
+  <div class="callout">    <div>This is depth-bounded, not fan-out-bounded — each level can still spawn as many sibling sub-agents as it needs. A sub-agent that hits <code>max_spawn_depth</code> simply has no <code>spawn_agent</code> tool available and completes its slice directly instead of delegating further.</div>
   </div>
 </section>
 
@@ -1994,13 +1990,14 @@ curl -X POST http://localhost:8000/v1/query \
 
 <footer>
   <div class="footer-left">
-    Built with ♥ — <strong>deepcrew-ai</strong> v0.3.0 — MIT License
+    Built with <strong>deepcrew-ai</strong> — MIT License
   </div>
   <div class="footer-links">
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
     <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
     <a href="index.html">Docs</a>
     <a href="features.html">Features</a>
+    <a href="llms.txt">llms.txt</a>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai/blob/main/CHANGELOG.md" target="_blank">Changelog</a>
   </div>
 </footer>
@@ -2010,6 +2007,43 @@ curl -X POST http://localhost:8000/v1/query \
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# deepcrew-ai Examples
+
+Runnable, self-contained scripts live in [`examples/`](https://github.com/Aayush-Joshi-01/deepcrew-ai/tree/main/examples)
+in the repository. Each file's module docstring lists the required environment variables (API
+keys) before you run it.
+
+## Core
+
+- `simple_agent.py` — a single agent with an `@tool`-decorated function.
+- `workflow_example.py` — a 4-node DAG (`WorkflowBuilder`) with streaming and non-streaming runs.
+- `automated_example.py` — `Orchestrator` with router + APEX synthesis, streaming events.
+- `mcp_example.py` — all three MCP transports (Stdio/HTTP/SSE) plus `MCPManager`.
+
+## Self-improving loop / spawning
+
+- `self_improving_research.py` — `LoopConfig` with a `Verifier`, adaptive early-stop, and
+  procedural memory.
+- `consensus_code_review.py` — self-consistency branching plus skill distillation.
+- `autonomous_task_planning.py` — bounded nested agent spawning via `Orchestrator(enable_spawn=True)`.
+
+## v0.4.0
+
+- `multimodal_agent.py` — attaching an image and a PDF to a query with `image()`/`pdf()`.
+- `structured_output.py` — `response_model` validated against a pydantic schema.
+- `human_in_the_loop.py` — `AgentHooks.approve_tool` denying a specific tool call.
+- `fastapi_streaming.py` — `create_stream_router` wired into a FastAPI app, chat vs. verbose
+  `StreamPolicy`.
+
+Provider quick reference: swap the `model=` string on any `Agent` —
+`"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, `"gemini/gemini-2.0-flash"`,
+`"bedrock/anthropic.claude-3-sonnet"`, `"azure/<deployment>"`, `"groq/llama-3.1-70b"`,
+`"ollama/llama3.2"` (local, no API key needed) — LiteLLM handles the rest.
+
+Full walkthroughs with expected output: [examples.html](examples.html).
+
+</script>
 <script src="assets/js/main.js"></script>
 </body>
 </html>
