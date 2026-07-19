@@ -13,6 +13,7 @@ class EventType(StrEnum):
     THINKING_DELTA = "thinking_delta"
     TOOL_CALL = "tool_call"
     TOOL_RESULT = "tool_result"
+    TOOL_DENIED = "tool_denied"
     AGENT_DONE = "agent_done"
     STEP_START = "step_start"
     STEP_DONE = "step_done"
@@ -74,6 +75,9 @@ class AgentResult:
     model: str = ""
     confidence: float | None = None
     loop_iterations: int = 0
+    # Set when Agent.response_model is used: the validated pydantic model
+    # instance parsed from `text`. None otherwise.
+    parsed: Any | None = None
 
     @property
     def total_tokens(self) -> int:
