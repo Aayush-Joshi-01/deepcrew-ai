@@ -1,0 +1,19 @@
+# Steer people to the right channel before they open a blank issue.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Documentation
+    url: https://deepcrew-ai.aayushjoshi.dev
+    about: Guides for every feature, API reference, and runnable examples. Start here.
+
+  - name: Question or idea
+    url: https://github.com/Aayush-Joshi-01/deepcrew-ai/discussions
+    about: Usage questions, design discussions, and "how do I ...?" belong here rather than in issues.
+
+  - name: Report a security vulnerability
+    url: https://github.com/Aayush-Joshi-01/deepcrew-ai/security/advisories/new
+    about: Report privately. Please do not open a public issue for security problems.
+
+  - name: Contributing guide
+    url: https://github.com/Aayush-Joshi-01/deepcrew-ai/blob/main/CONTRIBUTING.md
+    about: Dev setup, project conventions, and what a good pull request looks like.
