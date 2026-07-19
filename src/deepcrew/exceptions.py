@@ -41,3 +41,16 @@ class SkillError(DeepCrewError):
 
 class DeepCrewMemoryError(DeepCrewError):
     """Raised when a memory provider operation fails."""
+
+
+class ContentError(DeepCrewError):
+    """Raised for invalid, unreadable, oversized, or unsupported multimodal content."""
+
+
+class OutputParseError(DeepCrewError):
+    """Raised when an agent's ``response_model`` output could not be parsed
+    into the target schema, even after one automatic repair attempt."""
+
+    def __init__(self, message: str, raw_text: str = "") -> None:
+        super().__init__(message)
+        self.raw_text = raw_text
