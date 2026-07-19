@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from .content import extract_text
 from .exceptions import LoopConvergedError
 from .procedural_memory import ProceduralMemory
 from .skills import FunctionSkill, SkillRegistry
@@ -15,6 +17,8 @@ from .verifier import Verifier, VerifierFeedback
 
 if TYPE_CHECKING:
     from .agent import Agent
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -101,12 +105,17 @@ async def run_agent_loop(
     this loop re-prompts the agent with a refinement message when the result
     does not satisfy convergence_fn.
     """
-    # Import here to break the circular import: loop → runner → agent → loop
-    from .runner import run_agent
+    # Import here to break the circular import: loop → runner → agent → loop.
+    # Use the internal _run_agent_turns, never the public run_agent: run_agent
+    # re-checks agent.loop_config and would delegate straight back into this
+    # function on every call, recursing indefinitely for a looped agent.
+    from .runner import _run_agent_turns
 
     cfg = agent.loop_config
     if cfg is None:
-        return await run_agent(agent, messages, tool_defs=tool_defs, queue=queue, agent_id=agent_id)
+        return await _run_agent_turns(
+            agent, messages, tool_defs=tool_defs, queue=queue, agent_id=agent_id
+        )
 
     aid = agent_id or agent.name
     state = LoopState(iteration=0)
@@ -179,7 +188,7 @@ async def run_agent_loop(
                 agent, current_messages, fetched_tool_defs, queue, aid, cfg, original_query
             )
         else:
-            result = await run_agent(
+            result = await _run_agent_turns(
                 agent,
                 current_messages,
                 tool_defs=fetched_tool_defs,
@@ -269,11 +278,11 @@ async def _run_branches(
     pick the best (via verifier score) or merge them (via APEXSynthesizer
     when no verifier is configured).
     """
-    from .runner import run_agent
+    from .runner import _run_agent_turns
 
     branch_results = await asyncio.gather(
         *[
-            run_agent(agent, messages, tool_defs=tool_defs, queue=queue, agent_id=aid)
+            _run_agent_turns(agent, messages, tool_defs=tool_defs, queue=queue, agent_id=aid)
             for _ in range(cfg.branches)
         ]
     )
@@ -385,10 +394,12 @@ def _make_distilled_skill(agent: Agent, name: str, description: str) -> Function
 
 
 def _extract_query(messages: list[dict[str, Any]]) -> str:
-    """Return the first user-role message content, used by the verifier."""
+    """Return the text of the first user-role message, used by the verifier."""
     for m in messages:
-        if m.get("role") == "user" and isinstance(m.get("content"), str):
-            return m["content"]
+        if m.get("role") == "user":
+            text = extract_text(m.get("content"))
+            if text:
+                return text
     return ""
 
 

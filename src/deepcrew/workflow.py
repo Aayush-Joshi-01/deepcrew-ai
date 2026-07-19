@@ -9,7 +9,7 @@ from .agent import Agent
 from .exceptions import WorkflowError
 from .observability import ObservabilityConfig, workflow_step_span
 from .runner import run_agent
-from .stream import make_error_event, queue_to_stream
+from .stream import StreamPolicy, filter_stream, make_error_event, queue_to_stream
 from .types import AgentResult, EventType, StreamEvent, WorkflowResult
 
 
@@ -141,12 +141,22 @@ class WorkflowBuilder:
         self,
         initial_input: str,
         context: dict[str, Any] | None = None,
+        *,
+        policy: StreamPolicy | None = None,
     ) -> AsyncGenerator[StreamEvent, None]:
-        """Execute the workflow, streaming events in real time."""
+        """Execute the workflow, streaming events in real time.
+
+        ``policy`` filters which event types are yielded (see
+        :class:`StreamPolicy`); it is a view over the stream only and never
+        affects execution.
+        """
         self._validate()
         queue: asyncio.Queue[StreamEvent | None] = asyncio.Queue()
         task = asyncio.create_task(self._run_streaming(initial_input, context or {}, queue))
-        return queue_to_stream(queue, task)
+        stream = queue_to_stream(queue, task)
+        if policy is not None:
+            stream = filter_stream(stream, policy)
+        return stream
 
     async def _run_streaming(
         self,

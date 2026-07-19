@@ -175,6 +175,11 @@ def make_spawn_tool(
     there's still depth budget (see ``spawn_agent``'s attach logic), but the
     ``current_depth >= max_depth`` check below is kept as defense-in-depth for
     any direct caller that bypasses that attach logic.
+
+    Note: spawned sub-agents never automatically receive the parent's
+    multimodal attachments (images/PDFs) — the parent LLM has already seen
+    them and is expected to describe whatever is relevant in the ``task``
+    string it passes to this tool.
     """
 
     async def _spawn(

@@ -26,6 +26,7 @@ def _make_stream_chunk(text: str | None = None):
     delta = MagicMock()
     delta.content = text
     delta.tool_calls = []
+    delta.reasoning_content = None
     choice = MagicMock()
     choice.delta = delta
     chunk = MagicMock()
@@ -110,6 +111,70 @@ async def test_orchestrator_invalid_router_json_raises():
         pytest.raises(RouterError),
     ):
         await orch._route("some query")
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_router_sees_attachment_note_not_base64():
+    from deepcrew.content import image
+
+    agents = [Agent("researcher", model="openai/gpt-4o", system_prompt="Research specialist.")]
+    orch = Orchestrator(agents, router_model="openai/gpt-4o-mini")
+
+    router_response = _make_litellm_response(
+        json.dumps({"route": "single", "agent": "researcher", "task": "Describe the photo"})
+    )
+    agent_chunks = [_make_stream_chunk("It's a cat."), _make_stream_chunk()]
+
+    captured_router_calls = []
+
+    async def fake_completion(**kwargs):
+        if kwargs.get("stream") is False:
+            captured_router_calls.append(kwargs)
+            return router_response
+        return _fake_stream(*agent_chunks)
+
+    attachments = [image(b"\x89PNG\r\n\x1a\n" + b"\x00" * 16)]
+
+    with patch("litellm.acompletion", new=AsyncMock(side_effect=fake_completion)):
+        await orch.run("What's in this photo?", attachments=attachments)
+
+    assert len(captured_router_calls) == 1
+    router_user_message = captured_router_calls[0]["messages"][-1]["content"]
+    assert isinstance(router_user_message, str)
+    assert "[attachments: 1 image]" in router_user_message
+    assert "base64" not in router_user_message
+    assert attachments[0].url.split(",", 1)[1] not in router_user_message
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_executing_agent_receives_attachments():
+    from deepcrew.content import image
+
+    agents = [Agent("researcher", model="openai/gpt-4o", system_prompt="Research specialist.")]
+    orch = Orchestrator(agents, router_model="openai/gpt-4o-mini")
+
+    router_response = _make_litellm_response(
+        json.dumps({"route": "single", "agent": "researcher", "task": "Describe the photo"})
+    )
+    agent_chunks = [_make_stream_chunk("It's a cat."), _make_stream_chunk()]
+
+    captured_agent_calls = []
+
+    async def fake_completion(**kwargs):
+        if kwargs.get("stream") is False:
+            return router_response
+        captured_agent_calls.append(kwargs)
+        return _fake_stream(*agent_chunks)
+
+    img = image(b"\x89PNG\r\n\x1a\n" + b"\x00" * 16)
+
+    with patch("litellm.acompletion", new=AsyncMock(side_effect=fake_completion)):
+        await orch.run("What's in this photo?", attachments=[img])
+
+    assert len(captured_agent_calls) == 1
+    agent_user_message = captured_agent_calls[0]["messages"][-1]["content"]
+    assert isinstance(agent_user_message, list)
+    assert agent_user_message[-1] == {"type": "image_url", "image_url": {"url": img.url}}
 
 
 @pytest.mark.asyncio
