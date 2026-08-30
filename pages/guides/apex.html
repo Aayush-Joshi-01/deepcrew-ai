@@ -8,9 +8,64 @@
   <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/apex.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="APEX Synthesizer — deepcrew-ai" />
+  <meta property="og:description" content="Confidence-scored, citation-aware multi-agent result synthesis." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/guides/apex.html" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="APEX Synthesizer — deepcrew-ai" />
+  <meta name="twitter:description" content="Confidence-scored, citation-aware multi-agent result synthesis." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/guides/apex.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "APEX Synthesizer — deepcrew-ai",
+  "headline": "APEX Synthesizer — deepcrew-ai",
+  "description": "Confidence-scored, citation-aware multi-agent result synthesis.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/guides/apex.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -61,7 +116,7 @@
 <section class="section" id="apex" data-section="apex">
   <div class="section-eyebrow">Orchestration</div>
   <h2>APEX Synthesizer</h2>
-  <p>APEX is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline <code>[source: agent_name]</code> markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.</p>
+  <p>APEX (Assembly &amp; Precision Executor) is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline <code>[source: agent_name]</code> markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.</p>
   <p>APEX lives in <code>src/deepcrew/apex.py</code> as the <code>APEXSynthesizer</code> class. You will rarely construct it directly in normal use: <code>Orchestrator</code> builds and owns one internally whenever it routes a query to multiple agents. You only reach for the standalone API in <a href="#standalone">the section below</a> when you already have a list of <code>AgentResult</code> objects from somewhere else (a cache, a previous run, a custom fan-out you wrote yourself) and want APEX's merging behavior without going through the full router pipeline.</p>
 
   <span class="anchor" id="when-apex-runs"></span>
@@ -234,7 +289,7 @@ My use case: <describe what you're building here>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 <script type="text/plain" class="page-md">
 # APEX Synthesizer
-APEX is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
+APEX (Assembly & Precision Executor) is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
 
 APEX lives in `src/deepcrew/apex.py` as the `APEXSynthesizer` class. You will rarely construct it directly in normal use: `Orchestrator` builds and owns one internally whenever it routes a query to multiple agents. You only reach for the standalone API in [the section below](#standalone) when you already have a list of `AgentResult` objects from somewhere else (a cache, a previous run, a custom fan-out you wrote yourself) and want APEX's merging behavior without going through the full router pipeline.
 

@@ -72,21 +72,22 @@ def _build_user_message(task: str, attachments: list[ContentPart] | None) -> dic
 
 class Orchestrator:
     """
-    Automated multi-agent orchestrator with APEX synthesis.
+    Automated multi-agent orchestrator with APEX (Assembly & Precision Executor) synthesis.
 
     Runs a three-stage pipeline:
 
-    1. **Router** — a lightweight LLM call that reads the user query and the
-       list of available agents, then decides whether to route to a single
-       agent or fan out to multiple agents running in parallel. When
-       ``global_tools`` are provided, the router also performs intelligent
-       tool allocation per agent.
+    1. **Router / NIA** (Navigator & Intelligence Allocator) — a lightweight
+       LLM call that reads the user query and the list of available agents,
+       then decides whether to route to a single agent or fan out to multiple
+       agents running in parallel. When ``global_tools`` are provided, NIA
+       also performs intelligent tool allocation per agent.
     2. **Execution** — the chosen agent(s) run via :func:`run_agent`, either
        one at a time or concurrently via ``asyncio.gather``. When
        ``enable_spawn=True``, every agent receives a ``spawn_agent`` meta-tool
        so it can dynamically create sub-agents mid-loop.
-    3. **APEX** — if multiple agents ran, the APEX synthesizer merges their
-       outputs with confidence scoring and optional source citation.
+    3. **APEX** (Assembly & Precision Executor) — if multiple agents ran, the
+       APEX synthesizer merges their outputs with confidence scoring and
+       optional source citation.
 
     Parameters
     ----------

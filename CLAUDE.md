@@ -7,7 +7,8 @@ Guidance for coding agents (Claude Code and others) working in this repository.
 `deepcrew-ai` (import name `deepcrew`) is an async, LiteLLM-backed multi-agent library. Its
 distinguishing features are a self-improving refinement loop (verifier-scored, adaptive,
 self-consistency branching, skill distillation), bounded recursive agent spawning, APEX
-multi-agent synthesis, and true token streaming with selectable visibility (`StreamPolicy`).
+(Assembly & Precision Executor) multi-agent synthesis, and true token streaming with selectable
+visibility (`StreamPolicy`).
 
 ## Architecture map
 
@@ -15,8 +16,9 @@ multi-agent synthesis, and true token streaming with selectable visibility (`Str
   `response_model`, retry/fallback config.
 - `src/deepcrew/runner.py` — `run_agent()`: the core agentic loop (stream → buffer tool calls →
   execute in parallel → repeat). Delegates to `loop.py` when `Agent.loop_config` is set.
-- `src/deepcrew/orchestrator.py` — `Orchestrator`: router LLM picks single-agent or parallel
-  fan-out, then `apex.py`'s `APEXSynthesizer` merges parallel results.
+- `src/deepcrew/orchestrator.py` — `Orchestrator`: NIA (Navigator & Intelligence Allocator), the
+  router LLM, picks single-agent or parallel fan-out, then `apex.py`'s `APEXSynthesizer` (APEX,
+  Assembly & Precision Executor) merges parallel results.
 - `src/deepcrew/loop.py` — `run_agent_loop()`: outer refinement loop driven by `LoopConfig` —
   verifier scoring (`verifier.py`), adaptive early-stop, self-consistency branching, and
   Voyager-style skill distillation into `skills/registry.py`.

@@ -47,7 +47,7 @@ class ApexCitation:
 
 class APEXSynthesizer:
     """
-    APEX — the intelligent synthesis engine for deepcrew-ai.
+    APEX (Assembly & Precision Executor) — the intelligent synthesis engine for deepcrew-ai.
 
     Merges parallel agent outputs into a single cohesive response with
     confidence scoring and optional source citation.

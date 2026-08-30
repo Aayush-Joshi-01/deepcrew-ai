@@ -84,6 +84,11 @@ result.parsed  # a validated Verdict instance (one automatic repair attempt on b
 
 ### Orchestrator with APEX synthesis
 
+The `Orchestrator` runs a router LLM called NIA (Navigator & Intelligence Allocator) to pick
+single-agent vs. parallel fan-out and allocate tools per agent, then APEX (Assembly & Precision
+Executor) merges the parallel results with a confidence score and optional `[source: agent]`
+citations.
+
 ```python
 from deepcrew import Agent, Orchestrator, ApexConfig
 
@@ -177,7 +182,7 @@ app.include_router(create_stream_router(agent, policy=StreamPolicy.chat()))
 
 - **`max_turns` exhaustion**: `Agent.max_turns` (default 10) caps LLM↔tool cycles; a tool-heavy
   agent that never converges raises `MaxTurnsError`. Raise `max_turns` or fix the tool loop.
-- **The Orchestrator's router is text-only**: it runs in JSON mode to decide routing, so it never
+- **The Orchestrator's router (NIA) is text-only**: it runs in JSON mode to decide routing, so it never
   sees `attachments` directly — only a text summary of how many images/documents exist. The
   executing agent(s) get the actual attachments.
 - **File/PDF content blocks aren't universal**: `pdf()` produces a `file` content block supported

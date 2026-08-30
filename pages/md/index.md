@@ -30,8 +30,9 @@ print(result.text)
 
 - **`Agent`** — model, system prompt, tools, memory, hooks, optional `response_model`.
 - **`run_agent()`** — the agentic loop: stream → buffer tool calls → execute in parallel → repeat.
-- **`Orchestrator`** — an LLM router picks a single agent or fans out to several in parallel, then
-  `APEXSynthesizer` merges parallel results with confidence scoring and optional citations.
+- **`Orchestrator`** — NIA (Navigator & Intelligence Allocator), an LLM router, picks a single
+  agent or fans out to several in parallel, then `APEXSynthesizer` (APEX, Assembly & Precision
+  Executor) merges parallel results with confidence scoring and optional citations.
 - **`WorkflowBuilder`** — an explicit DAG of agents; independent nodes at the same level run in
   parallel automatically.
 - **`LoopConfig`** — an outer refinement loop: a `Verifier` scores each iteration and drives

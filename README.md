@@ -177,7 +177,7 @@ print(result.final_output.text)
 
 ### Orchestrator — automated AI routing with APEX
 
-The router LLM decides which agents to run; APEX synthesizes the results.
+NIA (**N**avigator & **I**ntelligence **A**llocator), the router LLM, decides which agents to run; APEX synthesizes the results.
 
 ```python
 from deepcrew import Agent, Orchestrator, ApexConfig
@@ -205,7 +205,7 @@ print(result.final_text)
 
 ### APEX Synthesizer
 
-APEX replaces the plain synthesizer with confidence scoring and source citation.
+APEX (**A**ssembly & **P**recision **EX**ecutor) replaces the plain synthesizer with confidence scoring and source citation.
 
 ```python
 from deepcrew import APEXSynthesizer, ApexConfig, AgentResult

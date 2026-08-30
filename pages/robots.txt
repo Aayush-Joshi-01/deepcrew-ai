@@ -1,0 +1,33 @@
+# deepcrew-ai documentation: https://deepcrew-ai.aayushjoshi.dev
+User-agent: *
+Allow: /
+
+# AI / answer engines are explicitly welcome to index and cite this documentation.
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-Web
+Allow: /
+User-agent: anthropic-ai
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: CCBot
+Allow: /
+User-agent: Bytespider
+Allow: /
+User-agent: Amazonbot
+Allow: /
+User-agent: Meta-ExternalAgent
+Allow: /
+
+Sitemap: https://deepcrew-ai.aayushjoshi.dev/sitemap.xml

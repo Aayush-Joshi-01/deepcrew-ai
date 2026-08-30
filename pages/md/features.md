@@ -6,7 +6,7 @@ prompt for that specific feature.
 
 ## Orchestration
 
-- [APEX Synthesizer](guides/apex.md) — confidence-scored, citation-aware multi-agent result synthesis.
+- [APEX Synthesizer](guides/apex.md) — APEX (Assembly & Precision Executor): confidence-scored, citation-aware multi-agent result synthesis.
 - [Agent Spawning](guides/spawning.md) — agents dynamically spawn sub-agents mid-loop, with bounded nested delegation.
 
 ## Self-Improving Loop

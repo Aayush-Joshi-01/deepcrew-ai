@@ -35,7 +35,7 @@ print(result.text)
 
 - **`Agent`** — model, system prompt, tools, memory, hooks, optional `response_model`.
 - **`run_agent()`** — the agentic loop: stream → buffer tool calls → execute in parallel → repeat.
-- **`Orchestrator`** — an LLM router picks a single agent or fans out to several in parallel, then
+- **`Orchestrator`** — NIA (Navigator & Intelligence Allocator), an LLM router, picks a single agent or fans out to several in parallel, then
   `APEXSynthesizer` merges parallel results with confidence scoring and optional citations.
 - **`WorkflowBuilder`** — an explicit DAG of agents; independent nodes at the same level run in
   parallel automatically.
@@ -163,7 +163,7 @@ deepcrew adds once you're here.
 |---|---|---|
 | `Agent(role=, goal=, backstory=)` | `Agent(name=, system_prompt=)` | deepcrew doesn't split role/goal/backstory into separate fields — fold them into one `system_prompt`. |
 | `Crew(agents=[...], process=Process.sequential)` | `WorkflowBuilder().add_agent(...).then(...)` | Explicit DAG edges instead of an implicit list order. |
-| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | An LLM router picks single-agent or fan-out parallel execution; no manager agent to configure. |
+| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | NIA (Navigator & Intelligence Allocator), an LLM router, picks single-agent or fan-out parallel execution; no manager agent to configure. |
 | `@tool` / `BaseTool` subclass | `@tool` decorator on a plain function | Schema is auto-generated from type hints — no separate schema class. |
 | `Agent(..., output_pydantic=Model)` | `Agent(..., response_model=Model)` | Validated result lands on `AgentResult.parsed`; one automatic repair attempt on invalid JSON. |
 | `Task(human_input=True)` | `AgentHooks(approve_tool=...)` | deepcrew's human-in-the-loop is per-tool-call, not per-task; return `False` from `approve_tool` to deny. |
@@ -246,7 +246,7 @@ See the [Streaming guide](streaming.html) and [Loop guide](guides/loop.html) for
 ---
 
 # APEX Synthesizer
-APEX is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
+APEX (Assembly & Precision Executor) is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
 
 APEX lives in `src/deepcrew/apex.py` as the `APEXSynthesizer` class. You will rarely construct it directly in normal use: `Orchestrator` builds and owns one internally whenever it routes a query to multiple agents. You only reach for the standalone API in [the section below](#standalone) when you already have a list of `AgentResult` objects from somewhere else (a cache, a previous run, a custom fan-out you wrote yourself) and want APEX's merging behavior without going through the full router pipeline.
 

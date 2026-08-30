@@ -8,9 +8,64 @@
   <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/migration.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="Migration Guide — deepcrew-ai" />
+  <meta property="og:description" content="Migrate to deepcrew-ai from CrewAI or Google ADK: a concept map plus what deepcrew adds — true streaming visibility, self-improving loops, bounded spawning, and skill distillation." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/guides/migration.html" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Migration Guide — deepcrew-ai" />
+  <meta name="twitter:description" content="Migrate to deepcrew-ai from CrewAI or Google ADK: a concept map plus what deepcrew adds — true streaming visibility, self-improving loops, bounded spawning, and skill distillation." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/migration.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Migration Guide — deepcrew-ai",
+  "headline": "Migration Guide — deepcrew-ai",
+  "description": "Migrate to deepcrew-ai from CrewAI or Google ADK: a concept map plus what deepcrew adds — true streaming visibility, self-improving loops, bounded spawning, and skill distillation.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/guides/migration.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -61,7 +116,7 @@
       <tbody>
         <tr><td><code>Agent(role=, goal=, backstory=)</code></td><td><code>Agent(name=, system_prompt=)</code></td><td>Fold role/goal/backstory into one system prompt.</td></tr>
         <tr><td><code>Crew(process=Process.sequential)</code></td><td><code>WorkflowBuilder().add_agent(...).then(...)</code></td><td>Explicit DAG edges instead of implicit list order.</td></tr>
-        <tr><td><code>Crew(process=Process.hierarchical)</code></td><td><code>Orchestrator(agents=[...])</code></td><td>An LLM router picks single-agent or parallel fan-out.</td></tr>
+        <tr><td><code>Crew(process=Process.hierarchical)</code></td><td><code>Orchestrator(agents=[...])</code></td><td>NIA (Navigator &amp; Intelligence Allocator), an LLM router, picks single-agent or parallel fan-out.</td></tr>
         <tr><td><code>@tool</code> / <code>BaseTool</code></td><td><code>@tool</code> on a plain function</td><td>Schema auto-generated from type hints.</td></tr>
         <tr><td><code>output_pydantic=Model</code></td><td><code>response_model=Model</code></td><td>Result lands on <code>AgentResult.parsed</code>; one repair attempt on invalid JSON.</td></tr>
         <tr><td><code>Task(human_input=True)</code></td><td><code>AgentHooks(approve_tool=...)</code></td><td>Per-tool-call, not per-task; return <code>False</code> to deny.</td></tr>
@@ -181,7 +236,7 @@ deepcrew adds once you're here.
 |---|---|---|
 | `Agent(role=, goal=, backstory=)` | `Agent(name=, system_prompt=)` | deepcrew doesn't split role/goal/backstory into separate fields — fold them into one `system_prompt`. |
 | `Crew(agents=[...], process=Process.sequential)` | `WorkflowBuilder().add_agent(...).then(...)` | Explicit DAG edges instead of an implicit list order. |
-| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | An LLM router picks single-agent or fan-out parallel execution; no manager agent to configure. |
+| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | NIA (Navigator & Intelligence Allocator), an LLM router, picks single-agent or fan-out parallel execution; no manager agent to configure. |
 | `@tool` / `BaseTool` subclass | `@tool` decorator on a plain function | Schema is auto-generated from type hints — no separate schema class. |
 | `Agent(..., output_pydantic=Model)` | `Agent(..., response_model=Model)` | Validated result lands on `AgentResult.parsed`; one automatic repair attempt on invalid JSON. |
 | `Task(human_input=True)` | `AgentHooks(approve_tool=...)` | deepcrew's human-in-the-loop is per-tool-call, not per-task; return `False` from `approve_tool` to deny. |

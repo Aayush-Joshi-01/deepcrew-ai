@@ -7,7 +7,7 @@ docstring at the top of each file for required environment variables (API keys) 
 |---|---|
 | `simple_agent.py` | A single agent with an `@tool`-decorated function. |
 | `workflow_example.py` | `WorkflowBuilder` DAG, streaming and non-streaming. |
-| `automated_example.py` | `Orchestrator` router + APEX synthesis, streaming events. |
+| `automated_example.py` | `Orchestrator` router (NIA) + APEX synthesis, streaming events. |
 | `mcp_example.py` | All three MCP transports (Stdio/HTTP/SSE) + `MCPManager`. |
 | `self_improving_research.py` | `LoopConfig` with a `Verifier`, adaptive early-stop. |
 | `consensus_code_review.py` | Self-consistency branching + skill distillation. |

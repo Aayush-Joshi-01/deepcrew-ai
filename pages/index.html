@@ -5,15 +5,76 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>deepcrew-ai — Multi-Agent AI Library for Python</title>
   <meta name="description" content="Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI." />
-  <meta property="og:title" content="deepcrew-ai" />
-  <meta property="og:description" content="Multi-agent AI library for Python — APEX, spawning, skills, memory, observability." />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#0a0b0d" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="deepcrew-ai — Multi-Agent AI Library for Python" />
+  <meta property="og:description" content="Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="deepcrew-ai — Multi-Agent AI Library for Python" />
+  <meta name="twitter:description" content="Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/index.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": [
+    "WebSite",
+    "TechArticle"
+  ],
+  "name": "deepcrew-ai — Multi-Agent AI Library for Python",
+  "headline": "deepcrew-ai — Multi-Agent AI Library for Python",
+  "description": "Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://pypi.org/search/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -82,7 +143,7 @@
     </a>
     <a class="sidebar-link" data-target="orchestrator">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5l-3.5 6M8 5l3.5 6M5 13h6"/></svg>
-      <span class="link-text"><span class="link-title">Orchestrator</span><span class="link-desc">Router LLM picks single-agent or parallel fan-out.</span></span>
+      <span class="link-text"><span class="link-title">Orchestrator</span><span class="link-desc">NIA router picks single-agent or parallel fan-out.</span></span>
     </a>
   </div>
 
@@ -187,15 +248,13 @@
 
 <!-- ─── HERO ─── -->
 <div id="hero" data-section="hero">
-  <div class="scanline-wrap"><div class="scanline"></div></div>
   <div class="hero-split">
     <div class="hero-left">
       <section class="hero">
-        <div class="hero-eyebrow">pip install deepcrew-ai</div>
-        <h1>Multi-agent AI,<br/><em>without the boilerplate.</em></h1>
-        <p>Build parallel AI workflows with any LLM provider. APEX synthesis, intelligent agent spawning, iterative looping, skills, memory, and OpenTelemetry observability — all async-first.</p>
+        <h1>Multi-agent AI, <em>without the boilerplate.</em></h1>
+        <p>Build parallel agent workflows on any of 100+ LLM providers. Synthesis, spawning, looping, skills, memory, and observability. Async-first throughout.</p>
         <div class="hero-actions">
-          <a href="#getting-started" class="btn-hero-primary">Get Started →</a>
+          <a href="#getting-started" class="btn-hero-primary">Get started →</a>
           <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-hero-secondary" target="_blank">View on GitHub</a>
         </div>
       </section>
@@ -318,22 +377,10 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
   </div>
 
   <div class="stat-strip">
-    <div class="stat-item">
-      <div class="stat-num" data-count="100" data-suffix="+">0+</div>
-      <div class="stat-label">LLM providers</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-count="10">0</div>
-      <div class="stat-label">v0.3.0 features</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-count="72">0</div>
-      <div class="stat-label">Tests passing</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-count="3">0</div>
-      <div class="stat-label">MCP transports</div>
-    </div>
+    <div class="stat-item"><span class="stat-num">100+</span><span class="stat-label">LLM providers via LiteLLM</span></div>
+    <div class="stat-item"><span class="stat-num">3</span><span class="stat-label">MCP transports</span></div>
+    <div class="stat-item"><span class="stat-num">async</span><span class="stat-label">parallel at every level</span></div>
+    <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Python 3.11+</span></div>
   </div>
 
   <div class="feature-grid">
@@ -350,7 +397,7 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
     <div class="feature-card">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1l2 5h5l-4 3 1.5 5L8 11l-4.5 3L5 9 1 6h5z"/></svg></div>
       <h3>APEX synthesis</h3>
-      <p>Confidence-scored, citation-aware multi-agent synthesis engine. Know how sure your AI is about its answer.</p>
+      <p>APEX (Assembly &amp; Precision Executor) is a confidence-scored, citation-aware engine that merges parallel agent results. Know how sure your AI is about its answer.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5v3M5.3 11.2L6.8 9M10.7 11.2L9.2 9"/></svg></div>
@@ -711,7 +758,7 @@ async for event in workflow.stream("My topic"):
 <section class="section" id="orchestrator" data-section="orchestrator">
   <div class="section-eyebrow">Orchestration</div>
   <h2>Orchestrator</h2>
-  <p>Automated mode: a router LLM decides which agents to run, they execute in parallel, and APEX synthesizes the results with confidence scoring.</p>
+  <p>Automated mode. NIA (Navigator &amp; Intelligence Allocator), a lightweight router LLM, decides which agents to run and allocates tools to each; they execute in parallel; then APEX (Assembly &amp; Precision Executor) synthesizes the results with confidence scoring.</p>
 
   <div class="code-block">
     <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
@@ -1133,8 +1180,9 @@ print(result.text)
 
 - **`Agent`** — model, system prompt, tools, memory, hooks, optional `response_model`.
 - **`run_agent()`** — the agentic loop: stream → buffer tool calls → execute in parallel → repeat.
-- **`Orchestrator`** — an LLM router picks a single agent or fans out to several in parallel, then
-  `APEXSynthesizer` merges parallel results with confidence scoring and optional citations.
+- **`Orchestrator`** — NIA (Navigator & Intelligence Allocator), an LLM router, picks a single
+  agent or fans out to several in parallel, then `APEXSynthesizer` (APEX, Assembly & Precision
+  Executor) merges parallel results with confidence scoring and optional citations.
 - **`WorkflowBuilder`** — an explicit DAG of agents; independent nodes at the same level run in
   parallel automatically.
 - **`LoopConfig`** — an outer refinement loop: a `Verifier` scores each iteration and drives

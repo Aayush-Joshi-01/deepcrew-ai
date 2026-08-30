@@ -221,3 +221,11 @@ __marimo__/
 
 scripts/
 plans/
+impeccable/
+.github/agents/
+.github/hooks/
+settings.local.json
+PRODUCT.md
+DESIGN.md
+.claude/launch.json
+.impeccable/config.json
