@@ -22,6 +22,8 @@ pip install deepcrew-ai
 <details>
 <summary><strong>Table of contents</strong></summary>
 
+- [What's new in v0.6.0 — Episodic Memory](#whats-new-in-v060--episodic-memory)
+- [What's new in v0.5.0 — Structured Logging](#whats-new-in-v050--structured-logging)
 - [What's new in v0.4.0 — Production Readiness & Streaming-First](#whats-new-in-v040--production-readiness--streaming-first)
 - [What's new in v0.3.0 — Self-Improving Loop](#whats-new-in-v030--self-improving-loop)
 - [Features](#features)
@@ -35,8 +37,10 @@ pip install deepcrew-ai
   - [Looping](#looping) — incl. [verifier](#verifier-driven-refinement), [adaptive budget](#adaptive-iteration-budget), [branching](#branching-self-consistency)
   - [Skills](#skills) — incl. [self-evolving skills](#self-evolving-skills-voyager-inspired)
   - [Memory Providers](#memory-providers) — incl. [procedural memory](#procedural-memory-evolving-playbook)
+  - [Episodic Memory](#episodic-memory)
   - [Retry & Fallback](#retry--fallback)
   - [Observability (OpenTelemetry)](#observability-opentelemetry)
+  - [Logging](#logging)
   - [CLI](#cli)
 - [Composing v0.3.0 Features](#composing-v030-features)
 - [MCP Tools](#mcp-tools)
@@ -51,6 +55,65 @@ pip install deepcrew-ai
 
 ---
 
+## What's new in v0.6.0 — Episodic Memory
+
+A third memory concept, the specifics-keeping one — a durable log of past runs that is
+recalled by relevance before each new run. Also: an optional LLM reflector for
+`ProceduralMemory`, and an opt-in **live-test harness** (`pytest --live`, Gemini) with a
+content-hash ledger so a verified feature is not re-run until its code changes.
+
+| Feature | Description |
+|---|---|
+| **`EpisodicMemory`** | Ring-buffer log of `Episode` records (query, response, outcome, score, tools, timestamp). Layers on any `MemoryProvider` |
+| **Automatic cycle** | `Agent(episodic_memory=...)` recalls relevant past episodes into context before every run and records the outcome after — one per iteration in a loop |
+| **Relevance recall** | `recall()` ranks by keyword (Jaccard) overlap + recency; dependency-free, no embeddings. `AgentResult.episodes_recalled` reports the count |
+| **Optional reflection** | `EpisodicMemory(reflect_model=...)` and `ProceduralMemory(reflect_model=...)` distil a lesson per episode / curation with one LLM call. Off by default |
+| **`procedural_task_tag`** | `Agent.procedural_task_tag` aligns single-shot playbook reads with a loop's custom `LoopConfig.task_tag` |
+| **Live tests + ledger** | `tests/live/` (`pytest --live`, `GEMINI_API_KEY`) with `LEDGER.json` / `LEDGER.md`: a feature whose watched source files are unchanged since its last live pass is skipped |
+
+```python
+from deepcrew import Agent, EpisodicMemory, run_agent
+from deepcrew.memory import FileMemoryProvider
+
+episodic = EpisodicMemory(FileMemoryProvider("episodes.json"), namespace="support-bot")
+agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
+
+await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?"}])
+r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
+print(r.episodes_recalled)   # >= 1
+```
+
+See the [Episodic Memory guide](https://deepcrew-ai.aayushjoshi.dev/guides/episodic-memory.html)
+and [`tests/live/README.md`](tests/live/README.md).
+
+---
+
+## What's new in v0.5.0 — Structured Logging
+
+A general-purpose `logging` layer, off by default (library `NullHandler`), separate from
+OpenTelemetry (`ObservabilityConfig`) and from the `StreamEvent` queue.
+
+| Feature | Description |
+|---|---|
+| **`configure_logging()`** | One call turns logging on. Named profiles `dev` / `prod` (JSON) / `verbose` / `quiet`, or ad-hoc `level` / `format` / `color` / `timestamps` knobs |
+| **Env-var toggles** | `DEEPCREW_LOG_PROFILE`, `DEEPCREW_LOG_LEVEL`, `DEEPCREW_LOG_FORMAT`, `DEEPCREW_LOG_TIME`, `DEEPCREW_LOG_COLOR` — always win over code; auto-configure on first use |
+| **`get_logger()`** | Public, first-class API for your own tools/components. Extra kwargs become structured fields; `.bind()` carries context; namespaced under `deepcrew.*` so one call styles everything |
+| **Levels** | Stdlib names only (`CRITICAL`…`DEBUG`) plus `TRACE` (5); no invented levels |
+| **Colour** | `rich` when installed (`[log]` extra), plain ANSI fallback otherwise; honours `NO_COLOR` / `FORCE_COLOR` / TTY |
+| **Coverage** | Structured `event=`-tagged logs across runner, orchestrator, loop, spawner, APEX, verifier, retry, workflow, and MCP; CLI gains `-v` / `--log-profile` / `--log-json` / `-q` |
+
+```python
+from deepcrew import configure_logging, get_logger
+
+configure_logging("dev")                 # colour + DEBUG; or "prod" for JSON lines
+log = get_logger("myapp.tools.pricing")
+log.info("price lookup", sku=sku, region=region)   # kwargs → structured fields
+```
+
+See the [Logging guide](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html).
+
+---
+
 ## What's new in v0.4.0 — Production Readiness & Streaming-First
 
 | Feature | Description |
@@ -61,7 +124,7 @@ pip install deepcrew-ai
 | **Structured Output** | `Agent(response_model=...)` validates the final answer against a pydantic schema; result on `AgentResult.parsed` |
 | **Human-in-the-Loop Hooks** | `AgentHooks.approve_tool` can deny an individual tool call before it runs |
 | **Redis Memory Provider** | `RedisMemoryProvider` — a persistent, shared `MemoryProvider` backed by Redis (`redis` extra) |
-| **Production hardening** | `py.typed`, ruff + mypy in CI, structured logging, a version-consistency check, and a tagged release workflow that publishes to PyPI with twine and attaches the wheel/sdist to a GitHub Release |
+| **Production hardening** | `py.typed`, ruff + mypy in CI, a version-consistency check, and a tagged release workflow that publishes to PyPI with twine and attaches the wheel/sdist to a GitHub Release |
 
 ```python
 from deepcrew import Agent, run_agent, image, pdf, user_message
@@ -96,8 +159,10 @@ spawning bounded recursion. Every addition is opt-in and fully backward compatib
 | **Self-Evolving Skills** | A converged, high-confidence loop run is distilled into a reusable, replayable `Skill` |
 | **Memory** | Pluggable `InMemoryProvider` and `FileMemoryProvider` — auto-injected into agent context |
 | **Procedural Memory** | An opt-in, durable evolving playbook of strategies accumulated across runs (ACE-inspired) |
+| **Episodic Memory** | A durable log of past runs (`EpisodicMemory` / `Episode`), recalled by similarity + recency before each new run |
 | **Retry & Fallback** | Per-agent `RetryPolicy` + `FallbackChain` for model resilience |
 | **Observability** | OpenTelemetry spans for every LLM call, tool execution, and workflow step |
+| **Logging** | Toggleable structured/colour logs (`configure_logging`), named profiles, JSON output, and a shared `get_logger()` for your own components |
 | **CLI** | `deepcrew run workflow.yaml` — declarative workflow execution |
 
 ---
@@ -495,6 +560,33 @@ agent = Agent(
 )
 ```
 
+### Episodic Memory
+
+A durable log of past runs — query, answer, outcome, score, tools, timestamp — recalled by
+relevance before each new run. Set `Agent.episodic_memory` and the record/recall cycle is
+automatic (one episode per iteration inside a refinement loop).
+
+```python
+from deepcrew import Agent, EpisodicMemory, run_agent
+from deepcrew.memory import FileMemoryProvider
+
+episodic = EpisodicMemory(
+    FileMemoryProvider("episodes.json"),
+    namespace="support-bot",
+    recall_k=3,
+    reflect_model=None,   # set a model to distil a one-line lesson per episode
+)
+agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
+
+await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?"}])
+r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
+print(r.episodes_recalled)               # >= 1
+print([e.outcome for e in await episodic.load()])
+```
+
+Recall ranks by keyword (Jaccard) overlap plus a recency tie-breaker — dependency-free, no
+embeddings. It is independent of `ProceduralMemory` (distilled rules) and OpenTelemetry.
+
 ### Retry & Fallback
 
 ```python
@@ -528,6 +620,24 @@ obs = ObservabilityConfig(
 result = await run_agent(agent, messages, observability=obs)
 # Emits spans: agent.run, llm.call, tool.call
 ```
+
+### Logging
+
+Separate from OpenTelemetry — plain human/JSON logs, off by default. One call turns them on;
+`get_logger` is public so your own tools and components log in the same style.
+
+```python
+from deepcrew import configure_logging, get_logger
+
+configure_logging("dev")     # colour + DEBUG; also "prod" (JSON), "verbose", "quiet"
+# or: DEEPCREW_LOG_PROFILE=prod python app.py
+
+log = get_logger("myapp.tools")
+log.info("price lookup", sku=sku, region=region)   # kwargs become structured fields
+```
+
+Colour uses `rich` when installed (`pip install "deepcrew-ai[log]"`), plain ANSI otherwise.
+See the [Logging guide](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html).
 
 ### CLI
 
@@ -727,6 +837,8 @@ All events have `event` (EventType), `agent_id` (str), and `data` (dict).
 | `spawn_agent` | `task`, `requested_tools`, `depth` | Sub-agent spawned |
 | `memory_retrieve` | `count` | Memories injected into context |
 | `memory_store` | `key` | Tool result stored to memory |
+| `episode_recalled` | `count` | Past episodes injected from episodic memory |
+| `episode_recorded` | `outcome`, `score` | A run recorded to episodic memory |
 | `retry_attempt` | `attempt`, `model`, `delay` | Before a retry |
 | `fallback_triggered` | `from_model`, `to_model` | Model switch |
 | `step_start` | `node` | Workflow node begins |

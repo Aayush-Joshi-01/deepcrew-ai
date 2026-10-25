@@ -73,6 +73,18 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://deepcrew-ai.aayushjoshi.dev/guides/logging.html</loc>
+    <lastmod>2026-08-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://deepcrew-ai.aayushjoshi.dev/guides/episodic-memory.html</loc>
+    <lastmod>2026-08-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://deepcrew-ai.aayushjoshi.dev/guides/procedural-memory.html</loc>
     <lastmod>2026-08-30</lastmod>
     <changefreq>monthly</changefreq>

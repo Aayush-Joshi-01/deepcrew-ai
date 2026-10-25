@@ -25,6 +25,12 @@ visibility (`StreamPolicy`).
 - `src/deepcrew/spawner.py` — bounded recursive sub-agent spawning (`spawn_agent` meta-tool),
   hard-capped by `max_spawn_depth`.
 - `src/deepcrew/procedural_memory.py` — durable, evolving playbook layered on any `MemoryProvider`.
+  Optional `reflect_model` swaps the heuristic `curate()` for one LLM call.
+- `src/deepcrew/episodic_memory.py` — `EpisodicMemory` / `Episode`: a ring-buffer log of past
+  runs layered on any `MemoryProvider`, with dependency-free similarity+recency `recall()`.
+  `Agent.episodic_memory` drives an automatic recall-before / record-after cycle in
+  `runner.py` (`_run_agent_turns` recalls; the public `run_agent` and `loop.py` record — one
+  episode per loop iteration via `record_agent_episode`).
 - `src/deepcrew/memory/` — `MemoryProvider` ABC + `InMemoryProvider`, `FileMemoryProvider`,
   `RedisMemoryProvider` (lazy-imported; needs the `redis` extra).
 - `src/deepcrew/content.py` — multimodal input: `image()`, `pdf()`, `user_message()` build OpenAI
@@ -32,6 +38,12 @@ visibility (`StreamPolicy`).
   `content` may be a string or a block list.
 - `src/deepcrew/stream.py` — `StreamEvent`/`EventType`, `StreamPolicy` (chat/standard/verbose
   presets), `filter_stream()`. Filtering is view-only — it never changes what actually executes.
+- `src/deepcrew/logging_config.py` — general-purpose `logging` layer: `LoggingConfig`,
+  `configure_logging()` (named profiles dev/prod/verbose/quiet, env-var toggles
+  `DEEPCREW_LOG*`), and `get_logger()` (a `StructuredAdapter` — kwargs become structured
+  fields; public API for user components). Colour via the optional `rich` (`[log]` extra),
+  plain ANSI fallback otherwise. Off by default (NullHandler only). Independent of OTel and
+  of the `StreamEvent` queue.
 - `src/deepcrew/hooks.py` — `AgentHooks`: human-in-the-loop interception (`approve_tool` can deny
   a tool call outright). Distinct from the observe-only event stream.
 - `src/deepcrew/workflow.py` — `WorkflowBuilder`: explicit DAG of agents, Kahn's-algorithm level
@@ -43,7 +55,7 @@ visibility (`StreamPolicy`).
 ## Commands
 
 ```
-pip install -e .[dev,otel,fastapi]   # editable install with dev/otel/fastapi extras
+pip install -e .[dev,otel,fastapi,log]   # editable install with dev/otel/fastapi/log extras
 pytest                                # run the test suite
 pytest --cov=deepcrew --cov-report=xml
 ruff check .                          # lint
@@ -62,8 +74,15 @@ CI (`.github/workflows/ci.yml`) runs lint (ruff + mypy + a version-consistency c
 - Custom exceptions all inherit from `DeepCrewError` (`exceptions.py`).
 - Every consequential backend action emits a `StreamEvent` — if you add a new one, also decide
   whether it belongs in `StreamPolicy`'s `standard` preset (`stream.py`).
-- **Tests never call live LLM APIs.** They mock `litellm.acompletion` via
-  `unittest.mock.patch`/`AsyncMock`, with a hand-built `MagicMock` chunk for streaming responses.
+- Consequential actions should also emit a structured log via `get_logger(...)` (from
+  `logging_config.py`), passing fields as kwargs (not f-strings) and an `event="..."` slug
+  whose value matches the corresponding `EventType`. Keep `INFO` for lifecycle milestones,
+  `DEBUG` for per-turn/per-tool detail, `TRACE` for token-level. Never use `print`.
+- **The default `pytest` run never calls live LLM APIs.** It mocks `litellm.acompletion` via
+  `unittest.mock.patch`/`AsyncMock`, with a hand-built `MagicMock` chunk for streaming responses
+  (shared factories in `tests/conftest.py`). Opt-in live tests live in `tests/live/`
+  (`pytest --live`, needs `GEMINI_API_KEY`); a content-hash ledger (`tests/live/LEDGER.*`)
+  skips a feature whose watched source files are unchanged since its last live pass.
   If you add a field to a streamed chunk's `delta` that code reads with `getattr(...)` (like
   `reasoning_content`), you must also set it explicitly in every test's chunk-builder helper —
   otherwise `MagicMock`'s default truthy attribute breaks assertions across the whole suite.
@@ -83,6 +102,11 @@ CI (`.github/workflows/ci.yml`) runs lint (ruff + mypy + a version-consistency c
 - Adding a feature that touches the agentic loop → start in `runner.py`.
 - Adding a feature that touches multi-agent coordination → start in `orchestrator.py` or
   `workflow.py`.
+- Adding a memory type → mirror `procedural_memory.py` / `episodic_memory.py`: a class over a
+  `MemoryProvider` with indexed keys + a `__meta__` key, wired into `runner.py` alongside the
+  other memory injections and (optionally) `loop.py`.
+- Verifying a feature works against a real model → add a `tests/live/` test with a
+  `pytest.mark.live(feature=..., watch=[...])` marker; run `pytest --live`.
 - Adding a new stream event → `types.py` (enum member) + the emission site + `stream.py`'s preset
   sets if it should show up under `StreamPolicy.standard()`.
 - Anything about how implementers should *use* the library → see

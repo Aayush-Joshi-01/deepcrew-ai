@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logging — deepcrew-ai</title>
+  <meta name="description" content="Toggleable structured and colour logging with named profiles, JSON output, and a get_logger() for your own components." />
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <link rel="stylesheet" href="../assets/css/style.css" />
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/logging.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="Logging — deepcrew-ai" />
+  <meta property="og:description" content="Toggleable structured and colour logging with named profiles, JSON output, and a get_logger() for your own components." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/guides/logging.html" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Logging — deepcrew-ai" />
+  <meta name="twitter:description" content="Toggleable structured and colour logging with named profiles, JSON output, and a get_logger() for your own components." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/guides/logging.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Logging — deepcrew-ai",
+  "headline": "Logging — deepcrew-ai",
+  "description": "Toggleable structured and colour logging with named profiles, JSON output, and a get_logger() for your own components.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/guides/logging.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  }
+}
+  </script>
+  <!-- seo:end -->
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<header>
+  <a href="../index.html" class="logo">
+    <img src="../assets/logo.svg" width="24" height="24" alt="" style="display:block;flex-shrink:0"/>
+    deepcrew
+  </a>
+  <ul class="nav-links">
+    <li><a href="../index.html">Docs</a></li>
+    <li><a href="../features.html">Features</a></li>
+    <li><a href="../examples.html">Examples</a></li>
+    <li><a href="../index.html#api-reference">API</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="badge">Infrastructure</span>
+    <button class="btn-outline copy-page-btn" data-md="../md/guides/logging.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
+    <button class="btn-outline copy-prompt-btn" data-prompt="logging-prompt" title="Copy an AI implementation prompt"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5h12v7.5H6.5L3 14v-3H2z"/><path d="M5 6.2h6M5 8.4h3.5"/></svg><span class="btn-text">Copy prompt</span></button>
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
+    <a href="https://pypi.org/project/deepcrew-ai" class="btn-primary" target="_blank" rel="noopener"><span class="btn-text">PyPI</span> &rarr;</a>
+  </div>
+  <button class="menu-toggle" aria-label="Toggle menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h14M1 8h14M1 12h14"/></svg></button>
+</header>
+
+<div class="page-layout">
+<aside>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Infrastructure</span>
+    <span class="sidebar-page">Logging</span>
+    <nav class="toc-list">
+      <a class="toc-item" href="#profiles"><span class="toc-title">Profiles &amp; levels</span><span class="toc-desc">dev / prod / verbose / quiet and the stdlib levels + TRACE.</span></a>
+      <a class="toc-item" href="#env"><span class="toc-title">Environment variables</span><span class="toc-desc">DEEPCREW_LOG_* toggles that always win.</span></a>
+      <a class="toc-item" href="#get-logger"><span class="toc-title">get_logger</span><span class="toc-desc">Structured logging for your own components.</span></a>
+      <a class="toc-item" href="#pitfalls"><span class="toc-title">Pitfalls</span><span class="toc-desc">Silent by default; not OpenTelemetry.</span></a>
+    </nav>
+  </div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">More</span>
+    <a class="sidebar-link" href="../features.html">&larr; All features</a>
+  </div>
+</aside>
+
+<main>
+
+<section class="section" id="logging" data-section="logging">
+  <div class="section-eyebrow">Infrastructure</div>
+  <h2>Logging</h2>
+  <p>deepcrew-ai ships a general-purpose structured logging layer that is <strong>off by default</strong> — a bare <code>import deepcrew</code> attaches only a <code>NullHandler</code> and emits nothing, following the Python logging guidance for libraries. Turn it on with one call.</p>
+  <p>This is separate from <a href="observability.html">Observability</a>: <code>ObservabilityConfig</code> is OpenTelemetry <strong>spans</strong>; this is plain human/JSON <strong>logs</strong>. They are independent and compose. Logging also never touches the <code>StreamEvent</code> queue — the streaming view is unaffected.</p>
+
+  <h3>Turn it on</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">app.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import configure_logging
+
+configure_logging()          # the "dev" profile: colour, DEBUG, timestamps
+configure_logging("prod")    # JSON lines, INFO, no colour
+configure_logging("verbose") # everything, incl. TRACE token-level detail
+configure_logging(level="DEBUG", format="json")  # ad-hoc knobs</code></pre>
+  </div>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash"># or entirely from the environment, no code change
+DEEPCREW_LOG_PROFILE=dev python app.py
+DEEPCREW_LOG_LEVEL=DEBUG DEEPCREW_LOG_FORMAT=json python app.py</code></pre>
+  </div>
+  <p>When any <code>DEEPCREW_LOG*</code> variable is set, logging auto-configures on first use.</p>
+
+  <h3>Colour rendering</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash">pip install "deepcrew-ai[log]"   # pulls in rich for nicer coloured output</code></pre>
+  </div>
+  <p><code>configure_logging</code> uses <code>rich</code> for coloured output when it is installed and colour is enabled; otherwise it falls back to a plain ANSI formatter with no extra dependency. Colour honours the <code>NO_COLOR</code> / <code>FORCE_COLOR</code> conventions and auto-disables off a TTY.</p>
+
+  <span class="anchor" id="profiles"></span>
+  <h3>Profiles</h3>
+  <p>A profile just presets four knobs; each is individually overridable, and <code>DEEPCREW_LOG*</code> env vars always win over both the profile and explicit arguments.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Profile</th><th>Level</th><th>Format</th><th>Colour</th><th>Timestamps</th></tr></thead>
+      <tbody>
+        <tr><td><code>dev</code></td><td>DEBUG</td><td>text</td><td>on</td><td>on</td></tr>
+        <tr><td><code>prod</code></td><td>INFO</td><td>JSON</td><td>off</td><td>on (ISO-8601 UTC)</td></tr>
+        <tr><td><code>verbose</code></td><td>TRACE</td><td>text</td><td>on</td><td>on</td></tr>
+        <tr><td><code>quiet</code></td><td>WARNING</td><td>text</td><td>auto</td><td>off</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Levels</h3>
+  <p>deepcrew-ai uses the standard library level names — no custom levels — plus <code>TRACE</code> (5), registered the same way <code>structlog</code> and <code>loguru</code> add it.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Level</th><th>Value</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td><code>CRITICAL</code></td><td>50</td><td>process cannot continue</td></tr>
+        <tr><td><code>ERROR</code></td><td>40</td><td>an operation failed (<code>max_turns</code> exhausted, orchestrator crash)</td></tr>
+        <tr><td><code>WARNING</code></td><td>30</td><td>recoverable / degraded (retry, model fallback, spawn-depth ceiling)</td></tr>
+        <tr><td><code>INFO</code></td><td>20</td><td>lifecycle milestones (agent start/done, routing decision, loop iteration, APEX)</td></tr>
+        <tr><td><code>DEBUG</code></td><td>10</td><td>per-turn / per-tool detail</td></tr>
+        <tr><td><code>TRACE</code></td><td>5</td><td>token-level deltas</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <span class="anchor" id="env"></span>
+  <h3>Environment variables</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">DEEPCREW_LOG_PROFILE</div><div class="param-cell param-type">dev | prod | verbose | quiet</div><div class="param-cell param-desc">Preset bundle.</div></div>
+    <div class="param-row"><div class="param-cell param-name">DEEPCREW_LOG_LEVEL</div><div class="param-cell param-type">TRACE … CRITICAL</div><div class="param-cell param-desc">Threshold by name.</div></div>
+    <div class="param-row"><div class="param-cell param-name">DEEPCREW_LOG_FORMAT</div><div class="param-cell param-type">text | json</div><div class="param-cell param-desc">Renderer.</div></div>
+    <div class="param-row"><div class="param-cell param-name">DEEPCREW_LOG_TIME</div><div class="param-cell param-type">1 | 0</div><div class="param-cell param-desc">Show timestamps.</div></div>
+    <div class="param-row"><div class="param-cell param-name">DEEPCREW_LOG_COLOR</div><div class="param-cell param-type">1 | 0 | auto</div><div class="param-cell param-desc">Colour override; also respects <code>NO_COLOR</code> / <code>FORCE_COLOR</code>.</div></div>
+  </div>
+
+  <h3>Sample output</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">text — dev</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-text">15:30:47  INFO      deepcrew.runner   agent start  agent_id=researcher model=openai/gpt-4o max_turns=10
+15:30:48  DEBUG     deepcrew.runner   turn start  step=turn:1 turn=1
+15:30:51  INFO      deepcrew.orchestrator  routing decision  mode=parallel agents=["research", "analysis"]</code></pre>
+  </div>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">json — prod</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-json">{"ts":"2026-08-30T15:30:47.731Z","level":"INFO","logger":"deepcrew.runner","msg":"agent start","event":"agent_start","agent_id":"researcher","model":"openai/gpt-4o","max_turns":10}</code></pre>
+  </div>
+  <p>Every lifecycle log carries an <code>event</code> field whose value matches the corresponding <code>StreamEvent</code> type, so logs and the event stream share a vocabulary.</p>
+
+  <span class="anchor" id="get-logger"></span>
+  <h3>get_logger — use it in your own components</h3>
+  <p><code>deepcrew.get_logger(name)</code> returns a structured logger namespaced under <code>deepcrew.&lt;name&gt;</code>, so a single <code>configure_logging()</code> call styles your logs and the library's identically. Extra keyword arguments become structured fields.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-filename">my_tools.py</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-python">from deepcrew import get_logger, tool
+
+log = get_logger("myapp.tools.pricing")
+
+@tool
+def lookup_price(sku: str, region: str) -> str:
+    """Look up the current price for a SKU."""
+    log.info("price lookup", sku=sku, region=region)
+    ...
+
+bound = log.bind(request_id=req_id)   # context on every subsequent call
+bound.warning("slow path", latency_ms=812)
+bound.trace("raw payload", body=payload)</code></pre>
+  </div>
+  <div class="callout">
+    <div><strong>Design standard for custom components:</strong> prefer <code>get_logger</code> over <code>print</code> / <code>logging.getLogger</code>; pass fields as keyword arguments rather than formatting them into the message; add an <code>event="..."</code> slug for lifecycle logs; keep <code>INFO</code> for milestones and push detail to <code>DEBUG</code>/<code>TRACE</code>.</div>
+  </div>
+
+  <h3>LoggingConfig reference</h3>
+  <div class="param-table">
+    <div class="param-row"><div class="param-cell param-name">level</div><div class="param-cell param-type">int | str = "INFO"</div><div class="param-cell param-desc">Threshold, by name or number.</div></div>
+    <div class="param-row"><div class="param-cell param-name">profile</div><div class="param-cell param-type">"dev" | "prod" | "verbose" | "quiet" | None</div><div class="param-cell param-desc">Preset bundle.</div></div>
+    <div class="param-row"><div class="param-cell param-name">format</div><div class="param-cell param-type">"text" | "json" = "text"</div><div class="param-cell param-desc">Renderer.</div></div>
+    <div class="param-row"><div class="param-cell param-name">color</div><div class="param-cell param-type">bool | None = None</div><div class="param-cell param-desc"><code>None</code> auto-detects the TTY (honouring <code>NO_COLOR</code> / <code>FORCE_COLOR</code>).</div></div>
+    <div class="param-row"><div class="param-cell param-name">timestamps</div><div class="param-cell param-type">bool = True</div><div class="param-cell param-desc">Include a time column / <code>ts</code> key.</div></div>
+    <div class="param-row"><div class="param-cell param-name">stream</div><div class="param-cell param-type">TextIO | None = None</div><div class="param-cell param-desc">Defaults to <code>sys.stderr</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">propagate</div><div class="param-cell param-type">bool = False</div><div class="param-cell param-desc">Whether the <code>deepcrew</code> logger propagates to the root logger. Off by default to avoid double emission.</div></div>
+  </div>
+
+  <h3>CLI</h3>
+  <p>The <code>deepcrew</code> CLI is quiet by default (warnings and errors only).</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash">deepcrew run workflow.yaml -v                     # verbose profile
+deepcrew run workflow.yaml --log-profile dev
+deepcrew run workflow.yaml --log-level DEBUG --log-json
+deepcrew run workflow.yaml -q                     # errors only</code></pre>
+  </div>
+
+  <span class="anchor" id="pitfalls"></span>
+  <h3>Common pitfalls</h3>
+  <ul>
+    <li><strong>Nothing logged?</strong> You have not called <code>configure_logging()</code> and no <code>DEEPCREW_LOG*</code> env var is set — that is the intended silent default for a library.</li>
+    <li><strong>Double log lines?</strong> Your app configured the root logger and you set <code>propagate=True</code>. Leave it at the default <code>False</code>.</li>
+    <li><strong>No colour in CI / pipes?</strong> Colour auto-disables off a TTY. Force it with <code>DEEPCREW_LOG_COLOR=1</code> or <code>FORCE_COLOR=1</code>.</li>
+    <li><strong>This is not OpenTelemetry.</strong> For spans/traces use <code>ObservabilityConfig</code> — see the <a href="observability.html">Observability</a> guide. The two are complementary.</li>
+  </ul>
+</section>
+
+<div class="callout callout--tip" id="copy-prompt-section">
+  <div>Want an AI coding agent to wire this up for you? Click <strong>Copy prompt</strong> above and paste it into Claude, ChatGPT, or your IDE's AI assistant.</div>
+</div>
+
+<script type="text/plain" id="logging-prompt">I'm building a Python project that uses the deepcrew-ai library (pip install deepcrew-ai). I want to implement the "Logging" feature: toggleable structured and colour logging with named profiles, JSON output, and a get_logger() for my own components.
+
+How it works: Call deepcrew.configure_logging() (or a profile like "dev"/"prod"/"verbose"/"quiet", or set DEEPCREW_LOG_* env vars) to turn on the library's logging. Use deepcrew.get_logger("name") in my own tools/components — extra kwargs become structured fields, and .bind() attaches context. It is separate from OpenTelemetry (ObservabilityConfig).
+
+Please:
+1. Read the relevant deepcrew-ai API (model='Logging') and confirm the exact import paths and signatures against the installed package version.
+2. Write working code that configures logging for my use case and adds get_logger() calls to my custom components following the design standard (kwargs not f-strings, event= slug for lifecycle logs).
+3. Explain the profile / level / env-var choices you made.
+
+My use case: <describe what you're building here>
+</script>
+
+<footer>
+  <div class="footer-left">
+    Built with <strong>deepcrew-ai</strong> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" target="_blank">GitHub</a>
+    <a href="https://pypi.org/project/deepcrew-ai" target="_blank">PyPI</a>
+    <a href="../index.html">Docs</a>
+    <a href="../features.html">Features</a>
+    <a href="../examples.html">Examples</a>
+    <a href="../llms.txt">llms.txt</a>
+  </div>
+</footer>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script type="text/plain" class="page-md">
+# Logging
+
+deepcrew-ai ships a general-purpose structured logging layer that is **off by default** — a bare `import deepcrew` attaches only a `NullHandler` and emits nothing, following the Python logging guidance for libraries. Turn it on with one call.
+
+This is separate from Observability: `ObservabilityConfig` is OpenTelemetry **spans**; this is plain human/JSON **logs**. They are independent and compose. Logging also never touches the `StreamEvent` queue.
+
+### Turn it on
+
+```python
+from deepcrew import configure_logging
+
+configure_logging()          # the "dev" profile: colour, DEBUG, timestamps
+configure_logging("prod")    # JSON lines, INFO, no colour
+configure_logging("verbose") # everything, incl. TRACE token-level detail
+configure_logging(level="DEBUG", format="json")  # ad-hoc knobs
+```
+
+```bash
+DEEPCREW_LOG_PROFILE=dev python app.py
+DEEPCREW_LOG_LEVEL=DEBUG DEEPCREW_LOG_FORMAT=json python app.py
+```
+
+When any `DEEPCREW_LOG*` variable is set, logging auto-configures on first use.
+
+### Colour rendering
+
+```bash
+pip install "deepcrew-ai[log]"   # pulls in rich for nicer coloured output
+```
+
+`configure_logging` uses `rich` when installed and colour is enabled; otherwise a plain ANSI formatter with no extra dependency. Colour honours `NO_COLOR` / `FORCE_COLOR` and auto-disables off a TTY.
+
+### Profiles
+
+| Profile | Level | Format | Colour | Timestamps |
+|---|---|---|---|---|
+| `dev` | DEBUG | text | on | on |
+| `prod` | INFO | JSON | off | on (ISO-8601 UTC) |
+| `verbose` | TRACE | text | on | on |
+| `quiet` | WARNING | text | auto | off |
+
+### Levels
+
+Standard library level names — no custom levels — plus `TRACE` (5), added the way `structlog`/`loguru` do.
+
+| Level | Value | Used for |
+|---|---|---|
+| `CRITICAL` | 50 | process cannot continue |
+| `ERROR` | 40 | an operation failed (`max_turns` exhausted, orchestrator crash) |
+| `WARNING` | 30 | recoverable / degraded (retry, model fallback, spawn-depth ceiling) |
+| `INFO` | 20 | lifecycle milestones (agent start/done, routing decision, loop iteration, APEX) |
+| `DEBUG` | 10 | per-turn / per-tool detail |
+| `TRACE` | 5 | token-level deltas |
+
+### Environment variables
+
+| Variable | Effect |
+|---|---|
+| `DEEPCREW_LOG_PROFILE` | `dev` / `prod` / `verbose` / `quiet` |
+| `DEEPCREW_LOG_LEVEL` | `TRACE` … `CRITICAL` |
+| `DEEPCREW_LOG_FORMAT` | `text` or `json` |
+| `DEEPCREW_LOG_TIME` | `1` / `0` |
+| `DEEPCREW_LOG_COLOR` | `1` / `0` / `auto` |
+
+### Sample output
+
+```
+15:30:47  INFO      deepcrew.runner   agent start  agent_id=researcher model=openai/gpt-4o max_turns=10
+```
+
+```json
+{"ts":"2026-08-30T15:30:47.731Z","level":"INFO","logger":"deepcrew.runner","msg":"agent start","event":"agent_start","agent_id":"researcher","model":"openai/gpt-4o","max_turns":10}
+```
+
+Every lifecycle log carries an `event` field matching the corresponding `StreamEvent` type.
+
+### get_logger — use it in your own components
+
+```python
+from deepcrew import get_logger
+
+log = get_logger("myapp.tools.pricing")
+log.info("price lookup", sku=sku, region=region)
+
+bound = log.bind(request_id=req_id)
+bound.warning("slow path", latency_ms=812)
+bound.trace("raw payload", body=payload)
+```
+
+**Design standard:** prefer `get_logger` over `print` / `logging.getLogger`; pass fields as keyword arguments; add an `event="..."` slug for lifecycle logs; keep `INFO` for milestones.
+
+### LoggingConfig reference
+
+- **level** (int | str = "INFO"): threshold, by name or number.
+- **profile** ("dev" | "prod" | "verbose" | "quiet" | None): preset bundle.
+- **format** ("text" | "json" = "text"): renderer.
+- **color** (bool | None = None): `None` auto-detects the TTY.
+- **timestamps** (bool = True): include a time column / `ts` key.
+- **stream** (TextIO | None = None): defaults to `sys.stderr`.
+- **propagate** (bool = False): whether the `deepcrew` logger propagates to the root logger.
+
+### CLI
+
+```bash
+deepcrew run workflow.yaml -v
+deepcrew run workflow.yaml --log-profile dev
+deepcrew run workflow.yaml --log-level DEBUG --log-json
+deepcrew run workflow.yaml -q
+```
+
+### Common pitfalls
+
+- Nothing logged? You have not called `configure_logging()` and no `DEEPCREW_LOG*` env var is set — the intended silent default.
+- Double log lines? Your app configured the root logger and you set `propagate=True`. Leave it `False`.
+- No colour in CI / pipes? Colour auto-disables off a TTY; force with `DEEPCREW_LOG_COLOR=1`.
+- This is not OpenTelemetry. For spans/traces use `ObservabilityConfig`.
+</script>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

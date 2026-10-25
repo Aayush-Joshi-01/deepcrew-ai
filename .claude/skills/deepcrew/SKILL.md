@@ -16,6 +16,7 @@ pip install deepcrew-ai
 pip install deepcrew-ai[fastapi]   # SSE streaming endpoint
 pip install deepcrew-ai[redis]     # Redis-backed memory
 pip install deepcrew-ai[otel]      # OpenTelemetry tracing
+pip install deepcrew-ai[log]       # colour logging via rich (plain ANSI fallback without it)
 ```
 
 API keys are read by LiteLLM from standard env vars — set whichever providers you use:
@@ -31,6 +32,8 @@ determines the provider, e.g. `"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`,
 | Router picks one agent or fans out to several in parallel | `Orchestrator` |
 | An explicit, fixed pipeline of steps with dependencies | `WorkflowBuilder` |
 | An agent that critiques and improves its own answer | `Agent(loop_config=LoopConfig(verifier=...))` |
+| An agent that recalls relevant past runs before answering | `Agent(episodic_memory=EpisodicMemory(...))` |
+| An agent that accumulates reusable how-to strategies | `Agent(procedural_memory=ProceduralMemory(...))` + a verifier loop |
 | An agent that can delegate sub-tasks to fresh agents mid-run | `Orchestrator(enable_spawn=True)` |
 | A simple chatbot UI that should only show the reply text | `StreamPolicy.chat()` |
 | A technical/debug UI that should show everything | `StreamPolicy.verbose()` |
@@ -177,6 +180,54 @@ app = FastAPI()
 app.include_router(create_stream_router(agent, policy=StreamPolicy.chat()))
 # POST /chat streams SSE; POST /chat/complete returns the final result as JSON.
 ```
+
+### Episodic memory (recall past runs)
+
+```python
+from deepcrew import Agent, EpisodicMemory, run_agent
+from deepcrew.memory import FileMemoryProvider
+
+episodic = EpisodicMemory(FileMemoryProvider("episodes.json"), namespace="bot", recall_k=3)
+agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
+
+await run_agent(agent, [{"role": "user", "content": "..."}])   # recorded afterwards
+r = await run_agent(agent, [{"role": "user", "content": "..."}])  # relevant past episodes recalled first
+r.episodes_recalled  # int
+```
+
+The record/recall cycle is automatic once `Agent.episodic_memory` is set (one episode per
+iteration inside a `LoopConfig` loop). `recall()` ranks by keyword overlap + recency, no
+embeddings. Optional `EpisodicMemory(reflect_model=...)` distils a one-line lesson per
+episode. Distinct from `Agent.memory` (raw key/value) and `ProceduralMemory` (distilled
+rules).
+
+## Verifying against a real provider
+
+The default `pytest` run is fully mocked. To confirm a feature works end to end:
+`GEMINI_API_KEY=... pytest --live tests/live`. A content-hash ledger
+(`tests/live/LEDGER.md`) skips features whose source is unchanged since their last live
+pass, so it stays cheap. New behaviour that needs live proof gets a
+`pytest.mark.live(feature=..., watch=[...])` test.
+
+## Turning on logs
+
+Logging is off by default (library `NullHandler`). It is separate from `ObservabilityConfig`
+(OpenTelemetry spans) — this is plain human/JSON logs.
+
+```python
+from deepcrew import configure_logging, get_logger
+
+configure_logging("dev")     # colour + DEBUG; also "prod" (JSON lines), "verbose", "quiet"
+# env-only, no code change:  DEEPCREW_LOG_PROFILE=prod  /  DEEPCREW_LOG_LEVEL=DEBUG
+
+log = get_logger("myapp.tools")          # namespaced under deepcrew.*, same styling
+log.info("price lookup", sku=sku)        # extra kwargs -> structured fields
+log.bind(request_id=rid).warning("slow", latency_ms=812)
+```
+
+Levels are the stdlib names plus `TRACE` (5). Every library lifecycle log carries an
+`event=` field matching its `StreamEvent` type. The `deepcrew` CLI is quiet by default;
+pass `-v` / `--log-profile dev` / `--log-json`.
 
 ## Pitfalls
 

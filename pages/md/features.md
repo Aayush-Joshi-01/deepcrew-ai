@@ -14,6 +14,7 @@ prompt for that specific feature.
 - [Looping](guides/looping.md) — outer iteration loop for search-refine patterns, with self-consistency branching.
 - [Verifier](guides/verifier.md) — structured, LLM-graded critique drives targeted refinement, with an adaptive compute budget.
 - [Procedural Memory](guides/procedural-memory.md) — an ACE-inspired evolving playbook of strategies accumulated across runs.
+- [Episodic Memory](guides/episodic-memory.md) — a durable log of past runs with automatic similarity + recency recall of relevant prior experience.
 
 ## Input & Streaming
 
@@ -36,6 +37,7 @@ prompt for that specific feature.
 
 - [Retry & Fallback](guides/retry.md) — per-agent exponential backoff with model fallback chains.
 - [Observability](guides/observability.md) — OpenTelemetry spans for every LLM call, tool execution, and workflow step.
+- [Logging](guides/logging.md) — toggleable structured/colour logs with dev/prod/verbose/quiet profiles, `configure_logging()`, and a shared `get_logger()` for your own components.
 - [CLI](guides/cli.md) — `deepcrew run workflow.yaml` for declarative workflow execution.
 
 See also the [migration guide](guides/migration.md) if you're coming from CrewAI or Google ADK.

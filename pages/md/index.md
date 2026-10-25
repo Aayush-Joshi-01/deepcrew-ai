@@ -55,8 +55,9 @@ human-in-the-loop tool approval (`AgentHooks`), and a Redis memory provider. See
 ## Documentation map
 
 - [Features](features.html) — every feature has its own page: APEX, agent spawning, looping,
-  verifier, procedural memory, skills, memory providers, retry/fallback, observability, CLI,
-  multimodal input, StreamPolicy, FastAPI integration, structured output, human-in-the-loop hooks,
+  verifier, procedural memory, episodic memory, skills, memory providers, retry/fallback,
+  observability, logging, CLI, multimodal input, StreamPolicy, FastAPI integration,
+  structured output, human-in-the-loop hooks,
   and the Redis memory provider. Each page has a "Copy prompt" button for AI-assisted implementation.
 - [Examples](examples.html) — runnable end-to-end scripts and domain walkthroughs.
 - [Migration Guide](guides/migration.html) — coming from CrewAI or Google ADK.

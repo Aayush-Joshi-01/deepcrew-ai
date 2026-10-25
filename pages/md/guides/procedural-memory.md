@@ -80,6 +80,14 @@ print(playbook.render(entries))  # the exact text block injected into context
 
 Because similarity is substring-based, near-duplicate phrasing ("avoid rate limits" vs. "avoid hitting the rate limit") won't merge — they'll accumulate as separate low-usage entries competing for the same `max_entries` slots. Keep your agent's own issue/summary text reasonably consistent in phrasing if you want related lessons to actually consolidate over time.
 
+### Optional LLM reflector (v0.6.0)
+
+`ProceduralMemory(backend, reflect_model="gemini/gemini-3.5-flash-lite")` replaces the heuristic candidate generation with one LLM call returning `{"helpful": [...], "harmful": [...]}` distilled from the feedback and the last answer; merge/prune/persist is unchanged. Falls back to the heuristic on any error. Off by default. `EpisodicMemory` has the same `reflect_model` option.
+
+### Matching the read tag to the loop tag (v0.6.0)
+
+The loop uses `LoopConfig.task_tag or agent.procedural_task_tag or agent.name`; a standalone run reads under `Agent.procedural_task_tag or agent.name`. If a loop curates under a custom `task_tag`, set the same string as `Agent.procedural_task_tag` on any single-shot agent that should read that playbook.
+
 ### PlaybookEntry reference
 
 - **content** (str): The strategy text itself, already prefixed `"Avoid: "` or `"Worked well: "` by `curate()`.

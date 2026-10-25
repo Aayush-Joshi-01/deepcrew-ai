@@ -25,6 +25,7 @@ Canonical documentation: https://deepcrew-ai.aayushjoshi.dev
 - [Looping](https://deepcrew-ai.aayushjoshi.dev/md/guides/looping.md): outer refinement loop, verifier scoring, adaptive early-stop, branching.
 - [Verifier](https://deepcrew-ai.aayushjoshi.dev/md/guides/verifier.md): structured LLM-graded critique (score, issues, suggestion) driving refinement.
 - [Procedural Memory](https://deepcrew-ai.aayushjoshi.dev/md/guides/procedural-memory.md): durable evolving playbook layered on any MemoryProvider.
+- [Episodic Memory](https://deepcrew-ai.aayushjoshi.dev/md/guides/episodic-memory.md): durable log of past runs with automatic similarity + recency recall before each new run.
 - [Multimodal Input](https://deepcrew-ai.aayushjoshi.dev/md/guides/multimodal.md): `image()`, `pdf()`, `user_message()` content blocks.
 - [StreamPolicy](https://deepcrew-ai.aayushjoshi.dev/md/guides/streampolicy.md): chat / standard / verbose presets controlling which events a consumer sees.
 - [FastAPI Integration](https://deepcrew-ai.aayushjoshi.dev/md/guides/fastapi.md): drop-in SSE router for an Agent, Orchestrator, or WorkflowBuilder.
@@ -35,6 +36,7 @@ Canonical documentation: https://deepcrew-ai.aayushjoshi.dev
 - [Skills](https://deepcrew-ai.aayushjoshi.dev/md/guides/skills.md): reusable capability bundles, including ones the loop distills itself.
 - [Retry & Fallback](https://deepcrew-ai.aayushjoshi.dev/md/guides/retry.md): per-agent RetryPolicy and FallbackChain for model resilience.
 - [Observability](https://deepcrew-ai.aayushjoshi.dev/md/guides/observability.md): OpenTelemetry spans for every LLM call, tool execution, and workflow step.
+- [Logging](https://deepcrew-ai.aayushjoshi.dev/md/guides/logging.md): toggleable structured/colour logging with named profiles (dev/prod/verbose/quiet), `configure_logging()`, and `get_logger()` for your own components.
 - [CLI](https://deepcrew-ai.aayushjoshi.dev/md/guides/cli.md): `deepcrew run workflow.yaml` for declarative workflow execution.
 
 ## Optional

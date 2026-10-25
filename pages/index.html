@@ -92,7 +92,7 @@
     <li><a href="index.html#api-reference">API</a></li>
   </ul>
   <div class="nav-right">
-    <span class="badge">v0.4.0</span>
+    <span class="badge">v0.6.0</span>
     <button class="btn-outline copy-page-btn" data-md="md/index.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
@@ -187,6 +187,10 @@
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg>
       <span class="link-text"><span class="link-title">Procedural Memory</span><span class="link-desc">A durable, evolving playbook layered on any memory provider.</span></span>
     </a>
+    <a class="sidebar-link" href="guides/episodic-memory.html">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 4v4l3 2"/><circle cx="8" cy="8" r="6.5"/></svg>
+      <span class="link-text"><span class="link-title">Episodic Memory</span><span class="link-desc">A log of past runs, recalled by relevance before each new one.</span></span>
+    </a>
   </div>
 
   <div class="sidebar-section">
@@ -220,6 +224,10 @@
     <a class="sidebar-link" href="guides/observability.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
       <span class="link-text"><span class="link-title">Observability</span><span class="link-desc">OpenTelemetry spans across agents, tools, and workflows.</span></span>
+    </a>
+    <a class="sidebar-link" href="guides/logging.html">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h9M2 13h12"/></svg>
+      <span class="link-text"><span class="link-title">Logging</span><span class="link-desc">Toggleable structured/colour logs and a shared get_logger().</span></span>
     </a>
     <a class="sidebar-link" href="guides/cli.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M4 7l2 2-2 2M9 11h3"/></svg>
@@ -424,6 +432,16 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
       <h3>Retry & fallback</h3>
       <p>Per-agent exponential backoff with configurable model fallback chains. Never fail on transient errors.</p>
     </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12M2 8h9M2 13h12"/></svg></div>
+      <h3>Logging</h3>
+      <p>Toggleable structured/colour logs with dev/prod/verbose profiles, JSON output, and a shared <code>get_logger()</code> for your own components.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v4l3 2"/><circle cx="8" cy="8" r="6.5"/></svg></div>
+      <h3>Episodic memory</h3>
+      <p>A durable log of past runs. Relevant episodes are recalled by similarity and recency before each new run, and outcomes recorded after.</p>
+    </div>
   </div>
 </div>
 
@@ -483,7 +501,7 @@ async def main():
 asyncio.run(main())</code></pre>
   </div>
 
-  <div class="callout">    <div>Check the <a href="features.html">Features index</a> for APEX synthesis, agent spawning, looping, verifier, adaptive budget, branching, self-evolving skills, memory providers, procedural memory, retry policies, observability, and the CLI — one page per feature, each with a "Copy prompt" button.</div>
+  <div class="callout">    <div>Check the <a href="features.html">Features index</a> for APEX synthesis, agent spawning, looping, verifier, adaptive budget, branching, self-evolving skills, memory providers, procedural memory, episodic memory, retry policies, observability, logging, and the CLI — one page per feature, each with a "Copy prompt" button.</div>
   </div>
 
   <div class="callout">    <div>
@@ -494,8 +512,9 @@ asyncio.run(main())</code></pre>
       <a href="guides/looping.html#branching">branching</a> (pick the best of several candidates), and
       <a href="guides/skills.html#self-evolving-skills">skill distillation</a> on a genuine convergence.
       <a href="guides/procedural-memory.html">Procedural memory</a> persists what the verifier
-      learned across runs. All five pieces are independent <code>LoopConfig</code> fields — turn on
-      only what you need.
+      learned across runs, and <a href="guides/episodic-memory.html">episodic memory</a> records
+      each iteration as a recallable past run. All of these are independent <code>LoopConfig</code>
+      fields — turn on only what you need.
     </div>
   </div>
 </section>
@@ -1205,7 +1224,7 @@ human-in-the-loop tool approval (`AgentHooks`), and a Redis memory provider. See
 ## Documentation map
 
 - [Features](features.html) — every feature has its own page: APEX, agent spawning, looping,
-  verifier, procedural memory, skills, memory providers, retry/fallback, observability, CLI,
+  verifier, procedural memory, skills, memory providers, retry/fallback, observability, logging, CLI,
   multimodal input, StreamPolicy, FastAPI integration, structured output, human-in-the-loop hooks,
   and the Redis memory provider. Each page has a "Copy prompt" button for AI-assisted implementation.
 - [Examples](examples.html) — runnable end-to-end scripts and domain walkthroughs.
