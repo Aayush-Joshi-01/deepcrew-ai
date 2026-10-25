@@ -8,9 +8,65 @@
   <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/procedural-memory.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="Procedural Memory — deepcrew-ai" />
+  <meta property="og:description" content="An ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/guides/procedural-memory.html" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Procedural Memory — deepcrew-ai" />
+  <meta name="twitter:description" content="An ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/guides/procedural-memory.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Procedural Memory — deepcrew-ai",
+  "headline": "Procedural Memory — deepcrew-ai",
+  "description": "An ACE-inspired evolving playbook — agents accumulate what worked (and what to avoid) across runs.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/guides/procedural-memory.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -136,6 +192,12 @@ print(playbook.render(entries))  # the exact text block injected into context</c
   </ol>
   <p>Because similarity is substring-based, near-duplicate phrasing ("avoid rate limits" vs. "avoid hitting the rate limit") won't merge — they'll accumulate as separate low-usage entries competing for the same <code>max_entries</code> slots. Keep your agent's own issue/summary text reasonably consistent in phrasing if you want related lessons to actually consolidate over time.</p>
 
+  <h3>Optional LLM reflector (v0.6.0)</h3>
+  <p><code>ProceduralMemory(backend, reflect_model="gemini/gemini-3.5-flash-lite")</code> replaces step 2's heuristic candidate generation with one LLM call that returns <code>{"helpful": [...], "harmful": [...]}</code> distilled from the feedback and the last answer — the merge/prune/persist logic (steps 3–5) is unchanged. It falls back to the heuristic on any error. Off by default. <code>EpisodicMemory</code> has the same <code>reflect_model</code> option for its per-episode lesson.</p>
+
+  <h3>Matching the read tag to the loop tag (v0.6.0)</h3>
+  <p>The loop injects and curates under <code>LoopConfig.task_tag or agent.procedural_task_tag or agent.name</code>. A standalone (non-looped) run reads under <code>Agent.procedural_task_tag or agent.name</code>. So if a loop curates under a custom <code>task_tag</code>, set the same string as <code>Agent.procedural_task_tag</code> on any single-shot agent that should read that playbook — otherwise it silently reads an empty one keyed by <code>agent.name</code>.</p>
+
   <h3>PlaybookEntry reference</h3>
   <div class="param-table">
     <div class="param-row"><div class="param-cell param-name">content</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">The strategy text itself, already prefixed <code>"Avoid: "</code> or <code>"Worked well: "</code> by <code>curate()</code>.</div></div>
@@ -146,7 +208,7 @@ print(playbook.render(entries))  # the exact text block injected into context</c
 
   <h3>ProceduralMemory reference</h3>
   <div class="param-table">
-    <div class="param-row"><div class="param-cell param-name">ProceduralMemory(backend, max_entries=30)</div><div class="param-cell param-type">MemoryProvider, int</div><div class="param-cell param-desc">Wraps any <code>MemoryProvider</code> as the backing store; caps the playbook at <code>max_entries</code>, pruned by usage/score.</div></div>
+    <div class="param-row"><div class="param-cell param-name">ProceduralMemory(backend, max_entries=30, *, reflect_model=None)</div><div class="param-cell param-type">MemoryProvider, int, str | None</div><div class="param-cell param-desc">Wraps any <code>MemoryProvider</code> as the backing store; caps the playbook at <code>max_entries</code>, pruned by usage/score. <code>reflect_model</code> (v0.6.0) swaps the heuristic candidate step for one LLM call.</div></div>
     <div class="param-row"><div class="param-cell param-name">load(task_tag)</div><div class="param-cell param-type">async -> list[PlaybookEntry]</div><div class="param-cell param-desc">Returns all persisted entries for the given namespace. Returns an empty list (not an error) if nothing has been curated yet, or if the stored metadata is corrupt/unparseable.</div></div>
     <div class="param-row"><div class="param-cell param-name">render(entries)</div><div class="param-cell param-type">list[PlaybookEntry] -> str</div><div class="param-cell param-desc">Formats entries as a compact <code>## Known strategies for this task</code> bullet block for system-prompt injection; empty string for an empty list (so nothing extra is injected when there's no playbook yet).</div></div>
     <div class="param-row"><div class="param-cell param-name">curate(task_tag, feedback, trajectory)</div><div class="param-cell param-type">async -> int</div><div class="param-cell param-desc">Reflector+Curator step described above. <code>trajectory</code> is the loop's full list of <code>AgentResult</code>s so far; only the <em>last</em> one's text is actually used, as the "worked well" summary source.</div></div>
@@ -296,6 +358,14 @@ print(playbook.render(entries))  # the exact text block injected into context
     - The pruned list is persisted back to the backend, one key per entry index plus a small metadata key recording the count.
 
 Because similarity is substring-based, near-duplicate phrasing ("avoid rate limits" vs. "avoid hitting the rate limit") won't merge — they'll accumulate as separate low-usage entries competing for the same `max_entries` slots. Keep your agent's own issue/summary text reasonably consistent in phrasing if you want related lessons to actually consolidate over time.
+
+### Optional LLM reflector (v0.6.0)
+
+`ProceduralMemory(backend, reflect_model="gemini/gemini-3.5-flash-lite")` replaces the heuristic candidate generation with one LLM call returning `{"helpful": [...], "harmful": [...]}` distilled from the feedback and the last answer; merge/prune/persist is unchanged. Falls back to the heuristic on any error. Off by default. `EpisodicMemory` has the same `reflect_model` option.
+
+### Matching the read tag to the loop tag (v0.6.0)
+
+The loop uses `LoopConfig.task_tag or agent.procedural_task_tag or agent.name`; a standalone run reads under `Agent.procedural_task_tag or agent.name`. If a loop curates under a custom `task_tag`, set the same string as `Agent.procedural_task_tag` on any single-shot agent that should read that playbook.
 
 ### PlaybookEntry reference
 

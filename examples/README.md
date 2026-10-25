@@ -7,7 +7,7 @@ docstring at the top of each file for required environment variables (API keys) 
 |---|---|
 | `simple_agent.py` | A single agent with an `@tool`-decorated function. |
 | `workflow_example.py` | `WorkflowBuilder` DAG, streaming and non-streaming. |
-| `automated_example.py` | `Orchestrator` router + APEX synthesis, streaming events. |
+| `automated_example.py` | `Orchestrator` router (NIA) + APEX synthesis, streaming events. |
 | `mcp_example.py` | All three MCP transports (Stdio/HTTP/SSE) + `MCPManager`. |
 | `self_improving_research.py` | `LoopConfig` with a `Verifier`, adaptive early-stop. |
 | `consensus_code_review.py` | Self-consistency branching + skill distillation. |
@@ -16,5 +16,7 @@ docstring at the top of each file for required environment variables (API keys) 
 | `structured_output.py` | `response_model` validated against a pydantic schema. |
 | `human_in_the_loop.py` | `AgentHooks.approve_tool` denying a specific tool call. |
 | `fastapi_streaming.py` | `create_stream_router` wired into a FastAPI app. |
+| `episodic_memory.py` | `EpisodicMemory` — the automatic record/recall cycle (Gemini). |
+| `procedural_memory.py` | `ProceduralMemory` — a verifier loop curates a playbook, a later run reads it (Gemini). |
 
 Full write-ups with expected output: [Examples guide](https://deepcrew-ai.aayushjoshi.dev/examples.html).

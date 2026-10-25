@@ -49,8 +49,8 @@ tag/version check before building anything.
 ```bash
 git checkout main
 git pull
-git tag -a v0.5.0 -m "deepcrew-ai v0.5.0 — <summary>"
-git push origin v0.5.0
+git tag -a v0.6.0 -m "deepcrew-ai v0.6.0 — <summary>"
+git push origin v0.6.0
 ```
 
 ### 5. Approve the release
@@ -65,7 +65,7 @@ with the `.whl` and `.tar.gz` attached and generated notes.
 ### 6. Verify
 ```bash
 curl -s https://pypi.org/pypi/deepcrew-ai/json | python -c "import sys,json;print(json.load(sys.stdin)['info']['version'])"
-gh release view v0.5.0
+gh release view v0.6.0
 ```
 
 ## Docs-only change

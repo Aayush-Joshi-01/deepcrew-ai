@@ -9,7 +9,7 @@ deepcrew adds once you're here.
 |---|---|---|
 | `Agent(role=, goal=, backstory=)` | `Agent(name=, system_prompt=)` | deepcrew doesn't split role/goal/backstory into separate fields — fold them into one `system_prompt`. |
 | `Crew(agents=[...], process=Process.sequential)` | `WorkflowBuilder().add_agent(...).then(...)` | Explicit DAG edges instead of an implicit list order. |
-| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | An LLM router picks single-agent or fan-out parallel execution; no manager agent to configure. |
+| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | NIA (Navigator & Intelligence Allocator), an LLM router, picks single-agent or fan-out parallel execution; no manager agent to configure. |
 | `@tool` / `BaseTool` subclass | `@tool` decorator on a plain function | Schema is auto-generated from type hints — no separate schema class. |
 | `Agent(..., output_pydantic=Model)` | `Agent(..., response_model=Model)` | Validated result lands on `AgentResult.parsed`; one automatic repair attempt on invalid JSON. |
 | `Task(human_input=True)` | `AgentHooks(approve_tool=...)` | deepcrew's human-in-the-loop is per-tool-call, not per-task; return `False` from `approve_tool` to deny. |
@@ -20,8 +20,11 @@ deepcrew adds once you're here.
 from crewai import Agent, Crew, Task, Process
 
 researcher = Agent(role="Researcher", goal="Find facts", backstory="...")
-crew = Crew(agents=[researcher], tasks=[Task(description="...", agent=researcher)],
-            process=Process.sequential)
+crew = Crew(
+    agents=[researcher],
+    tasks=[Task(description="...", agent=researcher)],
+    process=Process.sequential,
+)
 result = crew.kickoff()
 ```
 
@@ -53,6 +56,8 @@ result.parsed  # a validated Report instance
 | ADK `FunctionTool` | `@tool`-decorated function or `Skill` | Simple callables become tools; multi-step capabilities become `Skill` subclasses. |
 | ADK callbacks (`before_tool_callback`, etc.) | `AgentHooks` + the `StreamEvent` queue | Hooks *intercept* (can deny a tool call); events only *observe*. Use `StreamPolicy` to control what a UI sees. |
 | ADK `Session` / state | `MemoryProvider` (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) | Pluggable backend; attach via `Agent(memory=...)`. |
+| ADK long-term memory / past-session recall | `EpisodicMemory` | Durable log of past runs recalled by relevance before each run (`Agent(episodic_memory=...)`). |
+| ADK logging / callbacks for traces | `configure_logging()` + `get_logger()` | Opt-in structured logs (dev/prod/verbose/quiet); OpenTelemetry spans stay separate (`ObservabilityConfig`). |
 | ADK `SequentialAgent` / `ParallelAgent` | `WorkflowBuilder` | Explicit `.then()` edges; independent nodes at the same DAG level run in parallel automatically. |
 | ADK `LoopAgent` | `LoopConfig` + `run_agent_loop` | deepcrew's loop is verifier-driven (a critic scores each iteration) rather than a fixed iteration count, with optional adaptive early-stop and self-consistency branching. |
 

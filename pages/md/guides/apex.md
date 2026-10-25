@@ -1,5 +1,5 @@
 # APEX Synthesizer
-APEX is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
+APEX (Assembly & Precision Executor) is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
 
 APEX lives in `src/deepcrew/apex.py` as the `APEXSynthesizer` class. You will rarely construct it directly in normal use: `Orchestrator` builds and owns one internally whenever it routes a query to multiple agents. You only reach for the standalone API in [the section below](#standalone) when you already have a list of `AgentResult` objects from somewhere else (a cache, a previous run, a custom fan-out you wrote yourself) and want APEX's merging behavior without going through the full router pipeline.
 
@@ -30,14 +30,16 @@ from deepcrew import Agent, Orchestrator, ApexConfig
 orch = Orchestrator(
     agents=[
         Agent("researcher", model="openai/gpt-4o-mini", system_prompt="Research facts."),
-        Agent("analyst",    model="anthropic/claude-haiku-4-5-20251001", system_prompt="Analyze data."),
+        Agent(
+            "analyst", model="anthropic/claude-haiku-4-5-20251001", system_prompt="Analyze data."
+        ),
     ],
     router_model="openai/gpt-4o-mini",
-    apex_model="openai/gpt-4o",       # defaults to router_model if omitted
+    apex_model="openai/gpt-4o",  # defaults to router_model if omitted
     apex_config=ApexConfig(
-        cite_sources=True,           # [source: researcher] / [source: analyst] inline
-        confidence_threshold=0.75,   # advisory only — see "Common pitfalls" below
-        allow_tools=False,           # APEX can call tools mid-synthesis (experimental)
+        cite_sources=True,  # [source: researcher] / [source: analyst] inline
+        confidence_threshold=0.75,  # advisory only — see "Common pitfalls" below
+        allow_tools=False,  # APEX can call tools mid-synthesis (experimental)
     ),
 )
 

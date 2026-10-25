@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from .logging_config import get_logger
 from .types import EventType, StreamEvent
 
 if TYPE_CHECKING:
     from .agent import Agent
 
-logger = logging.getLogger(__name__)
+log = get_logger("retry")
 
 
 @dataclass
@@ -51,11 +51,12 @@ async def with_retry_and_fallback(
 
     for model_idx, model in enumerate(models_to_try):
         if model_idx > 0:
-            logger.warning(
-                "agent=%s falling back from model=%s to model=%s",
-                agent_id,
-                models_to_try[model_idx - 1],
-                model,
+            log.warning(
+                "model fallback",
+                event="fallback_triggered",
+                agent_id=agent_id,
+                from_model=models_to_try[model_idx - 1],
+                to_model=model,
             )
             if queue:
                 await queue.put(
@@ -77,12 +78,13 @@ async def with_retry_and_fallback(
                 if not isinstance(last_exc, tuple(retry_on)):
                     break
                 delay = policy.backoff_seconds * (2 ** (attempt - 1) if policy.exponential else 1)
-                logger.warning(
-                    "agent=%s retry attempt=%d model=%s delay=%.2fs",
-                    agent_id,
-                    attempt,
-                    model,
-                    delay,
+                log.warning(
+                    "retry attempt",
+                    event="retry_attempt",
+                    agent_id=agent_id,
+                    attempt=attempt,
+                    model=model,
+                    delay_s=round(delay, 2),
                 )
                 if queue:
                     await queue.put(

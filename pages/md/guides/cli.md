@@ -6,7 +6,7 @@ Run declarative YAML workflow files from the terminal. No Python code required f
 ```python
 pip install deepcrew-ai
 deepcrew --version
-# deepcrew-ai 0.4.0
+# deepcrew-ai 0.6.0
 ```
 
 ### Write a workflow YAML
@@ -65,6 +65,17 @@ deepcrew run workflow.yaml --input "Quantum computing in 2026" --no-stream
 
 # List all agents in a config
 deepcrew agents list --config workflow.yaml
+```
+
+### Logging flags (v0.5.0)
+
+The CLI is quiet by default (warnings and errors only) and shares the library's [logging layer](logging.html). Global flags go before the subcommand; `DEEPCREW_LOG*` environment variables still override them.
+
+```bash
+deepcrew -v run workflow.yaml                       # verbose profile (TRACE)
+deepcrew --log-profile dev run workflow.yaml        # coloured DEBUG
+deepcrew --log-level DEBUG --log-json run workflow.yaml
+deepcrew -q run workflow.yaml                       # errors only
 ```
 
 ### YAML schema

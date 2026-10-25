@@ -8,7 +8,7 @@ agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
 
 msg = user_message(
     "Summarize this chart and check it against the report.",
-    image("chart.png"),   # local file, PNG/JPEG/GIF/WEBP auto-detected
+    image("chart.png"),  # local file, PNG/JPEG/GIF/WEBP auto-detected
     pdf("report.pdf"),
 )
 result = await run_agent(agent, [msg])
@@ -81,13 +81,13 @@ content = [
     {"type": "text", "text": "What's in this?"},
     {"type": "image_url", "image_url": {"url": "..."}},
 ]
-extract_text(content)          # "What's in this?" — joins only the text blocks
-extract_text("plain string")   # "plain string" — passthrough
-extract_text(None)             # "" — never raises
+extract_text(content)  # "What's in this?" — joins only the text blocks
+extract_text("plain string")  # "plain string" — passthrough
+extract_text(None)  # "" — never raises
 
 parts = [image("chart.png"), pdf("report.pdf")]
-describe_attachments(parts)    # "[attachments: 1 image, 1 document]"
-describe_attachments("text")   # "" — no attachments to describe
+describe_attachments(parts)  # "[attachments: 1 image, 1 document]"
+describe_attachments("text")  # "" — no attachments to describe
 ```
 
 `extract_text()` is what the memory-injection query, the verifier's grading prompt, and the self-improving loop's convergence checks all run on internally — none of them ever see the raw image/document bytes, only whatever text accompanied them.

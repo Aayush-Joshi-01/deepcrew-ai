@@ -5,15 +5,17 @@ Set `response_model` to a pydantic model and the agent's final text is validated
 from pydantic import BaseModel
 from deepcrew import Agent, run_agent
 
+
 class Verdict(BaseModel):
     approved: bool
     reason: str
+
 
 agent = Agent(name="reviewer", model="openai/gpt-4o", response_model=Verdict)
 result = await run_agent(agent, [{"role": "user", "content": "Review this PR diff: ..."}])
 
 result.parsed.approved  # bool
-result.parsed.reason    # str
+result.parsed.reason  # str
 ```
 
 ### How it actually works

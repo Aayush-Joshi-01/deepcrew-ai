@@ -1,5 +1,5 @@
 # Observability
-deepcrew-ai emits OpenTelemetry spans for every LLM call, tool execution, and workflow step. When `observability=None` (the default), all span context managers are `nullcontext()` — absolutely zero overhead.
+deepcrew-ai emits OpenTelemetry spans for every LLM call, tool execution, and workflow step. When `observability=None` (the default), all span context managers are `nullcontext()` — absolutely zero overhead. Looking for plain human/JSON logs instead of spans? See the [Logging](logging.html) guide — the two are independent and compose.
 
 ### Installation
 
@@ -17,7 +17,7 @@ obs = ObservabilityConfig(
     otel_endpoint="http://localhost:4317",  # gRPC endpoint
     service_name="my-ai-app",
     enabled=True,
-    export_format="grpc",   # or "http" for HTTP/protobuf
+    export_format="grpc",  # or "http" for HTTP/protobuf
 )
 
 agent = Agent("researcher", model="openai/gpt-4o-mini", system_prompt="Research thoroughly.")
@@ -40,7 +40,7 @@ obs = ObservabilityConfig(otel_endpoint="http://localhost:4317")
 result = await run_agent(
     agent,
     [{"role": "user", "content": "Hello!"}],
-    observability=obs,   # that's it
+    observability=obs,  # that's it
 )
 
 # Spans emitted (see "Span attributes" below for exact names —

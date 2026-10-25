@@ -64,6 +64,14 @@ def test_standard_policy_allows_tool_and_lifecycle_events():
     assert policy.allows(EventType.ERROR)
     assert not policy.allows(EventType.VERIFIER_SCORED)
     assert not policy.allows(EventType.MEMORY_STORE)
+    assert not policy.allows(EventType.EPISODE_RECALLED)
+    assert not policy.allows(EventType.EPISODE_RECORDED)
+
+
+def test_chat_policy_excludes_episode_events():
+    policy = StreamPolicy.chat()
+    assert not policy.allows(EventType.EPISODE_RECALLED)
+    assert not policy.allows(EventType.EPISODE_RECORDED)
 
 
 def test_verbose_policy_allows_everything():

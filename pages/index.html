@@ -5,15 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>deepcrew-ai — Multi-Agent AI Library for Python</title>
   <meta name="description" content="Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI." />
-  <meta property="og:title" content="deepcrew-ai" />
-  <meta property="og:description" content="Multi-agent AI library for Python — APEX, spawning, skills, memory, observability." />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#0a0b0d" />
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="assets/css/style.css" />
+
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="deepcrew-ai — Multi-Agent AI Library for Python" />
+  <meta property="og:description" content="Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="deepcrew-ai — Multi-Agent AI Library for Python" />
+  <meta name="twitter:description" content="Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/index.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": [
+    "WebSite",
+    "TechArticle"
+  ],
+  "name": "deepcrew-ai — Multi-Agent AI Library for Python",
+  "headline": "deepcrew-ai — Multi-Agent AI Library for Python",
+  "description": "Build parallel AI workflows with any LLM provider. APEX synthesis, agent spawning, looping, skills, memory, retry, OpenTelemetry, and CLI.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://pypi.org/search/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -31,7 +93,7 @@
     <li><a href="index.html#api-reference">API</a></li>
   </ul>
   <div class="nav-right">
-    <span class="badge">v0.4.0</span>
+    <span class="badge">v0.6.0</span>
     <button class="btn-outline copy-page-btn" data-md="md/index.md" title="Copy page as Markdown"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="9" height="9" rx="1.3"/><path d="M3 10.5V3.5A1.5 1.5 0 0 1 4.5 2h7"/></svg><span class="btn-text">Copy page</span></button>
     <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-outline" target="_blank" rel="noopener">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg><span class="btn-text">GitHub</span></a>
@@ -82,7 +144,7 @@
     </a>
     <a class="sidebar-link" data-target="orchestrator">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5l-3.5 6M8 5l3.5 6M5 13h6"/></svg>
-      <span class="link-text"><span class="link-title">Orchestrator</span><span class="link-desc">Router LLM picks single-agent or parallel fan-out.</span></span>
+      <span class="link-text"><span class="link-title">Orchestrator</span><span class="link-desc">NIA router picks single-agent or parallel fan-out.</span></span>
     </a>
   </div>
 
@@ -126,6 +188,10 @@
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h12M2 13h8"/><circle cx="13.5" cy="13" r="1.3"/></svg>
       <span class="link-text"><span class="link-title">Procedural Memory</span><span class="link-desc">A durable, evolving playbook layered on any memory provider.</span></span>
     </a>
+    <a class="sidebar-link" href="guides/episodic-memory.html">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 4v4l3 2"/><circle cx="8" cy="8" r="6.5"/></svg>
+      <span class="link-text"><span class="link-title">Episodic Memory</span><span class="link-desc">A log of past runs, recalled by relevance before each new one.</span></span>
+    </a>
   </div>
 
   <div class="sidebar-section">
@@ -160,6 +226,10 @@
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg>
       <span class="link-text"><span class="link-title">Observability</span><span class="link-desc">OpenTelemetry spans across agents, tools, and workflows.</span></span>
     </a>
+    <a class="sidebar-link" href="guides/logging.html">
+      <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12M2 8h9M2 13h12"/></svg>
+      <span class="link-text"><span class="link-title">Logging</span><span class="link-desc">Toggleable structured/colour logs and a shared get_logger().</span></span>
+    </a>
     <a class="sidebar-link" href="guides/cli.html">
       <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M4 7l2 2-2 2M9 11h3"/></svg>
       <span class="link-text"><span class="link-title">CLI</span><span class="link-desc">Run YAML-defined workflows from the command line.</span></span>
@@ -187,15 +257,13 @@
 
 <!-- ─── HERO ─── -->
 <div id="hero" data-section="hero">
-  <div class="scanline-wrap"><div class="scanline"></div></div>
   <div class="hero-split">
     <div class="hero-left">
       <section class="hero">
-        <div class="hero-eyebrow">pip install deepcrew-ai</div>
-        <h1>Multi-agent AI,<br/><em>without the boilerplate.</em></h1>
-        <p>Build parallel AI workflows with any LLM provider. APEX synthesis, intelligent agent spawning, iterative looping, skills, memory, and OpenTelemetry observability — all async-first.</p>
+        <h1>Multi-agent AI, <em>without the boilerplate.</em></h1>
+        <p>Build parallel agent workflows on any of 100+ LLM providers. Synthesis, spawning, looping, skills, memory, and observability. Async-first throughout.</p>
         <div class="hero-actions">
-          <a href="#getting-started" class="btn-hero-primary">Get Started →</a>
+          <a href="#getting-started" class="btn-hero-primary">Get started →</a>
           <a href="https://github.com/Aayush-Joshi-01/deepcrew-ai" class="btn-hero-secondary" target="_blank">View on GitHub</a>
         </div>
       </section>
@@ -318,22 +386,10 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
   </div>
 
   <div class="stat-strip">
-    <div class="stat-item">
-      <div class="stat-num" data-count="100" data-suffix="+">0+</div>
-      <div class="stat-label">LLM providers</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-count="10">0</div>
-      <div class="stat-label">v0.3.0 features</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-count="72">0</div>
-      <div class="stat-label">Tests passing</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-count="3">0</div>
-      <div class="stat-label">MCP transports</div>
-    </div>
+    <div class="stat-item"><span class="stat-num">100+</span><span class="stat-label">LLM providers via LiteLLM</span></div>
+    <div class="stat-item"><span class="stat-num">3</span><span class="stat-label">MCP transports</span></div>
+    <div class="stat-item"><span class="stat-num">async</span><span class="stat-label">parallel at every level</span></div>
+    <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Python 3.11+</span></div>
   </div>
 
   <div class="feature-grid">
@@ -350,7 +406,7 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
     <div class="feature-card">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1l2 5h5l-4 3 1.5 5L8 11l-4.5 3L5 9 1 6h5z"/></svg></div>
       <h3>APEX synthesis</h3>
-      <p>Confidence-scored, citation-aware multi-agent synthesis engine. Know how sure your AI is about its answer.</p>
+      <p>APEX (Assembly &amp; Precision Executor) is a confidence-scored, citation-aware engine that merges parallel agent results. Know how sure your AI is about its answer.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="3" r="2"/><circle cx="3" cy="13" r="2"/><circle cx="13" cy="13" r="2"/><path d="M8 5v3M5.3 11.2L6.8 9M10.7 11.2L9.2 9"/></svg></div>
@@ -377,6 +433,16 @@ print(f"Confidence: {result.agent_results[-1].confidence:.2f}")</code></pre>
       <h3>Retry & fallback</h3>
       <p>Per-agent exponential backoff with configurable model fallback chains. Never fail on transient errors.</p>
     </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12M2 8h9M2 13h12"/></svg></div>
+      <h3>Logging</h3>
+      <p>Toggleable structured/colour logs with dev/prod/verbose profiles, JSON output, and a shared <code>get_logger()</code> for your own components.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v4l3 2"/><circle cx="8" cy="8" r="6.5"/></svg></div>
+      <h3>Episodic memory</h3>
+      <p>A durable log of past runs. Relevant episodes are recalled by similarity and recency before each new run, and outcomes recorded after.</p>
+    </div>
   </div>
 </div>
 
@@ -394,7 +460,16 @@ pip install deepcrew-ai
 # With OpenTelemetry support
 pip install "deepcrew-ai[otel]"
 
-# With dev dependencies (pytest, respx)
+# With the FastAPI SSE streaming integration
+pip install "deepcrew-ai[fastapi]"
+
+# With the Redis memory provider
+pip install "deepcrew-ai[redis]"
+
+# With coloured logging via rich (plain ANSI fallback without it)
+pip install "deepcrew-ai[log]"
+
+# With dev dependencies (pytest, ruff, mypy, rich)
 pip install "deepcrew-ai[dev]"</code></pre>
   </div>
 
@@ -436,7 +511,7 @@ async def main():
 asyncio.run(main())</code></pre>
   </div>
 
-  <div class="callout">    <div>Check the <a href="features.html">Features index</a> for APEX synthesis, agent spawning, looping, verifier, adaptive budget, branching, self-evolving skills, memory providers, procedural memory, retry policies, observability, and the CLI — one page per feature, each with a "Copy prompt" button.</div>
+  <div class="callout">    <div>Check the <a href="features.html">Features index</a> for APEX synthesis, agent spawning, looping, verifier, adaptive budget, branching, self-evolving skills, memory providers, procedural memory, episodic memory, retry policies, observability, logging, and the CLI — one page per feature, each with a "Copy prompt" button.</div>
   </div>
 
   <div class="callout">    <div>
@@ -447,8 +522,9 @@ asyncio.run(main())</code></pre>
       <a href="guides/looping.html#branching">branching</a> (pick the best of several candidates), and
       <a href="guides/skills.html#self-evolving-skills">skill distillation</a> on a genuine convergence.
       <a href="guides/procedural-memory.html">Procedural memory</a> persists what the verifier
-      learned across runs. All five pieces are independent <code>LoopConfig</code> fields — turn on
-      only what you need.
+      learned across runs, and <a href="guides/episodic-memory.html">episodic memory</a> records
+      each iteration as a recallable past run. All of these are independent <code>LoopConfig</code>
+      fields — turn on only what you need.
     </div>
   </div>
 </section>
@@ -498,6 +574,10 @@ agent = Agent(
     <div class="param-row"><div class="param-cell param-name">fallback_chain <span class="badge" style="font-size:10px;padding:1px 5px">v0.2</span></div><div class="param-cell param-type">FallbackChain | None</div><div class="param-cell param-desc">Ordered list of fallback model strings to try when all retries fail.</div></div>
     <div class="param-row"><div class="param-cell param-name">loop_config <span class="badge" style="font-size:10px;padding:1px 5px">v0.2</span></div><div class="param-cell param-type">LoopConfig | None</div><div class="param-cell param-desc">Outer refinement loop: run agent → check convergence → re-prompt → repeat.</div></div>
     <div class="param-row"><div class="param-cell param-name">procedural_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">ProceduralMemory | None</div><div class="param-cell param-desc">Durable evolving playbook, read-injected into context on every run. Curated only via a loop whose LoopConfig also sets it.</div></div>
+    <div class="param-row"><div class="param-cell param-name">procedural_task_tag <span class="badge" style="font-size:10px;padding:1px 5px">v0.6</span></div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Playbook namespace for <code>procedural_memory</code>; defaults to <code>name</code>. Match it to <code>LoopConfig.task_tag</code> so single-shot runs read the playbook a loop curated.</div></div>
+    <div class="param-row"><div class="param-cell param-name">episodic_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.6</span></div><div class="param-cell param-type">EpisodicMemory | None</div><div class="param-cell param-desc">Durable log of past runs. Relevant episodes are recalled into context before every run and the outcome recorded after (one episode per loop iteration).</div></div>
+    <div class="param-row"><div class="param-cell param-name">response_model <span class="badge" style="font-size:10px;padding:1px 5px">v0.4</span></div><div class="param-cell param-type">type[BaseModel] | None</div><div class="param-cell param-desc">Validate the final answer against a pydantic schema (one automatic repair attempt); result on <code>AgentResult.parsed</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">hooks <span class="badge" style="font-size:10px;padding:1px 5px">v0.4</span></div><div class="param-cell param-type">AgentHooks | None</div><div class="param-cell param-desc">Lifecycle hooks, including <code>approve_tool</code> to deny an individual tool call before it runs.</div></div>
     <div class="param-row"><div class="param-cell param-name">max_turns</div><div class="param-cell param-type">int = 10</div><div class="param-cell param-desc">Max LLM→tool→LLM cycles per run. <code>MaxTurnsError</code> raised if exceeded.</div></div>
     <div class="param-row"><div class="param-cell param-name">temperature</div><div class="param-cell param-type">float | None</div><div class="param-cell param-desc">Sampling temperature. <code>None</code> uses the provider default.</div></div>
     <div class="param-row"><div class="param-cell param-name">max_tokens</div><div class="param-cell param-type">int | None</div><div class="param-cell param-desc">Max output tokens. <code>None</code> uses the provider default.</div></div>
@@ -711,7 +791,7 @@ async for event in workflow.stream("My topic"):
 <section class="section" id="orchestrator" data-section="orchestrator">
   <div class="section-eyebrow">Orchestration</div>
   <h2>Orchestrator</h2>
-  <p>Automated mode: a router LLM decides which agents to run, they execute in parallel, and APEX synthesizes the results with confidence scoring.</p>
+  <p>Automated mode. NIA (Navigator &amp; Intelligence Allocator), a lightweight router LLM, decides which agents to run and allocates tools to each; they execute in parallel; then APEX (Assembly &amp; Precision Executor) synthesizes the results with confidence scoring.</p>
 
   <div class="code-block">
     <div class="code-header"><span class="code-lang">python</span><button class="code-copy">Copy</button></div>
@@ -919,7 +999,8 @@ class APEXSynthesizer:
     refine_prompt: str = "..."
     verifier: Verifier | None = None  # v0.2.1
     procedural_memory: ProceduralMemory | None = None  # v0.2.2
-    task_tag: str | None = None  # v0.2.2 — defaults to agent.name
+    task_tag: str | None = None  # v0.2.2 — defaults to agent.procedural_task_tag or agent.name
+    episodic_memory: EpisodicMemory | None = None  # v0.6.0 — one episode recorded per iteration
     adaptive: bool = False  # v0.2.3 — plateau-detection early exit
     min_improvement: float = 0.02  # v0.2.3
     plateau_patience: int = 2  # v0.2.3
@@ -956,7 +1037,7 @@ class FileMemoryProvider(MemoryProvider):
 
 # Procedural Memory (v0.2.2)
 class ProceduralMemory:
-    def __init__(self, backend: MemoryProvider, max_entries: int = 30)
+    def __init__(self, backend: MemoryProvider, max_entries: int = 30, *, reflect_model: str | None = None)  # reflect_model: v0.6.0
     async def load(self, task_tag: str) -> list[PlaybookEntry]
     def render(self, entries: list[PlaybookEntry]) -> str
     async def curate(self, task_tag: str, feedback: VerifierFeedback, trajectory: list[AgentResult]) -> int
@@ -966,6 +1047,40 @@ class ProceduralMemory:
     kind: Literal["helpful", "harmful"]
     uses: int = 0
     last_score: float | None = None
+
+# Episodic Memory (v0.6.0)
+@dataclass class Episode:
+    query: str
+    response: str
+    outcome: Literal["success", "failure", "partial", "unknown"] = "unknown"
+    score: float | None = None
+    tools_used: list[str] = []
+    reflection: str | None = None
+    tags: list[str] = []
+    timestamp: str = ""   # ISO-8601 UTC, auto-filled on record()
+    agent_id: str = ""
+
+class EpisodicMemory:
+    def __init__(self, backend: MemoryProvider, *, namespace: str = "default",
+                 max_episodes: int = 100, recall_k: int = 3, reflect_model: str | None = None)
+    async def record(self, episode: Episode) -> Episode
+    async def recall(self, query: str, *, top_k: int | None = None) -> list[Episode]
+    async def load(self) -> list[Episode]
+    def render(self, episodes: list[Episode]) -> str
+    async def reflect(self, episode: Episode) -> str | None
+    async def clear(self) -> None
+
+# Logging (v0.5.0)
+def configure_logging(profile_or_config="dev", /, **overrides) -> logging.Logger
+def get_logger(name: str) -> StructuredAdapter   # log.info("msg", key=value); .bind(); .trace()
+@dataclass class LoggingConfig:
+    level: int | str = "INFO"
+    profile: Literal["dev", "prod", "verbose", "quiet"] | None = None
+    format: Literal["text", "json"] = "text"
+    color: bool | None = None
+    timestamps: bool = True
+    stream: TextIO | None = None
+    propagate: bool = False
 
 # Retry
 @dataclass class RetryPolicy:
@@ -1029,6 +1144,8 @@ def make_spawn_tool(
     model: str
     confidence: float | None    # v0.2.0 — populated by APEX
     loop_iterations: int        # v0.2.0 — outer loop count
+    episodes_recalled: int      # v0.6.0 — past episodes recalled into context
+    parsed: Any | None          # v0.4.0 — validated response_model instance
     total_tokens: int           # property
 
 @dataclass class WorkflowResult:
@@ -1063,13 +1180,20 @@ def make_spawn_tool(
         <tr><td><span class="badge-event">thinking_delta</span></td><td>chunk</td><td>Thinking/reasoning tokens (where supported)</td></tr>
         <tr><td><span class="badge-event">tool_call</span></td><td>tool, args</td><td>Before tool execution</td></tr>
         <tr><td><span class="badge-event">tool_result</span></td><td>tool, result</td><td>After tool execution</td></tr>
+        <tr><td><span class="badge-event">tool_denied</span></td><td>tool</td><td>v0.4 An <code>approve_tool</code> hook denied the call</td></tr>
         <tr><td><span class="badge-event">agent_done</span></td><td>input_tokens, output_tokens</td><td>Agent loop complete</td></tr>
         <tr><td><span class="badge-event">apex_start</span></td><td>agents</td><td>v0.2 APEX synthesis begins</td></tr>
         <tr><td><span class="badge-event">apex_done</span></td><td>confidence</td><td>v0.2 APEX synthesis complete</td></tr>
         <tr><td><span class="badge-event">loop_iteration</span></td><td>iteration, converged</td><td>v0.2 Each outer loop iteration</td></tr>
-        <tr><td><span class="badge-event">spawn_agent</span></td><td>task, requested_tools</td><td>v0.2 Sub-agent spawned</td></tr>
+        <tr><td><span class="badge-event">verifier_scored</span></td><td>iteration, score, issues</td><td>v0.3 Verifier grades an iteration</td></tr>
+        <tr><td><span class="badge-event">playbook_updated</span></td><td>task_tag, entry_count</td><td>v0.3 Procedural memory curated</td></tr>
+        <tr><td><span class="badge-event">branch_selected</span></td><td>branch_count, winning_index, winning_score</td><td>v0.3 Best/merged branch chosen</td></tr>
+        <tr><td><span class="badge-event">skill_extracted</span></td><td>skill_name, score</td><td>v0.3 A converged run distilled into a Skill</td></tr>
+        <tr><td><span class="badge-event">spawn_agent</span></td><td>task, requested_tools, depth</td><td>v0.2 Sub-agent spawned</td></tr>
         <tr><td><span class="badge-event">memory_retrieve</span></td><td>count</td><td>v0.2 Memories injected to context</td></tr>
         <tr><td><span class="badge-event">memory_store</span></td><td>key</td><td>v0.2 Tool result stored to memory</td></tr>
+        <tr><td><span class="badge-event">episode_recalled</span></td><td>count</td><td>v0.6 Past episodes injected from episodic memory</td></tr>
+        <tr><td><span class="badge-event">episode_recorded</span></td><td>outcome, score</td><td>v0.6 A run recorded to episodic memory</td></tr>
         <tr><td><span class="badge-event">retry_attempt</span></td><td>attempt, model, delay</td><td>v0.2 Before a retry</td></tr>
         <tr><td><span class="badge-event">fallback_triggered</span></td><td>from_model, to_model</td><td>v0.2 Model switch</td></tr>
         <tr><td><span class="badge-event">step_start</span></td><td>node</td><td>WorkflowBuilder: node begins</td></tr>
@@ -1113,6 +1237,7 @@ pip install deepcrew-ai
 pip install deepcrew-ai[fastapi]   # SSE streaming endpoint
 pip install deepcrew-ai[redis]     # Redis-backed memory
 pip install deepcrew-ai[otel]      # OpenTelemetry tracing
+pip install deepcrew-ai[log]       # coloured logging via rich (plain ANSI fallback without it)
 ```
 
 Set the API key env var for whichever provider(s) you use: `OPENAI_API_KEY`,
@@ -1133,8 +1258,9 @@ print(result.text)
 
 - **`Agent`** — model, system prompt, tools, memory, hooks, optional `response_model`.
 - **`run_agent()`** — the agentic loop: stream → buffer tool calls → execute in parallel → repeat.
-- **`Orchestrator`** — an LLM router picks a single agent or fans out to several in parallel, then
-  `APEXSynthesizer` merges parallel results with confidence scoring and optional citations.
+- **`Orchestrator`** — NIA (Navigator & Intelligence Allocator), an LLM router, picks a single
+  agent or fans out to several in parallel, then `APEXSynthesizer` (APEX, Assembly & Precision
+  Executor) merges parallel results with confidence scoring and optional citations.
 - **`WorkflowBuilder`** — an explicit DAG of agents; independent nodes at the same level run in
   parallel automatically.
 - **`LoopConfig`** — an outer refinement loop: a `Verifier` scores each iteration and drives
@@ -1143,6 +1269,12 @@ print(result.text)
   sub-agents mid-run via a `spawn_agent` meta-tool, hard-capped by `max_spawn_depth`.
 - **`MemoryProvider`** — pluggable context store (`InMemoryProvider`, `FileMemoryProvider`,
   `RedisMemoryProvider`), auto-injected into each LLM call.
+- **`ProceduralMemory`** — a durable, evolving playbook of strategies curated by a verifier loop and
+  read back into later runs (optional LLM `reflect_model`).
+- **`EpisodicMemory`** — a durable log of past runs; relevant episodes are recalled before each new
+  run and the outcome recorded after (`Agent(episodic_memory=...)`).
+- **`configure_logging()` / `get_logger()`** — opt-in structured logging (dev/prod/verbose/quiet
+  profiles, JSON output); `get_logger` is public for your own components.
 - **MCP tools** — `StdioMCP`, `SSEMCP`, `HTTPMCP`, `MCPManager` for attaching MCP servers.
 - **`StreamEvent`/`StreamPolicy`** — every consequential action streams as an event; `StreamPolicy`
   controls which event types a given consumer sees (`chat()`, `standard()`, `verbose()`, custom).
@@ -1151,14 +1283,16 @@ print(result.text)
 
 Multimodal input (`image()`, `pdf()`, `user_message()`), selectable streaming visibility
 (`StreamPolicy`), an optional FastAPI SSE integration, structured output (`response_model`),
-human-in-the-loop tool approval (`AgentHooks`), and a Redis memory provider. See the
-[features index](features.html) and [migration guide](guides/migration.html).
+human-in-the-loop tool approval (`AgentHooks`), and a Redis memory provider (v0.4); opt-in
+structured logging (v0.5); episodic memory, an LLM reflector for procedural memory, and an
+opt-in live-test harness (v0.6). See the [features index](features.html) and
+[migration guide](guides/migration.html).
 
 ## Documentation map
 
 - [Features](features.html) — every feature has its own page: APEX, agent spawning, looping,
-  verifier, procedural memory, skills, memory providers, retry/fallback, observability, CLI,
-  multimodal input, StreamPolicy, FastAPI integration, structured output, human-in-the-loop hooks,
+  verifier, procedural memory, episodic memory, skills, memory providers, retry/fallback,
+  observability, logging, CLI, multimodal input, StreamPolicy, FastAPI integration, structured output, human-in-the-loop hooks,
   and the Redis memory provider. Each page has a "Copy prompt" button for AI-assisted implementation.
 - [Examples](examples.html) — runnable end-to-end scripts and domain walkthroughs.
 - [Migration Guide](guides/migration.html) — coming from CrewAI or Google ADK.

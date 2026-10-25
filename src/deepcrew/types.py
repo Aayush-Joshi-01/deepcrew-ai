@@ -33,6 +33,9 @@ class EventType(StrEnum):
     PLAYBOOK_UPDATED = "playbook_updated"
     BRANCH_SELECTED = "branch_selected"
     SKILL_EXTRACTED = "skill_extracted"
+    # v0.6.0
+    EPISODE_RECALLED = "episode_recalled"
+    EPISODE_RECORDED = "episode_recorded"
 
 
 @dataclass
@@ -75,6 +78,8 @@ class AgentResult:
     model: str = ""
     confidence: float | None = None
     loop_iterations: int = 0
+    # Number of past episodes recalled into context from Agent.episodic_memory.
+    episodes_recalled: int = 0
     # Set when Agent.response_model is used: the validated pydantic model
     # instance parsed from `text`. None otherwise.
     parsed: Any | None = None

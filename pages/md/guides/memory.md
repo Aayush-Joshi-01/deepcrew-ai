@@ -16,15 +16,13 @@ agent = Agent(
 )
 
 # First interaction
-result1 = await run_agent(agent, [
-    {"role": "user", "content": "My name is Alice and I'm building a Python library."}
-])
+result1 = await run_agent(
+    agent, [{"role": "user", "content": "My name is Alice and I'm building a Python library."}]
+)
 
 # Memory automatically stores tool results and LLM context
 # Second interaction — agent will remember Alice's project
-result2 = await run_agent(agent, [
-    {"role": "user", "content": "What was my project about again?"}
-])
+result2 = await run_agent(agent, [{"role": "user", "content": "What was my project about again?"}])
 ```
 
 ### FileMemoryProvider — persistent context
@@ -54,6 +52,7 @@ Need something InMemory/File/Redis don't cover — SQLite, a vector database, an
 import sqlite3
 from deepcrew.memory.base import MemoryProvider
 
+
 class SQLiteMemoryProvider(MemoryProvider):
     """Simple SQLite-backed memory — one row per key, LIKE-based search."""
 
@@ -63,9 +62,7 @@ class SQLiteMemoryProvider(MemoryProvider):
         self._conn.commit()
 
     async def store(self, key: str, value: str) -> None:
-        self._conn.execute(
-            "INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, value)
-        )
+        self._conn.execute("INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, value))
         self._conn.commit()
 
     async def retrieve(self, key: str) -> str | None:
@@ -74,8 +71,7 @@ class SQLiteMemoryProvider(MemoryProvider):
 
     async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]:
         rows = self._conn.execute(
-            "SELECT key, value FROM memory WHERE key LIKE ? OR value LIKE ? "
-            "ORDER BY key LIMIT ?",
+            "SELECT key, value FROM memory WHERE key LIKE ? OR value LIKE ? ORDER BY key LIMIT ?",
             (f"%{query}%", f"%{query}%", top_k),
         ).fetchall()
         return [(k, v) for k, v in rows]
@@ -83,6 +79,7 @@ class SQLiteMemoryProvider(MemoryProvider):
     async def clear(self) -> None:
         self._conn.execute("DELETE FROM memory")
         self._conn.commit()
+
 
 agent = Agent("persistent", model="openai/gpt-4o", memory=SQLiteMemoryProvider("agent.db"))
 ```
@@ -125,6 +122,10 @@ class MemoryProvider(ABC):
 
 All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) implement `search()` identically: a case-insensitive substring match on either the key or the value, sorted by key, truncated to `top_k`. This is not semantic search — a query like `"CRISPR gene editing"` will not match a stored value about `"Cas9 mechanism"` unless the substring itself literally overlaps. If you need embedding-based retrieval, that's a natural fit for a custom `MemoryProvider` like the SQLite example above, backed by a vector index instead of a LIKE query.
 
+### Episodic memory (past runs)
+
+`EpisodicMemory` (v0.6.0) is the specifics-keeping counterpart: a durable log of past runs — query, answer, outcome, score — recalled by relevance before each new run and recorded after it, automatically, via `Agent(episodic_memory=...)`. See the [Episodic Memory guide](episodic-memory.html).
+
 ### Procedural memory (evolving playbook)
 
 `ProceduralMemory` is an opt-in, durable "the system learns from its own past runs" store, built on top of any `MemoryProvider`. See the full [Procedural Memory feature guide](procedural-memory.html) for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.
@@ -140,3 +141,4 @@ All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMe
 
     - [Redis Memory Provider](redis-memory.html) — a persistent, shared, multi-process-safe option built into the library.
     - [Procedural Memory](procedural-memory.html) — a structured playbook layered on top of any provider here.
+    - [Episodic Memory](episodic-memory.html) — a log of past runs layered on top of any provider here.

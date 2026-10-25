@@ -8,9 +8,65 @@
   <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/cli.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="CLI — deepcrew-ai" />
+  <meta property="og:description" content="deepcrew run workflow.yaml — declarative workflow execution from the terminal." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/guides/cli.html" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CLI — deepcrew-ai" />
+  <meta name="twitter:description" content="deepcrew run workflow.yaml — declarative workflow execution from the terminal." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/guides/cli.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "CLI — deepcrew-ai",
+  "headline": "CLI — deepcrew-ai",
+  "description": "deepcrew run workflow.yaml — declarative workflow execution from the terminal.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/guides/cli.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -65,7 +121,7 @@
     <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
     <pre><code class="language-bash">pip install deepcrew-ai
 deepcrew --version
-# deepcrew-ai 0.4.0</code></pre>
+# deepcrew-ai 0.6.0</code></pre>
   </div>
 
   <h3>Write a workflow YAML</h3>
@@ -124,6 +180,16 @@ deepcrew run workflow.yaml --input "Quantum computing in 2026" --no-stream
 
 # List all agents in a config
 deepcrew agents list --config workflow.yaml</code></pre>
+  </div>
+
+  <h3>Logging flags (v0.5.0)</h3>
+  <p>The CLI is <strong>quiet by default</strong> (warnings and errors only) and shares the library's <a href="logging.html">logging layer</a>. Global flags go before the subcommand; <code>DEEPCREW_LOG*</code> environment variables still override them.</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">shell</span><button class="code-copy">Copy</button></div>
+    <pre><code class="language-bash">deepcrew -v run workflow.yaml                       # verbose profile (TRACE)
+deepcrew --log-profile dev run workflow.yaml        # coloured DEBUG
+deepcrew --log-level DEBUG --log-json run workflow.yaml
+deepcrew -q run workflow.yaml                       # errors only</code></pre>
   </div>
 
   <h3>YAML schema</h3>
@@ -219,7 +285,7 @@ Run declarative YAML workflow files from the terminal. No Python code required f
 ```python
 pip install deepcrew-ai
 deepcrew --version
-# deepcrew-ai 0.4.0
+# deepcrew-ai 0.6.0
 ```
 
 ### Write a workflow YAML
@@ -278,6 +344,17 @@ deepcrew run workflow.yaml --input "Quantum computing in 2026" --no-stream
 
 # List all agents in a config
 deepcrew agents list --config workflow.yaml
+```
+
+### Logging flags (v0.5.0)
+
+The CLI is quiet by default (warnings and errors only) and shares the library's [logging layer](logging.html). Global flags go before the subcommand; `DEEPCREW_LOG*` environment variables still override them.
+
+```bash
+deepcrew -v run workflow.yaml                       # verbose profile (TRACE)
+deepcrew --log-profile dev run workflow.yaml        # coloured DEBUG
+deepcrew --log-level DEBUG --log-json run workflow.yaml
+deepcrew -q run workflow.yaml                       # errors only
 ```
 
 ### YAML schema

@@ -4,7 +4,7 @@
 
 <h1 align="center">deepcrew-ai</h1>
 
-Multi-agent AI library for Python. Build parallel workflows, spawn agents dynamically, attach tools via MCP, and stream events in real time — using any of 100+ LLM providers, with minimal boilerplate.
+Multi-agent AI library for Python. Build parallel workflows, spawn agents dynamically, attach tools via MCP, let agents refine their own answers and remember past runs, and stream events in real time — using any of 100+ LLM providers, with minimal boilerplate.
 
 ```bash
 pip install deepcrew-ai
@@ -22,6 +22,8 @@ pip install deepcrew-ai
 <details>
 <summary><strong>Table of contents</strong></summary>
 
+- [What's new in v0.6.0 — Episodic Memory](#whats-new-in-v060--episodic-memory)
+- [What's new in v0.5.0 — Structured Logging](#whats-new-in-v050--structured-logging)
 - [What's new in v0.4.0 — Production Readiness & Streaming-First](#whats-new-in-v040--production-readiness--streaming-first)
 - [What's new in v0.3.0 — Self-Improving Loop](#whats-new-in-v030--self-improving-loop)
 - [Features](#features)
@@ -29,14 +31,16 @@ pip install deepcrew-ai
 - [Orchestration Modes](#orchestration-modes)
   - [Workflow Builder — explicit DAG](#workflow-builder--explicit-dag)
   - [Orchestrator — automated AI routing with APEX](#orchestrator--automated-ai-routing-with-apex)
-- [Feature Guide (v0.2.0 – v0.3.0)](#feature-guide-v020--v030)
+- [Feature Guide](#feature-guide)
   - [APEX Synthesizer](#apex-synthesizer)
   - [Agent Spawning](#agent-spawning) — incl. [nested spawning](#nested-spawning-bounded)
   - [Looping](#looping) — incl. [verifier](#verifier-driven-refinement), [adaptive budget](#adaptive-iteration-budget), [branching](#branching-self-consistency)
   - [Skills](#skills) — incl. [self-evolving skills](#self-evolving-skills-voyager-inspired)
   - [Memory Providers](#memory-providers) — incl. [procedural memory](#procedural-memory-evolving-playbook)
+  - [Episodic Memory](#episodic-memory)
   - [Retry & Fallback](#retry--fallback)
   - [Observability (OpenTelemetry)](#observability-opentelemetry)
+  - [Logging](#logging)
   - [CLI](#cli)
 - [Composing v0.3.0 Features](#composing-v030-features)
 - [MCP Tools](#mcp-tools)
@@ -44,10 +48,70 @@ pip install deepcrew-ai
 - [Streaming with FastAPI](#streaming-with-fastapi)
 - [Stream Events](#stream-events)
 - [Installation](#installation)
+- [Development & Testing](#development--testing)
 - [Documentation](#documentation)
 - [License](#license)
 
 </details>
+
+---
+
+## What's new in v0.6.0 — Episodic Memory
+
+A third memory concept, the specifics-keeping one — a durable log of past runs that is
+recalled by relevance before each new run. Also: an optional LLM reflector for
+`ProceduralMemory`, and an opt-in **live-test harness** (`pytest --live`, Gemini) with a
+content-hash ledger so a verified feature is not re-run until its code changes.
+
+| Feature | Description |
+|---|---|
+| **`EpisodicMemory`** | Ring-buffer log of `Episode` records (query, response, outcome, score, tools, timestamp). Layers on any `MemoryProvider` |
+| **Automatic cycle** | `Agent(episodic_memory=...)` recalls relevant past episodes into context before every run and records the outcome after — one per iteration in a loop |
+| **Relevance recall** | `recall()` ranks by keyword (Jaccard) overlap + recency; dependency-free, no embeddings. `AgentResult.episodes_recalled` reports the count |
+| **Optional reflection** | `EpisodicMemory(reflect_model=...)` and `ProceduralMemory(reflect_model=...)` distil a lesson per episode / curation with one LLM call. Off by default |
+| **`procedural_task_tag`** | `Agent.procedural_task_tag` aligns single-shot playbook reads with a loop's custom `LoopConfig.task_tag` |
+| **Live tests + ledger** | `tests/live/` (`pytest --live`, `GEMINI_API_KEY`) with `LEDGER.json` / `LEDGER.md`: a feature whose watched source files are unchanged since its last live pass is skipped |
+
+```python
+from deepcrew import Agent, EpisodicMemory, run_agent
+from deepcrew.memory import FileMemoryProvider
+
+episodic = EpisodicMemory(FileMemoryProvider("episodes.json"), namespace="support-bot")
+agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
+
+await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?"}])
+r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
+print(r.episodes_recalled)  # >= 1
+```
+
+See the [Episodic Memory guide](https://deepcrew-ai.aayushjoshi.dev/guides/episodic-memory.html)
+and [`tests/live/README.md`](tests/live/README.md).
+
+---
+
+## What's new in v0.5.0 — Structured Logging
+
+A general-purpose `logging` layer, off by default (library `NullHandler`), separate from
+OpenTelemetry (`ObservabilityConfig`) and from the `StreamEvent` queue.
+
+| Feature | Description |
+|---|---|
+| **`configure_logging()`** | One call turns logging on. Named profiles `dev` / `prod` (JSON) / `verbose` / `quiet`, or ad-hoc `level` / `format` / `color` / `timestamps` knobs |
+| **Env-var toggles** | `DEEPCREW_LOG_PROFILE`, `DEEPCREW_LOG_LEVEL`, `DEEPCREW_LOG_FORMAT`, `DEEPCREW_LOG_TIME`, `DEEPCREW_LOG_COLOR` — always win over code; auto-configure on first use |
+| **`get_logger()`** | Public, first-class API for your own tools/components. Extra kwargs become structured fields; `.bind()` carries context; namespaced under `deepcrew.*` so one call styles everything |
+| **Levels** | Stdlib names only (`CRITICAL`…`DEBUG`) plus `TRACE` (5); no invented levels |
+| **Colour** | `rich` when installed (`[log]` extra), plain ANSI fallback otherwise; honours `NO_COLOR` / `FORCE_COLOR` / TTY |
+| **Coverage** | Structured `event=`-tagged logs across runner, orchestrator, loop, spawner, APEX, verifier, retry, workflow, and MCP; CLI gains `-v` / `--log-profile` / `--log-json` / `-q` |
+
+```python
+from deepcrew import configure_logging, get_logger
+
+configure_logging("dev")  # colour + DEBUG; or "prod" for JSON lines
+log = get_logger("myapp.tools.pricing")
+log.info("price lookup", sku=sku, region=region)  # kwargs → structured fields
+```
+
+See the [Logging guide](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html).
 
 ---
 
@@ -61,13 +125,15 @@ pip install deepcrew-ai
 | **Structured Output** | `Agent(response_model=...)` validates the final answer against a pydantic schema; result on `AgentResult.parsed` |
 | **Human-in-the-Loop Hooks** | `AgentHooks.approve_tool` can deny an individual tool call before it runs |
 | **Redis Memory Provider** | `RedisMemoryProvider` — a persistent, shared `MemoryProvider` backed by Redis (`redis` extra) |
-| **Production hardening** | `py.typed`, ruff + mypy in CI, structured logging, a version-consistency check, and a tagged release workflow that publishes to PyPI with twine and attaches the wheel/sdist to a GitHub Release |
+| **Production hardening** | `py.typed`, ruff + mypy in CI, a version-consistency check, and a tagged release workflow that publishes to PyPI with twine and attaches the wheel/sdist to a GitHub Release |
 
 ```python
 from deepcrew import Agent, run_agent, image, pdf, user_message
 
 agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
-msg = user_message("Summarize this chart against the report.", image("chart.png"), pdf("report.pdf"))
+msg = user_message(
+    "Summarize this chart against the report.", image("chart.png"), pdf("report.pdf")
+)
 result = await run_agent(agent, [msg])
 ```
 
@@ -96,8 +162,10 @@ spawning bounded recursion. Every addition is opt-in and fully backward compatib
 | **Self-Evolving Skills** | A converged, high-confidence loop run is distilled into a reusable, replayable `Skill` |
 | **Memory** | Pluggable `InMemoryProvider` and `FileMemoryProvider` — auto-injected into agent context |
 | **Procedural Memory** | An opt-in, durable evolving playbook of strategies accumulated across runs (ACE-inspired) |
+| **Episodic Memory** | A durable log of past runs (`EpisodicMemory` / `Episode`), recalled by similarity + recency before each new run |
 | **Retry & Fallback** | Per-agent `RetryPolicy` + `FallbackChain` for model resilience |
 | **Observability** | OpenTelemetry spans for every LLM call, tool execution, and workflow step |
+| **Logging** | Toggleable structured/colour logs (`configure_logging`), named profiles, JSON output, and a shared `get_logger()` for your own components |
 | **CLI** | `deepcrew run workflow.yaml` — declarative workflow execution |
 
 ---
@@ -110,12 +178,17 @@ spawning bounded recursion. Every addition is opt-in and fully backward compatib
 - **Parallel execution** — `asyncio.gather` at every level: tools, agents, workflow nodes
 - **MCP tool integration** — stdio (subprocess), SSE (legacy), and streamable-HTTP transports
 - **Python function tools** — `@tool` decorator; JSON Schema auto-generated from type hints
+- **Self-improving loop** — `LoopConfig` + `Verifier`: scored refinement, adaptive early-stop, self-consistency branching, skill distillation
+- **Bounded agent spawning** — agents spawn sub-agents mid-run, hard-capped by `max_spawn_depth`
 - **Skills** — reusable capability bundles exposed to the LLM as tools
-- **Memory providers** — pluggable short-term and persistent context stores
+- **Three memory types** — semantic (`MemoryProvider`), procedural (`ProceduralMemory`, an evolving playbook) and episodic (`EpisodicMemory`, a log of past runs recalled before each run)
+- **Multimodal input** — `image()`, `pdf()`, `user_message()`; **structured output** via `response_model`; **human-in-the-loop** tool approval via `AgentHooks`
 - **Retry & fallback** — per-agent exponential backoff + model fallback chains
+- **Streaming** — true token streaming, selectable visibility (`StreamPolicy`), FastAPI SSE integration
 - **OpenTelemetry** — optional OTel span emission for every LLM call and tool execution
-- **SSE streaming** — compatible with FastAPI `StreamingResponse`
+- **Structured logging** — opt-in, profile-based (dev/prod/verbose/quiet), JSON or coloured text, `get_logger()` for your own components
 - **CLI** — `deepcrew run workflow.yaml` for declarative workflow files
+- **Live-verified** — opt-in Gemini live tests with a content-hash ledger (see [Development & Testing](#development--testing))
 
 ---
 
@@ -125,10 +198,12 @@ spawning bounded recursion. Every addition is opt-in and fully backward compatib
 import asyncio
 from deepcrew import Agent, run_agent, tool
 
+
 @tool
 def get_weather(city: str) -> dict:
     "Get current weather for a city."
     return {"city": city, "temp": 22, "condition": "sunny"}
+
 
 async def main():
     agent = Agent(
@@ -139,6 +214,7 @@ async def main():
     )
     result = await run_agent(agent, [{"role": "user", "content": "Weather in Tokyo?"}])
     print(result.text)
+
 
 asyncio.run(main())
 ```
@@ -154,18 +230,21 @@ Define agents and their dependencies. Independent nodes run in parallel automati
 ```python
 from deepcrew import Agent, WorkflowBuilder
 
-researcher = Agent("researcher", model="openai/gpt-4o-mini",
-                   system_prompt="Research the topic thoroughly.")
-critic     = Agent("critic",     model="anthropic/claude-haiku-4-5-20251001",
-                   system_prompt="Find gaps and weaknesses in the research.")
-writer     = Agent("writer",     model="openai/gpt-4o",
-                   system_prompt="Write a polished report.")
+researcher = Agent(
+    "researcher", model="openai/gpt-4o-mini", system_prompt="Research the topic thoroughly."
+)
+critic = Agent(
+    "critic",
+    model="anthropic/claude-haiku-4-5-20251001",
+    system_prompt="Find gaps and weaknesses in the research.",
+)
+writer = Agent("writer", model="openai/gpt-4o", system_prompt="Write a polished report.")
 
 workflow = (
     WorkflowBuilder()
     .add_agent("research", researcher, task="{input}")
-    .add_agent("critique", critic,     task="Critique this research:\n{research}")
-    .add_agent("report",   writer,     task="Write a report using:\n{research}\n\nCritique:\n{critique}")
+    .add_agent("critique", critic, task="Critique this research:\n{research}")
+    .add_agent("report", writer, task="Write a report using:\n{research}\n\nCritique:\n{critique}")
     .then("research", "critique")
     .then("research", "report")
     .then("critique", "report")
@@ -177,15 +256,15 @@ print(result.final_output.text)
 
 ### Orchestrator — automated AI routing with APEX
 
-The router LLM decides which agents to run; APEX synthesizes the results.
+NIA (**N**avigator & **I**ntelligence **A**llocator), the router LLM, decides which agents to run; APEX synthesizes the results.
 
 ```python
 from deepcrew import Agent, Orchestrator, ApexConfig
 
 agents = [
-    Agent("researcher", model="openai/gpt-4o-mini",  system_prompt="Research specialist."),
-    Agent("analyst",    model="gemini/gemini-2.0-flash", system_prompt="Data analyst."),
-    Agent("writer",     model="anthropic/claude-haiku-4-5-20251001", system_prompt="Content writer."),
+    Agent("researcher", model="openai/gpt-4o-mini", system_prompt="Research specialist."),
+    Agent("analyst", model="gemini/gemini-2.0-flash", system_prompt="Data analyst."),
+    Agent("writer", model="anthropic/claude-haiku-4-5-20251001", system_prompt="Content writer."),
 ]
 
 orch = Orchestrator(
@@ -201,11 +280,11 @@ print(result.final_text)
 
 ---
 
-## Feature Guide (v0.2.0 – v0.3.0)
+## Feature Guide
 
 ### APEX Synthesizer
 
-APEX replaces the plain synthesizer with confidence scoring and source citation.
+APEX (**A**ssembly & **P**recision **EX**ecutor) replaces the plain synthesizer with confidence scoring and source citation.
 
 ```python
 from deepcrew import APEXSynthesizer, ApexConfig, AgentResult
@@ -213,15 +292,15 @@ from deepcrew import APEXSynthesizer, ApexConfig, AgentResult
 apex = APEXSynthesizer(
     model="openai/gpt-4o",
     config=ApexConfig(
-        cite_sources=True,          # adds [source: agent_name] markers
+        cite_sources=True,  # adds [source: agent_name] markers
         confidence_threshold=0.8,
         allow_tools=False,
     ),
 )
 
 result = await apex.synthesize("What is quantum computing?", agent_results)
-print(result.text)         # synthesis with optional citations
-print(result.confidence)   # float 0.0–1.0
+print(result.text)  # synthesis with optional citations
+print(result.confidence)  # float 0.0–1.0
 ```
 
 ### Agent Spawning
@@ -231,16 +310,19 @@ Any agent can dynamically spawn sub-agents mid-loop with intelligent tool alloca
 ```python
 from deepcrew import Agent, Orchestrator, tool
 
+
 @tool
 def search_web(query: str) -> str: ...
+
 
 @tool
 def read_file(path: str) -> str: ...
 
+
 orch = Orchestrator(
     agents=[master_agent],
     global_tools=[search_web, read_file],  # pool available for sub-agents
-    enable_spawn=True,                      # inject spawn_agent tool into every agent
+    enable_spawn=True,  # inject spawn_agent tool into every agent
 )
 
 # The master_agent can now call spawn_agent(task="...", model="...") mid-loop
@@ -262,8 +344,8 @@ orch = Orchestrator(
     agents=[master_agent],
     global_tools=[search_web, read_file],
     enable_spawn=True,
-    max_spawn_depth=3,                      # up to 3 levels of nested delegation
-    spawn_complexity_check=Verifier(),       # optional: skip nesting for simple sub-tasks
+    max_spawn_depth=3,  # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),  # optional: skip nesting for simple sub-tasks
 )
 ```
 
@@ -339,8 +421,8 @@ agent = Agent(
         max_iterations=8,
         verifier=Verifier(VerifierConfig(threshold=0.9)),
         adaptive=True,
-        min_improvement=0.02,   # minimum score delta to still count as "improving"
-        plateau_patience=2,     # stop after this many non-improving iterations in a row
+        min_improvement=0.02,  # minimum score delta to still count as "improving"
+        plateau_patience=2,  # stop after this many non-improving iterations in a row
     ),
 )
 
@@ -383,8 +465,12 @@ bullets across runs — read on every run (looped or single-shot) and curated
 
 ```python
 from deepcrew import (
-    Agent, LoopConfig, Verifier, VerifierConfig,
-    FileMemoryProvider, ProceduralMemory,
+    Agent,
+    LoopConfig,
+    Verifier,
+    VerifierConfig,
+    FileMemoryProvider,
+    ProceduralMemory,
 )
 
 playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
@@ -393,7 +479,7 @@ agent = Agent(
     name="researcher",
     model="openai/gpt-4o-mini",
     tools=[search_web],
-    procedural_memory=playbook,   # read on every run, even single-shot
+    procedural_memory=playbook,  # read on every run, even single-shot
     loop_config=LoopConfig(
         max_iterations=4,
         verifier=Verifier(VerifierConfig(threshold=0.85)),
@@ -427,13 +513,17 @@ agent = Agent(
     ],
 )
 
-result = await run_agent(agent, [{"role": "user", "content": "Search for Python async best practices and summarize them."}])
+result = await run_agent(
+    agent,
+    [{"role": "user", "content": "Search for Python async best practices and summarize them."}],
+)
 ```
 
 Custom skills with the `@skill` decorator:
 
 ```python
 from deepcrew import skill
+
 
 @skill(name="translate", description="Translate text to another language")
 async def translate(text: str, target_language: str) -> str:
@@ -495,6 +585,33 @@ agent = Agent(
 )
 ```
 
+### Episodic Memory
+
+A durable log of past runs — query, answer, outcome, score, tools, timestamp — recalled by
+relevance before each new run. Set `Agent.episodic_memory` and the record/recall cycle is
+automatic (one episode per iteration inside a refinement loop).
+
+```python
+from deepcrew import Agent, EpisodicMemory, run_agent
+from deepcrew.memory import FileMemoryProvider
+
+episodic = EpisodicMemory(
+    FileMemoryProvider("episodes.json"),
+    namespace="support-bot",
+    recall_k=3,
+    reflect_model=None,  # set a model to distil a one-line lesson per episode
+)
+agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
+
+await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?"}])
+r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
+print(r.episodes_recalled)  # >= 1
+print([e.outcome for e in await episodic.load()])
+```
+
+Recall ranks by keyword (Jaccard) overlap plus a recency tie-breaker — dependency-free, no
+embeddings. It is independent of `ProceduralMemory` (distilled rules) and OpenTelemetry.
+
 ### Retry & Fallback
 
 ```python
@@ -504,10 +621,12 @@ agent = Agent(
     name="resilient",
     model="openai/gpt-4o",
     retry_policy=RetryPolicy(max_retries=3, backoff_seconds=1.0, exponential=True),
-    fallback_chain=FallbackChain(models=[
-        "anthropic/claude-haiku-4-5-20251001",
-        "gemini/gemini-2.0-flash",
-    ]),
+    fallback_chain=FallbackChain(
+        models=[
+            "anthropic/claude-haiku-4-5-20251001",
+            "gemini/gemini-2.0-flash",
+        ]
+    ),
 )
 ```
 
@@ -529,6 +648,24 @@ result = await run_agent(agent, messages, observability=obs)
 # Emits spans: agent.run, llm.call, tool.call
 ```
 
+### Logging
+
+Separate from OpenTelemetry — plain human/JSON logs, off by default. One call turns them on;
+`get_logger` is public so your own tools and components log in the same style.
+
+```python
+from deepcrew import configure_logging, get_logger
+
+configure_logging("dev")  # colour + DEBUG; also "prod" (JSON), "verbose", "quiet"
+# or: DEEPCREW_LOG_PROFILE=prod python app.py
+
+log = get_logger("myapp.tools")
+log.info("price lookup", sku=sku, region=region)  # kwargs become structured fields
+```
+
+Colour uses `rich` when installed (`pip install "deepcrew-ai[log]"`), plain ANSI otherwise.
+See the [Logging guide](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html).
+
 ### CLI
 
 ```bash
@@ -540,6 +677,12 @@ deepcrew agents list --config workflow.yaml
 
 # Version
 deepcrew --version
+
+# Logging (quiet by default — warnings and errors only)
+deepcrew -v run workflow.yaml                    # verbose profile
+deepcrew --log-profile dev run workflow.yaml     # coloured DEBUG
+deepcrew --log-level DEBUG --log-json run workflow.yaml
+deepcrew -q run workflow.yaml                    # errors only
 ```
 
 `workflow.yaml` example:
@@ -575,8 +718,13 @@ allows bounded nested delegation:
 
 ```python
 from deepcrew import (
-    Agent, Orchestrator, LoopConfig, Verifier, VerifierConfig,
-    FileMemoryProvider, ProceduralMemory,
+    Agent,
+    Orchestrator,
+    LoopConfig,
+    Verifier,
+    VerifierConfig,
+    FileMemoryProvider,
+    ProceduralMemory,
 )
 
 verifier = Verifier(VerifierConfig(threshold=0.85))
@@ -586,16 +734,16 @@ researcher = Agent(
     name="researcher",
     model="openai/gpt-4o-mini",
     tools=[search_web],
-    procedural_memory=playbook,          # read on every run
+    procedural_memory=playbook,  # read on every run
     loop_config=LoopConfig(
         max_iterations=6,
-        verifier=verifier,                # structured critique drives refinement
-        procedural_memory=playbook,        # curated after convergence
-        adaptive=True,                     # stop early once improvement plateaus
+        verifier=verifier,  # structured critique drives refinement
+        procedural_memory=playbook,  # curated after convergence
+        adaptive=True,  # stop early once improvement plateaus
         min_improvement=0.02,
         plateau_patience=2,
-        branches=2,                        # 2 parallel candidates per iteration
-        auto_extract_skill=True,           # distill a reusable Skill on success
+        branches=2,  # 2 parallel candidates per iteration
+        auto_extract_skill=True,  # distill a reusable Skill on success
         skill_confidence_threshold=0.85,
     ),
 )
@@ -605,8 +753,8 @@ orch = Orchestrator(
     router_model="openai/gpt-4o-mini",
     global_tools=[search_web, read_file],
     enable_spawn=True,
-    max_spawn_depth=2,                    # bounded recursive delegation
-    spawn_complexity_check=verifier,       # reuse the same verifier as a complexity gate
+    max_spawn_depth=2,  # bounded recursive delegation
+    spawn_complexity_check=verifier,  # reuse the same verifier as a complexity gate
 )
 
 result = await orch.run("Research and summarize the current state of fusion energy")
@@ -628,15 +776,18 @@ async with StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."
     agent = Agent("file_agent", model="openai/gpt-4o", mcps=[mcp])
 
 # HTTP (modern)
-async with HTTPMCP("https://my-mcp.example.com/mcp",
-                   headers={"Authorization": "Bearer sk-..."}) as mcp:
+async with HTTPMCP(
+    "https://my-mcp.example.com/mcp", headers={"Authorization": "Bearer sk-..."}
+) as mcp:
     agent = Agent("agent", model="openai/gpt-4o", mcps=[mcp])
 
 # Multiple servers
-async with MCPManager([
-    StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."]),
-    HTTPMCP("https://search-mcp.example.com/mcp"),
-]) as manager:
+async with MCPManager(
+    [
+        StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."]),
+        HTTPMCP("https://search-mcp.example.com/mcp"),
+    ]
+) as manager:
     agent = Agent("agent", model="openai/gpt-4o", mcps=[manager])
 ```
 
@@ -655,6 +806,7 @@ Agent("a", model="anthropic/claude-haiku-4-5-20251001")
 
 # Google
 Agent("a", model="gemini/gemini-2.0-flash")
+Agent("a", model="gemini/gemini-3.5-flash-lite")  # default model of the live tests
 Agent("a", model="gemini/gemini-2.5-pro")
 
 # AWS Bedrock
@@ -694,11 +846,13 @@ Or wire it up manually against any `.stream()`-producing object:
 ```python
 from fastapi.responses import StreamingResponse
 
+
 @app.post("/chat-manual")
 async def chat(query: str):
     async def event_stream():
         async for event in orch.stream(query, policy=StreamPolicy.chat()):
             yield event.to_sse()
+
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 ```
 
@@ -727,6 +881,8 @@ All events have `event` (EventType), `agent_id` (str), and `data` (dict).
 | `spawn_agent` | `task`, `requested_tools`, `depth` | Sub-agent spawned |
 | `memory_retrieve` | `count` | Memories injected into context |
 | `memory_store` | `key` | Tool result stored to memory |
+| `episode_recalled` | `count` | Past episodes injected from episodic memory |
+| `episode_recorded` | `outcome`, `score` | A run recorded to episodic memory |
 | `retry_attempt` | `attempt`, `model`, `delay` | Before a retry |
 | `fallback_triggered` | `from_model`, `to_model` | Model switch |
 | `step_start` | `node` | Workflow node begins |
@@ -752,11 +908,41 @@ pip install "deepcrew-ai[fastapi]"
 # With the Redis memory provider
 pip install "deepcrew-ai[redis]"
 
-# With dev dependencies
+# With coloured logging via rich (plain ANSI fallback without it)
+pip install "deepcrew-ai[log]"
+
+# With dev dependencies (pytest, ruff, mypy, rich)
 pip install "deepcrew-ai[dev]"
 ```
 
+API keys are read by LiteLLM from the standard environment variables (`OPENAI_API_KEY`,
+`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, ...).
+
 Requires Python 3.11+.
+
+---
+
+## Development & Testing
+
+```bash
+pip install -e ".[dev,otel,fastapi,log]"
+ruff check . && ruff format --check . && mypy src/
+pytest                              # fully mocked, offline, no API keys needed
+```
+
+**Live tests** (opt-in) call a real model and verify features end to end:
+
+```bash
+export GEMINI_API_KEY=...
+pytest --live tests/live            # runs only features whose source changed since their last pass
+pytest --live --relive tests/live   # ignore the ledger; run everything
+```
+
+`tests/live/LEDGER.json` / [`LEDGER.md`](tests/live/LEDGER.md) record which features have passed a live
+test; a feature whose watched source files are unchanged is skipped, so a verified feature is not
+re-billed until its code changes. Default model `gemini/gemini-3.5-flash-lite` (override with
+`DEEPCREW_LIVE_MODEL`). See [`tests/live/README.md`](tests/live/README.md) and
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
@@ -765,10 +951,14 @@ Requires Python 3.11+.
 Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
 - [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
-- [Features](https://deepcrew-ai.aayushjoshi.dev/features.html) — one page per feature
+- [Features](https://deepcrew-ai.aayushjoshi.dev/features.html) — one page per feature, including
+  [Episodic Memory](https://deepcrew-ai.aayushjoshi.dev/guides/episodic-memory.html),
+  [Procedural Memory](https://deepcrew-ai.aayushjoshi.dev/guides/procedural-memory.html) and
+  [Logging](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html)
 - [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
 - [Migration Guide (CrewAI / Google ADK)](https://deepcrew-ai.aayushjoshi.dev/guides/migration.html)
 - [llms.txt](https://deepcrew-ai.aayushjoshi.dev/llms.txt) — machine-readable docs index
+- [CHANGELOG](CHANGELOG.md) · [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md) · [Release runbook](RELEASE.md)
 
 ---
 

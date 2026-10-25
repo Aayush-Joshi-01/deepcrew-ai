@@ -1,11 +1,26 @@
 /* deepcrew-ai docs — main.js */
 
 // ─── Scroll-triggered section reveal ────────────────────────
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const observer = new IntersectionObserver(
   (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
-  { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+  { threshold: 0.05, rootMargin: '0px 0px -12% 0px' }
 );
-document.querySelectorAll('.section').forEach(s => observer.observe(s));
+document.querySelectorAll('.section').forEach(s => {
+  // Only sections that start below the fold get the fade-up; everything already
+  // on screen (and everything, if motion is reduced) renders immediately.
+  const belowFold = s.getBoundingClientRect().top > window.innerHeight * 0.9;
+  if (belowFold && !prefersReducedMotion) {
+    s.classList.add('reveal');
+    observer.observe(s);
+  }
+});
+// Failsafe: if anything is still hidden a moment after load, show it.
+window.addEventListener('load', () => setTimeout(() => {
+  document.querySelectorAll('.section.reveal:not(.visible)').forEach(s => {
+    if (s.getBoundingClientRect().top < window.innerHeight) s.classList.add('visible');
+  });
+}, 800));
 
 // ─── Active sidebar link on scroll ──────────────────────────
 const sections = [...document.querySelectorAll('[data-section]')];
@@ -248,7 +263,7 @@ if (toggle && sidebar) {
   // Close sidebar when a link is tapped on mobile
   sidebar.querySelectorAll('.sidebar-link').forEach(link => {
     link.addEventListener('click', () => {
-      if (window.innerWidth <= 768) closeSidebar();
+      if (window.innerWidth <= 940) closeSidebar();
     });
   });
 }
@@ -292,6 +307,19 @@ if (window.Prism) Prism.highlightAll();
   function s(el, props) { if (el) Object.assign(el.style, props); }
   function sa(arr, props) { arr.forEach(el => s(el, props)); }
   function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Reduced motion: render the finished state once, no looping animation.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    s(orch, { opacity: '1', transform: 'none' });
+    s(stRouted, { opacity: '1' });
+    sa(wiresD, { strokeDashoffset: '0', opacity: '1' });
+    sa(agents, { opacity: '1', transform: 'none' });
+    sa(done, { opacity: '1' });
+    sa(wiresU, { strokeDashoffset: '0', opacity: '1' });
+    s(synth, { opacity: '1', transform: 'none' });
+    s(check, { opacity: '1', transform: 'scale(1)' });
+    return;
+  }
 
   function reset() {
     s(orch,  { opacity: '0', transform: 'translateY(-8px)' });
@@ -340,7 +368,7 @@ if (window.Prism) Prism.highlightAll();
     await wait(350);
 
     // 7. Generation starts — dots pulse, bars grow staggered per --td
-    sa(dots, { background: '#fff', boxShadow: '0 0 5px rgba(255,255,255,0.6)' });
+    sa(dots, { background: '#c9f24e', boxShadow: '0 0 6px rgba(201,242,78,0.7)' });
     bars.forEach(b => {
       const tw = getComputedStyle(b).getPropertyValue('--tw').trim() || '70%';
       const td = parseFloat(getComputedStyle(b).getPropertyValue('--td')) * 1000 || 0;
@@ -361,7 +389,7 @@ if (window.Prism) Prism.highlightAll();
     // 10. Synthesizer appears + glows
     s(synth, { opacity: '1', transform: 'none' });
     await wait(400);
-    s(glowRing, { opacity: '1', boxShadow: '0 0 0 1px rgba(255,255,255,0.28), 0 0 22px rgba(255,255,255,0.1)' });
+    s(glowRing, { opacity: '1', boxShadow: '0 0 0 1px rgba(201,242,78,0.4), 0 0 22px rgba(201,242,78,0.12)' });
     await wait(500);
     s(check, { opacity: '1', transform: 'scale(1)' });
 

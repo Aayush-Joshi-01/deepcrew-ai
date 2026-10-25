@@ -6,8 +6,8 @@ Security fixes are applied to the latest released minor version.
 
 | Version | Supported |
 | --- | --- |
-| 0.4.x | Yes |
-| < 0.4 | No |
+| 0.6.x | Yes |
+| < 0.6 | No |
 
 ## Reporting a vulnerability
 

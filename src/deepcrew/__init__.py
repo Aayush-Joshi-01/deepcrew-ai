@@ -51,6 +51,7 @@ from .content import (
     pdf,
     user_message,
 )
+from .episodic_memory import Episode, EpisodicMemory
 from .exceptions import (
     ContentError,
     DeepCrewError,
@@ -65,6 +66,7 @@ from .exceptions import (
     WorkflowError,
 )
 from .hooks import AgentHooks
+from .logging_config import LoggingConfig, configure_logging, get_logger
 from .loop import LoopConfig, LoopState, run_agent_loop, search_loop
 from .memory import FileMemoryProvider, InMemoryProvider, MemoryProvider
 from .observability import ObservabilityConfig
@@ -90,7 +92,7 @@ from .workflow import WorkflowBuilder
 
 logging.getLogger("deepcrew").addHandler(logging.NullHandler())
 
-__version__ = "0.4.0"
+__version__ = "0.6.0"
 
 __all__ = [
     # APEX
@@ -109,12 +111,16 @@ __all__ = [
     "DeepCrewError",
     "DeepCrewMemoryError",
     "DocumentPart",
+    "Episode",
+    "EpisodicMemory",
     "EventType",
     "FallbackChain",
     "FileMemoryProvider",
     "FunctionSkill",
     "ImagePart",
     "InMemoryProvider",
+    # Logging
+    "LoggingConfig",
     # Loop / Search
     "LoopConfig",
     "LoopConvergedError",
@@ -158,11 +164,13 @@ __all__ = [
     "WorkflowBuilder",
     "WorkflowError",
     "WorkflowResult",
+    "configure_logging",
     "create_stream_router",
     "describe_attachments",
     "extract_text",
     "filter_stream",
     "fn_to_tool_def",
+    "get_logger",
     "image",
     "make_done_event",
     "make_error_event",

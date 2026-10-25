@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 import litellm
@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from .content import extract_text
 from .exceptions import MaxTurnsError, OutputParseError, ToolError
+from .logging_config import elapsed_ms, get_logger
 from .types import AgentResult, EventType, StreamEvent, ToolDef
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 
 litellm.drop_params = True
 
-logger = logging.getLogger(__name__)
+log = get_logger("runner")
 
 
 async def run_agent(
@@ -96,6 +97,7 @@ async def _run_agent_turns(
     queue: asyncio.Queue[StreamEvent | None] | None = None,
     agent_id: str | None = None,
     observability: ObservabilityConfig | None = None,
+    record_episode: bool = True,
 ) -> AgentResult:
     """
     The actual per-turn agentic loop (LLM call -> buffer tool calls -> execute
@@ -129,9 +131,12 @@ async def _run_agent_turns(
             }
         )
 
+    query_text = ""
+    if agent.memory or agent.episodic_memory:
+        query_text = " ".join(extract_text(m.get("content")) for m in messages[-3:])
+
     # Memory injection: prepend relevant memories before the conversation
     if agent.memory:
-        query_text = " ".join(extract_text(m.get("content")) for m in messages[-3:])
         memories = await agent.memory.search(query_text)
         if memories:
             if queue:
@@ -145,13 +150,39 @@ async def _run_agent_turns(
             memory_block = "\n".join(f"[Memory] {k}: {v}" for k, v in memories)
             history.append({"role": "system", "content": f"Relevant memories:\n{memory_block}"})
 
+    # Episodic memory recall: relevant past runs injected before this one.
+    episodes_recalled = 0
+    if agent.episodic_memory:
+        episodes = await agent.episodic_memory.recall(query_text)
+        episodes_recalled = len(episodes)
+        if episodes:
+            history.append({"role": "system", "content": agent.episodic_memory.render(episodes)})
+            if queue:
+                await queue.put(
+                    StreamEvent(EventType.EPISODE_RECALLED, {"count": episodes_recalled}, agent_id)
+                )
+            log.debug(
+                "episodes recalled",
+                event="episode_recalled",
+                agent_id=agent_id,
+                count=episodes_recalled,
+            )
+
     # Procedural memory injection: read-only, works even for non-looped agents.
     # Writing/curating new strategies only happens via run_agent_loop.
     if agent.procedural_memory:
-        playbook_entries = await agent.procedural_memory.load(agent_id)
+        playbook_tag = agent.procedural_task_tag or agent_id
+        playbook_entries = await agent.procedural_memory.load(playbook_tag)
         playbook_block = agent.procedural_memory.render(playbook_entries)
         if playbook_block:
             history.append({"role": "system", "content": playbook_block})
+            log.debug(
+                "playbook injected",
+                event="playbook_injected",
+                agent_id=agent_id,
+                task_tag=playbook_tag,
+                entry_count=len(playbook_entries),
+            )
 
     history.extend(messages)
 
@@ -167,15 +198,30 @@ async def _run_agent_turns(
         try:
             await agent.hooks.on_agent_start()
         except Exception:
-            logger.warning("agent=%s hook on_agent_start raised", agent_id, exc_info=True)
+            log.warning("hook on_agent_start raised", agent_id=agent_id, exc_info=True)
 
     if queue:
         await queue.put(StreamEvent(EventType.AGENT_START, {"model": agent.model}, agent_id))
 
+    log.info(
+        "agent start",
+        event="agent_start",
+        agent_id=agent_id,
+        model=agent.model,
+        max_turns=agent.max_turns,
+    )
+    run_start = time.perf_counter()
+
     with agent_span(obs, agent.model, agent_id):
         for _turn in range(agent.max_turns):
-            logger.debug(
-                "agent=%s turn=%d/%d model=%s", agent_id, _turn + 1, agent.max_turns, agent.model
+            turn_start = time.perf_counter()
+            log.debug(
+                "turn start",
+                event="step_start",
+                agent_id=agent_id,
+                step=f"turn:{_turn + 1}",
+                turn=_turn + 1,
+                max_turns=agent.max_turns,
             )
             kwargs: dict[str, Any] = {
                 "model": agent.model,
@@ -246,8 +292,24 @@ async def _run_agent_turns(
 
             turn_text = "".join(text_parts)
             final_text = turn_text
+            log.trace(
+                "turn tokens",
+                agent_id=agent_id,
+                turn=_turn + 1,
+                input_tokens=total_in,
+                output_tokens=total_out,
+            )
 
             if not tc_buffers:
+                log.debug(
+                    "turn end",
+                    event="step_done",
+                    agent_id=agent_id,
+                    step=f"turn:{_turn + 1}",
+                    turn=_turn + 1,
+                    n_tool_calls=0,
+                    duration_ms=elapsed_ms(turn_start),
+                )
                 break
 
             parsed_tcs: list[dict[str, Any]] = []
@@ -285,12 +347,29 @@ async def _run_agent_turns(
                 }
             )
 
-            logger.debug("agent=%s executing tools=%s", agent_id, [tc["name"] for tc in parsed_tcs])
-            with tool_span(obs, ",".join(tc["name"] for tc in parsed_tcs), agent_id):
+            tool_names = [tc["name"] for tc in parsed_tcs]
+            log.debug(
+                "tool call",
+                event="tool_call",
+                agent_id=agent_id,
+                turn=_turn + 1,
+                tools=tool_names,
+            )
+            tools_start = time.perf_counter()
+            with tool_span(obs, ",".join(tool_names), agent_id):
                 tool_results = await asyncio.gather(
                     *[_run_tool(tc, tool_map, agent.hooks) for tc in parsed_tcs],
                     return_exceptions=True,
                 )
+            log.debug(
+                "tool result",
+                event="tool_result",
+                agent_id=agent_id,
+                turn=_turn + 1,
+                tools=tool_names,
+                n_errors=sum(1 for r in tool_results if isinstance(r, BaseException)),
+                duration_ms=elapsed_ms(tools_start),
+            )
 
             for tc, result in zip(parsed_tcs, tool_results, strict=False):
                 if isinstance(result, _ToolDenied):
@@ -301,12 +380,12 @@ async def _run_agent_turns(
                         )
                 elif isinstance(result, BaseException):
                     content = f"Error executing tool '{tc['name']}': {result}"
-                    logger.warning(
-                        "agent=%s tool=%s raised %s: %s",
-                        agent_id,
-                        tc["name"],
-                        type(result).__name__,
-                        result,
+                    log.warning(
+                        "tool raised",
+                        agent_id=agent_id,
+                        tool=tc["name"],
+                        error_type=type(result).__name__,
+                        error=str(result),
                     )
                     if queue:
                         await queue.put(
@@ -346,8 +425,22 @@ async def _run_agent_turns(
                                 agent_id,
                             )
                         )
+            log.debug(
+                "turn end",
+                event="step_done",
+                agent_id=agent_id,
+                step=f"turn:{_turn + 1}",
+                turn=_turn + 1,
+                n_tool_calls=len(parsed_tcs),
+                duration_ms=elapsed_ms(turn_start),
+            )
         else:
-            logger.error("agent=%s exhausted max_turns=%d", agent_id, agent.max_turns)
+            log.error(
+                "max_turns exhausted",
+                event="error",
+                agent_id=agent_id,
+                max_turns=agent.max_turns,
+            )
             raise MaxTurnsError(
                 f"Agent {agent_id!r} reached max_turns={agent.max_turns} without finishing"
             )
@@ -363,6 +456,7 @@ async def _run_agent_turns(
         input_tokens=total_in,
         output_tokens=total_out,
         model=agent.model,
+        episodes_recalled=episodes_recalled,
         parsed=parsed_output,
     )
     if queue:
@@ -373,7 +467,67 @@ async def _run_agent_turns(
                 agent_id,
             )
         )
+    log.info(
+        "agent done",
+        event="agent_done",
+        agent_id=agent_id,
+        input_tokens=total_in,
+        output_tokens=total_out,
+        n_tool_calls=len(all_tool_calls),
+        duration_ms=elapsed_ms(run_start),
+    )
+
+    if record_episode and agent.episodic_memory:
+        await record_agent_episode(
+            agent.episodic_memory, agent_result, _last_user_text(messages) or query_text, queue
+        )
     return agent_result
+
+
+def _last_user_text(messages: list[dict[str, Any]]) -> str:
+    for m in reversed(messages):
+        if m.get("role") == "user":
+            return extract_text(m.get("content"))
+    return ""
+
+
+async def record_agent_episode(
+    episodic_memory: Any,
+    result: AgentResult,
+    query: str,
+    queue: asyncio.Queue[StreamEvent | None] | None = None,
+    *,
+    outcome: str | None = None,
+    score: float | None = None,
+) -> None:
+    """Persist one :class:`~deepcrew.Episode` for a completed agent run."""
+    from .episodic_memory import Episode
+
+    resolved_score = score if score is not None else result.confidence
+    if outcome is not None:
+        resolved_outcome = outcome
+    elif resolved_score is None:
+        resolved_outcome = "unknown"
+    else:
+        resolved_outcome = "success" if resolved_score >= 0.7 else "partial"
+
+    episode = Episode(
+        query=query,
+        response=result.text,
+        outcome=resolved_outcome,  # type: ignore[arg-type]
+        score=resolved_score,
+        tools_used=sorted({tc["tool"] for tc in result.tool_calls}),
+        agent_id=result.agent_id,
+    )
+    await episodic_memory.record(episode)
+    if queue:
+        await queue.put(
+            StreamEvent(
+                EventType.EPISODE_RECORDED,
+                {"outcome": episode.outcome, "score": episode.score},
+                result.agent_id,
+            )
+        )
 
 
 class _ToolDenied(Exception):
@@ -390,9 +544,7 @@ async def _run_tool(
         try:
             approved = await hooks.approve_tool(tc["name"], tc["args"])
         except Exception:
-            logger.warning(
-                "approve_tool hook raised for tool=%s; denying call", tc["name"], exc_info=True
-            )
+            log.warning("approve_tool hook raised; denying call", tool=tc["name"], exc_info=True)
             approved = False
         if not approved:
             raise _ToolDenied()
@@ -401,7 +553,7 @@ async def _run_tool(
         try:
             await hooks.on_tool_start(tc["name"], tc["args"])
         except Exception:
-            logger.warning("on_tool_start hook raised for tool=%s", tc["name"], exc_info=True)
+            log.warning("on_tool_start hook raised", tool=tc["name"], exc_info=True)
 
     result = await _execute_tool(tc, tool_map)
 
@@ -409,7 +561,7 @@ async def _run_tool(
         try:
             await hooks.on_tool_end(tc["name"], result)
         except Exception:
-            logger.warning("on_tool_end hook raised for tool=%s", tc["name"], exc_info=True)
+            log.warning("on_tool_end hook raised", tool=tc["name"], exc_info=True)
 
     return result
 

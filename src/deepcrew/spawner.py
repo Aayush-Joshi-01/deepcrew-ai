@@ -6,8 +6,11 @@ from dataclasses import dataclass, field
 
 import litellm
 
+from .logging_config import get_logger
 from .types import AgentResult, EventType, StreamEvent, ToolDef
 from .verifier import Verifier
+
+log = get_logger("spawner")
 
 
 @dataclass
@@ -99,6 +102,15 @@ async def spawn_agent(
     from .agent import Agent
     from .runner import run_agent
 
+    log.info(
+        "spawn agent",
+        event="spawn_agent",
+        agent_id=parent_agent_id,
+        depth=request.depth,
+        requested_tools=request.tools,
+        task=request.task[:120],
+    )
+
     if parent_queue:
         await parent_queue.put(
             StreamEvent(
@@ -188,6 +200,12 @@ def make_spawn_tool(
         system_prompt: str = "",
     ) -> str:
         if current_depth >= max_depth:
+            log.warning(
+                "spawn depth ceiling hit",
+                agent_id=parent_agent_id,
+                current_depth=current_depth,
+                max_depth=max_depth,
+            )
             return (
                 "Maximum nesting depth reached; "
                 "complete this task directly without further delegation."

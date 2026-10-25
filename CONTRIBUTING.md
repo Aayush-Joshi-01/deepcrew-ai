@@ -88,9 +88,9 @@ See [CLAUDE.md](CLAUDE.md) for a fuller architecture map.
 
 ## Testing
 
-**Tests must never call a live LLM API.** Mock `litellm.acompletion` with
-`unittest.mock.patch` / `AsyncMock`, using the hand-built `MagicMock` chunk helpers you'll
-find in the existing test modules.
+**The default `pytest` run must never call a live LLM API.** Mock `litellm.acompletion` with
+`unittest.mock.patch` / `AsyncMock`. `tests/conftest.py` provides shared `make_stream_chunk`
+/ `make_stream` / `make_litellm_response` fixtures; older modules still copy their own.
 
 One sharp edge worth knowing: if you add a field that the runner reads off a streamed
 chunk's `delta` via `getattr(...)` (as it does for `reasoning_content`), you **must** also
@@ -98,6 +98,25 @@ set it explicitly in every test's chunk-builder helper. `MagicMock` returns a tr
 for any unset attribute, which will silently break assertions across the whole suite.
 
 Add tests for the behaviour you change. Bug fixes should come with a regression test.
+
+### Live tests (`tests/live/`)
+
+Opt-in integration tests that call a real model (Gemini). They are **skipped by default**.
+
+```bash
+export GEMINI_API_KEY=...
+pytest --live tests/live          # run features whose code changed since their last pass
+pytest --live --relive tests/live # ignore the ledger; run everything
+DEEPCREW_LIVE_MODEL=gemini/gemini-2.5-flash-lite pytest --live tests/live
+```
+
+`tests/live/LEDGER.json` / `LEDGER.md` record which features have passed a live test. Each
+test declares `pytest.mark.live(feature=..., watch=[<source files>])`; a feature whose watch
+files are byte-identical to the last pass is skipped, so a green feature is not re-billed
+until its code changes. Commit the ledger with your change. See `tests/live/README.md`.
+
+CI runs live tests only on manual `workflow_dispatch` and needs a `GEMINI_API_KEY`
+repository secret (maintainer-set) — never on pull requests.
 
 ## Documentation
 
@@ -118,9 +137,10 @@ CI is scoped by path, so it only runs when it can actually tell you something:
 
 | Change | What runs |
 | --- | --- |
-| `src/**`, `tests/**`, `pyproject.toml` | Lint, mypy, pytest on 3.11 / 3.12 / 3.13 |
+| `src/**`, `tests/**`, `pyproject.toml` | Lint, mypy, pytest (mocked) on 3.11 / 3.12 / 3.13 |
 | `pages/**` | Docs deploy (on `main` only) |
 | Markdown, `examples/**` | Nothing |
+| Manual `workflow_dispatch` | The above **plus** the live-test job (`tests/live`, Gemini) |
 
 If your PR touches only docs and you see no checks, that is expected.
 

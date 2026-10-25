@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -10,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from .content import extract_text
 from .exceptions import LoopConvergedError
+from .logging_config import get_logger
 from .procedural_memory import ProceduralMemory
 from .skills import FunctionSkill, SkillRegistry
 from .types import AgentResult, EventType, StreamEvent, ToolDef
@@ -17,8 +17,9 @@ from .verifier import Verifier, VerifierFeedback
 
 if TYPE_CHECKING:
     from .agent import Agent
+    from .episodic_memory import EpisodicMemory
 
-logger = logging.getLogger(__name__)
+log = get_logger("loop")
 
 
 @dataclass
@@ -50,6 +51,14 @@ class LoopConfig:
     """
     task_tag: str | None = None
     """Playbook namespace for ``procedural_memory``. Defaults to ``agent.name``."""
+    episodic_memory: EpisodicMemory | None = None
+    """
+    Optional durable episode log (see :class:`EpisodicMemory`). When set, one
+    :class:`Episode` is recorded per iteration, its outcome/score taken from the
+    verifier feedback for that iteration. Falls back to ``agent.episodic_memory``
+    when this is unset. Recall (injecting past episodes) always happens via
+    ``agent.episodic_memory`` in the runner.
+    """
     adaptive: bool = False
     """
     When True, track the verifier score across iterations and stop early once
@@ -122,7 +131,7 @@ async def run_agent_loop(
     current_messages = list(messages)
     fetched_tool_defs = tool_defs
     original_query = _extract_query(messages)
-    tag = cfg.task_tag or agent.name
+    tag = cfg.task_tag or agent.procedural_task_tag or agent.name
     last_feedback: VerifierFeedback | None = None
     scores: list[float] = []
     plateau_count = 0
@@ -136,6 +145,13 @@ async def run_agent_loop(
     async def _curate_if_configured() -> None:
         if cfg.procedural_memory is not None and last_feedback is not None:
             count = await cfg.procedural_memory.curate(tag, last_feedback, state.results)
+            log.info(
+                "playbook updated",
+                event="playbook_updated",
+                agent_id=aid,
+                task_tag=tag,
+                entry_count=count,
+            )
             if queue:
                 await queue.put(
                     StreamEvent(
@@ -162,6 +178,13 @@ async def run_agent_loop(
         skill_description = _distilled_skill_description(original_query)
         distilled = _make_distilled_skill(agent, skill_name, skill_description)
         SkillRegistry.register(distilled)
+        log.info(
+            "skill extracted",
+            event="skill_extracted",
+            agent_id=aid,
+            skill_name=skill_name,
+            score=quality,
+        )
         if queue:
             await queue.put(
                 StreamEvent(
@@ -173,6 +196,13 @@ async def run_agent_loop(
 
     for i in range(cfg.max_iterations):
         state.iteration = i
+        log.info(
+            "loop iteration",
+            event="loop_iteration",
+            agent_id=aid,
+            iteration=i + 1,
+            max_iterations=cfg.max_iterations,
+        )
 
         if queue:
             await queue.put(
@@ -194,6 +224,7 @@ async def run_agent_loop(
                 tool_defs=fetched_tool_defs,
                 queue=queue,
                 agent_id=aid,
+                record_episode=False,
             )
         result.loop_iterations = i + 1
         state.results.append(result)
@@ -212,6 +243,15 @@ async def run_agent_loop(
             )
             last_feedback = feedback
             scores.append(feedback.score)
+            log.info(
+                "verifier scored",
+                event="verifier_scored",
+                agent_id=aid,
+                iteration=i + 1,
+                score=feedback.score,
+                n_issues=len(feedback.issues),
+                converged=feedback.converged,
+            )
             if queue:
                 await queue.put(
                     StreamEvent(
@@ -221,10 +261,26 @@ async def run_agent_loop(
                     )
                 )
 
+        episodic = cfg.episodic_memory or agent.episodic_memory
+        if episodic is not None:
+            from .runner import record_agent_episode
+
+            ep_score = feedback.score if feedback is not None else result.confidence
+            if ep_score is None:
+                ep_outcome: str | None = None
+            elif feedback is not None:
+                ep_outcome = "success" if feedback.converged else "partial"
+            else:
+                ep_outcome = "success" if ep_score >= 0.7 else "partial"
+            await record_agent_episode(
+                episodic, result, original_query, queue, outcome=ep_outcome, score=ep_score
+            )
+
         converged = (cfg.convergence_fn and cfg.convergence_fn(result)) or (
             feedback is not None and feedback.converged
         )
         if converged:
+            log.info("loop converged", event="loop_iteration", agent_id=aid, iteration=i + 1)
             if queue:
                 await queue.put(
                     StreamEvent(
@@ -242,6 +298,13 @@ async def run_agent_loop(
             plateau_count = 0 if delta >= cfg.min_improvement else plateau_count + 1
             if plateau_count >= cfg.plateau_patience:
                 best_result = max(zip(scores, state.results, strict=False), key=lambda p: p[0])[1]
+                log.info(
+                    "loop early stop (plateau)",
+                    event="loop_iteration",
+                    agent_id=aid,
+                    iteration=i + 1,
+                    plateau_count=plateau_count,
+                )
                 if queue:
                     await queue.put(
                         StreamEvent(
@@ -282,7 +345,14 @@ async def _run_branches(
 
     branch_results = await asyncio.gather(
         *[
-            _run_agent_turns(agent, messages, tool_defs=tool_defs, queue=queue, agent_id=aid)
+            _run_agent_turns(
+                agent,
+                messages,
+                tool_defs=tool_defs,
+                queue=queue,
+                agent_id=aid,
+                record_episode=False,
+            )
             for _ in range(cfg.branches)
         ]
     )
@@ -301,6 +371,14 @@ async def _run_branches(
         winner = branch_results[winning_index]
         winner.input_tokens = total_in
         winner.output_tokens = total_out
+        log.info(
+            "branch selected",
+            event="branch_selected",
+            agent_id=aid,
+            branch_count=cfg.branches,
+            winning_index=winning_index,
+            winning_score=feedbacks[winning_index].score,
+        )
         if queue:
             await queue.put(
                 StreamEvent(

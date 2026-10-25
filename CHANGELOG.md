@@ -7,6 +7,125 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.0] — 2026-08-30 — Episodic Memory
+
+A third memory concept — the one that keeps the specifics — plus an optional LLM reflector
+for procedural memory and an opt-in live-integration-test harness with a content-hash ledger.
+
+### Added
+
+#### Episodic memory — `deepcrew.episodic_memory`
+- `EpisodicMemory` — a ring buffer of `Episode` records (`query`, `response`, `outcome`,
+  `score`, `tools_used`, `reflection`, `tags`, `timestamp`, `agent_id`) layered on any
+  `MemoryProvider` (`episodic:{namespace}:{i}` + a `__meta__` key), mirroring
+  `ProceduralMemory`'s storage pattern.
+- `EpisodicMemory(backend, *, namespace="default", max_episodes=100, recall_k=3,
+  reflect_model=None)`. Methods: `await record()`, `await recall(query, *, top_k=None)`,
+  `render()`, `await reflect()`, `await clear()`, `await load()`.
+- `recall()` ranks by keyword (Jaccard) overlap between the query and each episode's
+  query/tags plus a small recency tie-breaker; episodes with no topical overlap are not
+  returned. Dependency-free — no embeddings (the provider `search()` is substring-only).
+- **Automatic record/recall cycle**: `Agent.episodic_memory` recalls relevant episodes into
+  a `## Relevant past experience` system block before every `run_agent` and records the
+  outcome after. In a refinement loop, one episode is recorded per iteration with its
+  outcome/score from that iteration's verifier feedback. `LoopConfig.episodic_memory`
+  overrides `Agent.episodic_memory` for the write side.
+- New `AgentResult.episodes_recalled` counter.
+- New `EventType.EPISODE_RECALLED` (`{count}`) and `EPISODE_RECORDED` (`{outcome, score}`);
+  not in the `chat()` / `standard()` `StreamPolicy` presets (consistent with the
+  `MEMORY_*` events).
+- Exported from `deepcrew` as `Episode`, `EpisodicMemory`.
+
+#### Procedural memory
+- `ProceduralMemory(backend, max_entries=30, *, reflect_model=None)` — when `reflect_model`
+  is set, `curate()` distils `{"helpful": [...], "harmful": [...]}` strategies with one LLM
+  call ("Reflector") instead of the heuristic, falling back to the heuristic on any error.
+  Off by default — the docstring's "Reflector + Curator step" is now truthful.
+- `Agent.procedural_task_tag` — aligns the single-shot playbook read-path (previously always
+  `agent_id`) with a loop that curates under a custom `LoopConfig.task_tag`. The loop now
+  resolves `cfg.task_tag or agent.procedural_task_tag or agent.name`.
+
+#### Live-test harness — `tests/live/`
+- Opt-in integration tests that call a real LLM (Gemini). Skipped by default; run with
+  `pytest --live` and `GEMINI_API_KEY` set. Default model `gemini/gemini-3.5-flash-lite`,
+  overridable via `DEEPCREW_LIVE_MODEL`.
+- **Content-hash ledger** (`tests/live/LEDGER.json` / `LEDGER.md`): each live test declares
+  the source files it exercises (`pytest.mark.live(feature=..., watch=[...])`). A feature
+  whose watch files hash identically to the last recorded pass is skipped ("unchanged since
+  live pass on …") — a green feature is not re-billed until its code changes. `--relive`
+  forces every live test.
+- Covers: core agent + tool, orchestrator fan-out + APEX, structured output, loop + verifier,
+  the episodic and procedural memory create→utilize cycles, and the two new example scripts.
+- New `live` pytest marker registered in `pyproject.toml`.
+- New CI job `live` (`.github/workflows/ci.yml`), `workflow_dispatch` only, needs a
+  `GEMINI_API_KEY` repository secret — never runs on pull requests.
+
+#### Examples
+- `examples/episodic_memory.py`, `examples/procedural_memory.py` — both on
+  `gemini/gemini-3.5-flash-lite`, `Requires: GEMINI_API_KEY`.
+
+### Changed
+- `CONTRIBUTING.md` / `CLAUDE.md`: the "tests never call a live LLM API" rule now scopes to
+  the default `pytest` run; opt-in `tests/live/` may, gated on `GEMINI_API_KEY` and the
+  ledger.
+- `tests/conftest.py` gained shared `make_stream_chunk` / `make_stream` /
+  `make_litellm_response` fixtures (used by the new tests; existing modules unchanged).
+
+---
+
+## [0.5.0] — 2026-08-30 — Structured Logging
+
+> Not tagged or published on its own; shipped to PyPI together with 0.6.0.
+
+A general-purpose `logging` layer: opt-in, toggleable, with named profiles, colour, JSON
+output, and consistent structured fields across every subsystem. It is independent of
+`ObservabilityConfig` (OpenTelemetry spans) and of the `StreamEvent` queue (a view-only
+event bus) — logging never affects either.
+
+### Added
+
+#### Logging — `deepcrew.logging_config`
+- `configure_logging(profile_or_config="dev", **overrides)` — one call turns logging on.
+  Accepts a bare profile string (`"dev"` / `"prod"` / `"verbose"` / `"quiet"`), a
+  `LoggingConfig`, or ad-hoc `level` / `format` / `color` / `timestamps` / `stream` /
+  `propagate` keyword overrides. Idempotent — it swaps a single managed handler rather than
+  stacking.
+- `get_logger(name)` — **public API**, re-exported from `deepcrew`. Returns a
+  `StructuredAdapter` namespaced under `deepcrew.<name>`: extra keyword arguments become
+  structured fields, `.bind(**ctx)` attaches carried context, `.trace(...)` logs at the new
+  `TRACE` level. Intended for use in your own tools, memory providers, verifiers and app glue
+  so a single `configure_logging()` call styles library and application logs identically.
+- `LoggingConfig` dataclass — the full configuration object.
+- Named profiles preset four rendering knobs (level / format / colour / timestamps); each is
+  individually overridable. Precedence: profile → explicit arguments → `DEEPCREW_LOG*` env
+  vars (env always wins).
+- Environment variables: `DEEPCREW_LOG_PROFILE`, `DEEPCREW_LOG_LEVEL`, `DEEPCREW_LOG_FORMAT`
+  (`text` / `json`), `DEEPCREW_LOG_TIME`, `DEEPCREW_LOG_COLOR`. When any is set, logging
+  auto-configures on first `get_logger()` use.
+- Levels are the stdlib names (`CRITICAL` … `DEBUG`) plus `TRACE` (5), registered the same
+  way `structlog` / `loguru` add it. No invented level names.
+- Colour uses `rich` when installed (new `log` extra: `pip install "deepcrew-ai[log]"`) and
+  falls back to a plain ANSI formatter otherwise — never a hard dependency. Honours
+  `NO_COLOR` / `FORCE_COLOR` and disables off a non-TTY stream.
+- JSON format emits one object per line: `ts`, `level`, `logger`, `msg`, plus every
+  structured field.
+- Structured, `event=`-tagged lifecycle logs added across `runner` (agent / turn / tool
+  lifecycle, plus per-turn step logs and token-level `TRACE`), `orchestrator` (routing,
+  fan-out, completion), `loop` (previously entirely silent — iteration, verifier score,
+  branch selection, skill distillation, playbook curation), `spawner`, `apex`, `verifier`,
+  `retry`, `workflow`, and `mcp/*`. Each `event` value matches the corresponding
+  `EventType`.
+- CLI (`deepcrew`): new global flags `--log-level`, `--log-profile`, `--log-json`,
+  `-v` / `--verbose`, `-q` / `--quiet`. Quiet by default (warnings and errors only).
+
+### Unchanged
+
+- A bare `import deepcrew` still emits nothing — only a `NullHandler` is attached until
+  `configure_logging()` is called or a `DEEPCREW_LOG*` env var is set.
+- `ObservabilityConfig` / OpenTelemetry behaviour is untouched.
+
+---
+
 ## [0.4.0] — 2026-07-12 — Production Readiness & Streaming-First
 
 Focused on making deepcrew-ai a production-ready, streaming-first library: multimodal input,
@@ -312,6 +431,7 @@ additions are opt-in and fully backward compatible — an unconfigured `LoopConf
 - 37 unit tests; all passing on Python 3.13
 - 4 runnable examples
 
+[0.6.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.4.0...v0.6.0
 [0.4.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.1.0...v0.2.0

@@ -15,6 +15,7 @@ pip install deepcrew-ai
 pip install deepcrew-ai[fastapi]   # SSE streaming endpoint
 pip install deepcrew-ai[redis]     # Redis-backed memory
 pip install deepcrew-ai[otel]      # OpenTelemetry tracing
+pip install deepcrew-ai[log]       # coloured logging via rich (plain ANSI fallback without it)
 ```
 
 Set the API key env var for whichever provider(s) you use: `OPENAI_API_KEY`,
@@ -35,7 +36,7 @@ print(result.text)
 
 - **`Agent`** — model, system prompt, tools, memory, hooks, optional `response_model`.
 - **`run_agent()`** — the agentic loop: stream → buffer tool calls → execute in parallel → repeat.
-- **`Orchestrator`** — an LLM router picks a single agent or fans out to several in parallel, then
+- **`Orchestrator`** — NIA (Navigator & Intelligence Allocator), an LLM router, picks a single agent or fans out to several in parallel, then
   `APEXSynthesizer` merges parallel results with confidence scoring and optional citations.
 - **`WorkflowBuilder`** — an explicit DAG of agents; independent nodes at the same level run in
   parallel automatically.
@@ -45,6 +46,12 @@ print(result.text)
   sub-agents mid-run via a `spawn_agent` meta-tool, hard-capped by `max_spawn_depth`.
 - **`MemoryProvider`** — pluggable context store (`InMemoryProvider`, `FileMemoryProvider`,
   `RedisMemoryProvider`), auto-injected into each LLM call.
+- **`ProceduralMemory`** — a durable, evolving playbook of strategies curated by a verifier loop and
+  read back into later runs (optional LLM `reflect_model`).
+- **`EpisodicMemory`** — a durable log of past runs; relevant episodes are recalled before each new
+  run and the outcome recorded after (`Agent(episodic_memory=...)`).
+- **`configure_logging()` / `get_logger()`** — opt-in structured logging (dev/prod/verbose/quiet
+  profiles, JSON output); `get_logger` is public for your own components.
 - **MCP tools** — `StdioMCP`, `SSEMCP`, `HTTPMCP`, `MCPManager` for attaching MCP servers.
 - **`StreamEvent`/`StreamPolicy`** — every consequential action streams as an event; `StreamPolicy`
   controls which event types a given consumer sees (`chat()`, `standard()`, `verbose()`, custom).
@@ -85,6 +92,7 @@ prompt for that specific feature.
 - [Looping](guides/looping.md) — outer iteration loop for search-refine patterns, with self-consistency branching.
 - [Verifier](guides/verifier.md) — structured, LLM-graded critique drives targeted refinement, with an adaptive compute budget.
 - [Procedural Memory](guides/procedural-memory.md) — an ACE-inspired evolving playbook of strategies accumulated across runs.
+- [Episodic Memory](guides/episodic-memory.md) — a durable log of past runs with automatic similarity + recency recall of relevant prior experience before each new run.
 
 ## Input & Streaming
 
@@ -107,6 +115,7 @@ prompt for that specific feature.
 
 - [Retry & Fallback](guides/retry.md) — per-agent exponential backoff with model fallback chains.
 - [Observability](guides/observability.md) — OpenTelemetry spans for every LLM call, tool execution, and workflow step.
+- [Logging](guides/logging.md) — toggleable structured/colour logs with dev/prod/verbose/quiet profiles, `configure_logging()`, and a shared `get_logger()` for your own components.
 - [CLI](guides/cli.md) — `deepcrew run workflow.yaml` for declarative workflow execution.
 
 See also the [migration guide](guides/migration.md) if you're coming from CrewAI or Google ADK.
@@ -163,7 +172,7 @@ deepcrew adds once you're here.
 |---|---|---|
 | `Agent(role=, goal=, backstory=)` | `Agent(name=, system_prompt=)` | deepcrew doesn't split role/goal/backstory into separate fields — fold them into one `system_prompt`. |
 | `Crew(agents=[...], process=Process.sequential)` | `WorkflowBuilder().add_agent(...).then(...)` | Explicit DAG edges instead of an implicit list order. |
-| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | An LLM router picks single-agent or fan-out parallel execution; no manager agent to configure. |
+| `Crew(process=Process.hierarchical)` | `Orchestrator(agents=[...])` | NIA (Navigator & Intelligence Allocator), an LLM router, picks single-agent or fan-out parallel execution; no manager agent to configure. |
 | `@tool` / `BaseTool` subclass | `@tool` decorator on a plain function | Schema is auto-generated from type hints — no separate schema class. |
 | `Agent(..., output_pydantic=Model)` | `Agent(..., response_model=Model)` | Validated result lands on `AgentResult.parsed`; one automatic repair attempt on invalid JSON. |
 | `Task(human_input=True)` | `AgentHooks(approve_tool=...)` | deepcrew's human-in-the-loop is per-tool-call, not per-task; return `False` from `approve_tool` to deny. |
@@ -246,7 +255,7 @@ See the [Streaming guide](streaming.html) and [Loop guide](guides/loop.html) for
 ---
 
 # APEX Synthesizer
-APEX is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
+APEX (Assembly & Precision Executor) is deepcrew's synthesis engine for merging the outputs of several agents that worked on the same query in parallel. It is not just string concatenation or a second summarization pass: it produces a self-reported confidence score (0.0–1.0) on every result, can optionally cite which agent contributed each fact with inline `[source: agent_name]` markers, and — if you give it tools — can call them mid-synthesis to fact-check a claim before committing to it.
 
 APEX lives in `src/deepcrew/apex.py` as the `APEXSynthesizer` class. You will rarely construct it directly in normal use: `Orchestrator` builds and owns one internally whenever it routes a query to multiple agents. You only reach for the standalone API in [the section below](#standalone) when you already have a list of `AgentResult` objects from somewhere else (a cache, a previous run, a custom fan-out you wrote yourself) and want APEX's merging behavior without going through the full router pipeline.
 
@@ -1132,6 +1141,59 @@ async for event in run_agent_loop(agent, messages, queue=queue):
     - [Verifier](verifier.html) — produces the `VerifierFeedback` that `curate()` consumes.
     - [Looping](looping.html) — the outer-loop lifecycle procedural memory plugs into.
     - [Memory Providers](memory.html) — the raw key/value backend procedural memory is built on top of.
+
+
+---
+
+# Episodic Memory
+
+`EpisodicMemory` is a durable log of specific past runs — what was asked, what the agent answered, which tools it used, and how well it went — with similarity + recency recall of relevant prior experience before a new run. The third memory concept, and the specifics-keeping one: semantic (`Agent.memory`) keeps raw key/value facts, procedural (`ProceduralMemory`) keeps distilled how-to rules, episodic keeps the actual runs. It layers on any `MemoryProvider` as a ring buffer of JSON episodes.
+
+### The automatic cycle
+
+Set `Agent.episodic_memory` and both halves happen on their own:
+
+```python
+from deepcrew import Agent, EpisodicMemory, run_agent
+from deepcrew.memory import FileMemoryProvider
+
+episodic = EpisodicMemory(FileMemoryProvider("episodes.json"), namespace="support-bot")
+agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
+
+await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?"}])
+r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
+print(r.episodes_recalled)   # >= 1
+```
+
+- Recall happens before the LLM sees anything: relevant episodes are ranked and injected as a `## Relevant past experience` system block. `AgentResult.episodes_recalled` reports how many.
+- Record happens after the run. In a refinement loop, one episode is recorded per iteration, its `outcome`/`score` from that iteration's verifier feedback.
+
+### Episode
+
+`query`, `response`, `outcome` (`success`/`failure`/`partial`/`unknown`), `score`, `tools_used`, `reflection`, `tags`, `timestamp` (ISO-8601 UTC, auto), `agent_id`.
+
+### EpisodicMemory(backend, namespace="default", max_episodes=100, recall_k=3, reflect_model=None)
+
+- `await record(episode) -> Episode`
+- `await recall(query, *, top_k=None) -> list[Episode]` — Jaccard keyword overlap + recency tie-breaker; no-overlap episodes are not returned; dependency-free (no embeddings).
+- `render(episodes) -> str` — the system-prompt block.
+- `await reflect(episode) -> str | None` — one LLM call for a reusable lesson; `None` without `reflect_model`.
+- `await clear()`.
+
+### Optional LLM reflection
+
+`EpisodicMemory(backend, reflect_model="gemini/gemini-3.5-flash-lite")` gives each episode a one-sentence `reflection`; `render()` prefers it over the raw response. Off by default; failures swallowed. `ProceduralMemory(reflect_model=...)` has the same option for its curation step.
+
+### Events
+
+`EventType.EPISODE_RECALLED` (`{count}`) and `EPISODE_RECORDED` (`{outcome, score}`). Not in `chat()`/`standard()` `StreamPolicy` presets — use `verbose()`.
+
+### Common pitfalls
+
+- Recall needs topical overlap; an unrelated query recalls nothing (intentional) — use `tags`.
+- The ring buffer overwrites the oldest episode past `max_episodes`.
+- `reflect_model` costs one call per record (5 in a 5-iteration loop).
+- Namespaces are manual — share a `namespace` to share experience across agents.
 
 
 ---
@@ -2233,6 +2295,98 @@ Span names are exactly as shown below — there is no `"deepcrew."` or other nam
 
 ---
 
+# Logging
+
+deepcrew-ai ships a general-purpose structured logging layer that is **off by default** — a bare `import deepcrew` attaches only a `NullHandler` and emits nothing. Turn it on with one call. This is separate from Observability: `ObservabilityConfig` is OpenTelemetry spans; this is plain human/JSON logs. They compose, and logging never touches the `StreamEvent` queue.
+
+### Turn it on
+
+```python
+from deepcrew import configure_logging
+
+configure_logging()          # the "dev" profile: colour, DEBUG, timestamps
+configure_logging("prod")    # JSON lines, INFO, no colour
+configure_logging("verbose") # everything, incl. TRACE token-level detail
+configure_logging(level="DEBUG", format="json")  # ad-hoc knobs
+```
+
+```bash
+DEEPCREW_LOG_PROFILE=dev python app.py
+DEEPCREW_LOG_LEVEL=DEBUG DEEPCREW_LOG_FORMAT=json python app.py
+```
+
+When any `DEEPCREW_LOG*` variable is set, logging auto-configures on first use.
+
+### Colour rendering
+
+`pip install "deepcrew-ai[log]"` pulls in `rich` for nicer coloured output; without it, a plain ANSI formatter is used (no extra dependency). Colour honours `NO_COLOR` / `FORCE_COLOR` and auto-disables off a TTY.
+
+### Profiles
+
+| Profile | Level | Format | Colour | Timestamps |
+|---|---|---|---|---|
+| `dev` | DEBUG | text | on | on |
+| `prod` | INFO | JSON | off | on (ISO-8601 UTC) |
+| `verbose` | TRACE | text | on | on |
+| `quiet` | WARNING | text | auto | off |
+
+Env vars always win over both the profile and explicit arguments.
+
+### Levels
+
+Standard library level names — no custom levels — plus `TRACE` (5), added the way `structlog`/`loguru` do: `CRITICAL` 50, `ERROR` 40, `WARNING` 30 (retry/fallback/spawn-ceiling), `INFO` 20 (lifecycle milestones), `DEBUG` 10 (per-turn/per-tool), `TRACE` 5 (token deltas).
+
+### Environment variables
+
+`DEEPCREW_LOG_PROFILE` (dev/prod/verbose/quiet), `DEEPCREW_LOG_LEVEL`, `DEEPCREW_LOG_FORMAT` (text/json), `DEEPCREW_LOG_TIME` (1/0), `DEEPCREW_LOG_COLOR` (1/0/auto).
+
+### Sample output
+
+```
+15:30:47  INFO      deepcrew.runner   agent start  agent_id=researcher model=openai/gpt-4o max_turns=10
+```
+
+```json
+{"ts":"2026-08-30T15:30:47.731Z","level":"INFO","logger":"deepcrew.runner","msg":"agent start","event":"agent_start","agent_id":"researcher","model":"openai/gpt-4o","max_turns":10}
+```
+
+Every lifecycle log carries an `event` field whose value matches the corresponding `StreamEvent` type.
+
+### get_logger — use it in your own components
+
+`deepcrew.get_logger(name)` returns a structured logger namespaced under `deepcrew.<name>`, so one `configure_logging()` call styles your logs and the library's identically. Extra keyword arguments become structured fields.
+
+```python
+from deepcrew import get_logger
+
+log = get_logger("myapp.tools.pricing")
+log.info("price lookup", sku=sku, region=region)
+
+bound = log.bind(request_id=req_id)
+bound.warning("slow path", latency_ms=812)
+bound.trace("raw payload", body=payload)
+```
+
+Design standard for custom components: prefer `get_logger` over `print` / `logging.getLogger`; pass fields as keyword arguments; add an `event="..."` slug for lifecycle logs; keep `INFO` for milestones.
+
+### LoggingConfig reference
+
+- **level** (int | str = "INFO"), **profile** ("dev"|"prod"|"verbose"|"quiet"|None), **format** ("text"|"json"), **color** (bool|None — None auto-detects TTY), **timestamps** (bool = True), **stream** (TextIO|None — defaults to `sys.stderr`), **propagate** (bool = False — whether the `deepcrew` logger propagates to root).
+
+### CLI
+
+The `deepcrew` CLI is quiet by default. Flags: `-v` (verbose profile), `--log-profile dev`, `--log-level DEBUG`, `--log-json`, `-q` (errors only).
+
+### Common pitfalls
+
+- Nothing logged? You have not called `configure_logging()` and no `DEEPCREW_LOG*` env var is set — the intended silent default for a library.
+- Double log lines? Your app configured the root logger and you set `propagate=True`. Leave it `False`.
+- No colour in CI / pipes? Colour auto-disables off a TTY; force with `DEEPCREW_LOG_COLOR=1`.
+- This is not OpenTelemetry. For spans/traces use `ObservabilityConfig`.
+
+
+---
+
 # CLI
 Run declarative YAML workflow files from the terminal. No Python code required for simple workflows.
 
@@ -2241,7 +2395,7 @@ Run declarative YAML workflow files from the terminal. No Python code required f
 ```python
 pip install deepcrew-ai
 deepcrew --version
-# deepcrew-ai 0.4.0
+# deepcrew-ai 0.6.0
 ```
 
 ### Write a workflow YAML

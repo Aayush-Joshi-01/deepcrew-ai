@@ -8,9 +8,65 @@
   <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/looping.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="Looping — deepcrew-ai" />
+  <meta property="og:description" content="Outer iteration loop for search-refine patterns, with self-consistency branching." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/guides/looping.html" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Looping — deepcrew-ai" />
+  <meta name="twitter:description" content="Outer iteration loop for search-refine patterns, with self-consistency branching." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/guides/looping.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Looping — deepcrew-ai",
+  "headline": "Looping — deepcrew-ai",
+  "description": "Outer iteration loop for search-refine patterns, with self-consistency branching.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/guides/looping.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -235,7 +291,8 @@ except LoopConvergedError as exc:
     <div class="param-row"><div class="param-cell param-name">refine_prompt</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Appended to conversation on each non-converged iteration. Default: <code>"Your answer is incomplete. Please search for more information and expand your response."</code></div></div>
     <div class="param-row"><div class="param-cell param-name">verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div><div class="param-cell param-type">Verifier | None</div><div class="param-cell param-desc">Structured critic. When set, its <code>VerifierFeedback</code> (score + issues + suggestion) drives both convergence and the next refinement prompt, replacing the static <code>refine_prompt</code> text.</div></div>
     <div class="param-row"><div class="param-cell param-name">procedural_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">ProceduralMemory | None</div><div class="param-cell param-desc">Evolving playbook, read before iteration 1 and curated on loop exit. Requires <code>verifier</code> to be set too — see the <a href="#procedural-memory">Procedural Memory guide</a>.</div></div>
-    <div class="param-row"><div class="param-cell param-name">task_tag <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Playbook namespace for <code>procedural_memory</code>. Defaults to <code>agent.name</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">task_tag <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Playbook namespace for <code>procedural_memory</code>. Defaults to <code>agent.procedural_task_tag</code>, then <code>agent.name</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">episodic_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.6.0</span></div><div class="param-cell param-type">EpisodicMemory | None</div><div class="param-cell param-desc">When set, one <code>Episode</code> is recorded per iteration with its outcome/score from that iteration's verifier feedback. Falls back to <code>agent.episodic_memory</code>. See <a href="episodic-memory.html">Episodic Memory</a>.</div></div>
     <div class="param-row"><div class="param-cell param-name">adaptive <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">bool = False</div><div class="param-cell param-desc">Plateau-detection early exit based on verifier score deltas. No-op without <code>verifier</code>. Never exceeds <code>max_iterations</code>.</div></div>
     <div class="param-row"><div class="param-cell param-name">min_improvement <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">float = 0.02</div><div class="param-cell param-desc">Minimum verifier-score delta between iterations to count as still improving.</div></div>
     <div class="param-row"><div class="param-cell param-name">plateau_patience <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">int = 2</div><div class="param-cell param-desc">Consecutive non-improving iterations tolerated before an adaptive early stop.</div></div>
@@ -527,7 +584,9 @@ except LoopConvergedError as exc:
 
 - **procedural_memory v0.2.2** (ProceduralMemory | None): Evolving playbook, read before iteration 1 and curated on loop exit. Requires `verifier` to be set too — see the [Procedural Memory guide](#procedural-memory).
 
-- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.name`.
+- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.procedural_task_tag`, then `agent.name`.
+
+- **episodic_memory v0.6.0** (EpisodicMemory | None): When set, one `Episode` is recorded per iteration with its outcome/score from that iteration's verifier feedback. Falls back to `agent.episodic_memory`. See [Episodic Memory](episodic-memory.html).
 
 - **adaptive v0.2.3** (bool = False): Plateau-detection early exit based on verifier score deltas. No-op without `verifier`. Never exceeds `max_iterations`.
 

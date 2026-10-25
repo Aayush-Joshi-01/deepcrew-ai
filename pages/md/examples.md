@@ -26,6 +26,12 @@ keys) before you run it.
 - `fastapi_streaming.py` — `create_stream_router` wired into a FastAPI app, chat vs. verbose
   `StreamPolicy`.
 
+## v0.6.0
+
+- `episodic_memory.py` — `EpisodicMemory` and its automatic record/recall cycle (Gemini).
+- `procedural_memory.py` — a `Verifier` loop curates a `ProceduralMemory` playbook, then a
+  later single-shot run reads it back (Gemini).
+
 Provider quick reference: swap the `model=` string on any `Agent` —
 `"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`, `"gemini/gemini-2.0-flash"`,
 `"bedrock/anthropic.claude-3-sonnet"`, `"azure/<deployment>"`, `"groq/llama-3.1-70b"`,

@@ -9,7 +9,7 @@ agent = Agent(name="assistant", model="openai/gpt-4o", memory=memory)
 
 # ... run agents ...
 
-await memory.aclose()   # close the underlying redis connection when you're done
+await memory.aclose()  # close the underlying redis connection when you're done
 ```
 
 `redis` is imported lazily, inside `RedisMemoryProvider.__init__` — not at module import time — so a bare `pip install deepcrew-ai` never pulls it in, and instantiating this class without the extra installed raises a clear `DeepCrewMemoryError` instead of a raw `ModuleNotFoundError`:
@@ -20,7 +20,9 @@ from deepcrew import RedisMemoryProvider, DeepCrewMemoryError
 try:
     memory = RedisMemoryProvider(url="redis://localhost:6379/0")
 except DeepCrewMemoryError as exc:
-    print(exc)  # "The redis package is not installed. Install it with: pip install deepcrew-ai[redis]"
+    print(
+        exc
+    )  # "The redis package is not installed. Install it with: pip install deepcrew-ai[redis]"
 ```
 
 ### Constructor reference

@@ -1,38 +1,44 @@
 # deepcrew-ai
 
-> Async, LiteLLM-backed multi-agent Python library with a self-improving refinement loop
-> (verifier-scored, adaptive, self-consistency branching, skill distillation), bounded recursive
-> agent spawning, APEX multi-agent synthesis, multimodal input, and streaming with selectable
-> event visibility (StreamPolicy). `pip install deepcrew-ai`.
+> Async, LiteLLM-backed multi-agent Python library. Distinguishing features: a self-improving
+> refinement loop (verifier-scored, adaptive early-stop, self-consistency branching, skill
+> distillation), bounded recursive agent spawning, APEX (Assembly & Precision Executor)
+> multi-agent synthesis with confidence scoring and citations, an LLM router called NIA
+> (Navigator & Intelligence Allocator), and true token streaming with selectable event
+> visibility (StreamPolicy).
+> Every advanced feature is opt-in and backward compatible. Install: `pip install deepcrew-ai`
+> (Python 3.11+). Repository: https://github.com/Aayush-Joshi-01/deepcrew-ai — License: MIT.
+
+Canonical documentation: https://deepcrew-ai.aayushjoshi.dev
 
 ## Docs
 
-- [Overview & quick start](md/index.md): install, core building blocks, documentation map.
-- [Features index](md/features.md): index of every feature page below.
-- [Examples](md/examples.md): index of runnable scripts in `examples/`.
-- [Migration guide](md/migration.md): concept map from CrewAI and Google ADK, plus what deepcrew
-  adds.
+- [Overview & quick start](https://deepcrew-ai.aayushjoshi.dev/md/index.md): install, core building blocks, documentation map.
+- [Features index](https://deepcrew-ai.aayushjoshi.dev/md/features.md): index of every feature page below.
+- [Examples](https://deepcrew-ai.aayushjoshi.dev/md/examples.md): index of runnable scripts in `examples/`.
+- [Migration guide](https://deepcrew-ai.aayushjoshi.dev/md/migration.md): concept map from CrewAI and Google ADK, plus what deepcrew adds.
 
 ## Feature guides
 
-- [APEX Synthesizer](md/guides/apex.md)
-- [Agent Spawning](md/guides/spawning.md)
-- [Looping](md/guides/looping.md)
-- [Verifier](md/guides/verifier.md)
-- [Procedural Memory](md/guides/procedural-memory.md)
-- [Multimodal Input](md/guides/multimodal.md)
-- [StreamPolicy](md/guides/streampolicy.md)
-- [FastAPI Integration](md/guides/fastapi.md)
-- [Structured Output](md/guides/structured-output.md)
-- [Human-in-the-Loop Hooks](md/guides/hooks.md)
-- [Memory Providers](md/guides/memory.md)
-- [Redis Memory Provider](md/guides/redis-memory.md)
-- [Skills](md/guides/skills.md)
-- [Retry & Fallback](md/guides/retry.md)
-- [Observability](md/guides/observability.md)
-- [CLI](md/guides/cli.md)
+- [APEX Synthesizer](https://deepcrew-ai.aayushjoshi.dev/md/guides/apex.md): APEX (Assembly & Precision Executor) — confidence-scored, citation-aware merging of parallel agent results.
+- [Agent Spawning](https://deepcrew-ai.aayushjoshi.dev/md/guides/spawning.md): bounded recursive sub-agent spawning via the `spawn_agent` meta-tool.
+- [Looping](https://deepcrew-ai.aayushjoshi.dev/md/guides/looping.md): outer refinement loop, verifier scoring, adaptive early-stop, branching.
+- [Verifier](https://deepcrew-ai.aayushjoshi.dev/md/guides/verifier.md): structured LLM-graded critique (score, issues, suggestion) driving refinement.
+- [Procedural Memory](https://deepcrew-ai.aayushjoshi.dev/md/guides/procedural-memory.md): durable evolving playbook layered on any MemoryProvider.
+- [Episodic Memory](https://deepcrew-ai.aayushjoshi.dev/md/guides/episodic-memory.md): durable log of past runs with automatic similarity + recency recall before each new run.
+- [Multimodal Input](https://deepcrew-ai.aayushjoshi.dev/md/guides/multimodal.md): `image()`, `pdf()`, `user_message()` content blocks.
+- [StreamPolicy](https://deepcrew-ai.aayushjoshi.dev/md/guides/streampolicy.md): chat / standard / verbose presets controlling which events a consumer sees.
+- [FastAPI Integration](https://deepcrew-ai.aayushjoshi.dev/md/guides/fastapi.md): drop-in SSE router for an Agent, Orchestrator, or WorkflowBuilder.
+- [Structured Output](https://deepcrew-ai.aayushjoshi.dev/md/guides/structured-output.md): `Agent(response_model=...)` validates the final answer against a pydantic schema.
+- [Human-in-the-Loop Hooks](https://deepcrew-ai.aayushjoshi.dev/md/guides/hooks.md): `AgentHooks.approve_tool` can deny an individual tool call before it runs.
+- [Memory Providers](https://deepcrew-ai.aayushjoshi.dev/md/guides/memory.md): InMemoryProvider, FileMemoryProvider, RedisMemoryProvider.
+- [Redis Memory Provider](https://deepcrew-ai.aayushjoshi.dev/md/guides/redis-memory.md): persistent, shared MemoryProvider backed by Redis (`redis` extra).
+- [Skills](https://deepcrew-ai.aayushjoshi.dev/md/guides/skills.md): reusable capability bundles, including ones the loop distills itself.
+- [Retry & Fallback](https://deepcrew-ai.aayushjoshi.dev/md/guides/retry.md): per-agent RetryPolicy and FallbackChain for model resilience.
+- [Observability](https://deepcrew-ai.aayushjoshi.dev/md/guides/observability.md): OpenTelemetry spans for every LLM call, tool execution, and workflow step.
+- [Logging](https://deepcrew-ai.aayushjoshi.dev/md/guides/logging.md): toggleable structured/colour logging with named profiles (dev/prod/verbose/quiet), `configure_logging()`, and `get_logger()` for your own components.
+- [CLI](https://deepcrew-ai.aayushjoshi.dev/md/guides/cli.md): `deepcrew run workflow.yaml` for declarative workflow execution.
 
 ## Optional
 
-- [llms-full.txt](llms-full.txt): full concatenated text of every page above, for pasting into an
-  LLM context window in one shot.
+- [llms-full.txt](https://deepcrew-ai.aayushjoshi.dev/llms-full.txt): full concatenated text of every page above, for pasting into an LLM context window in one shot.

@@ -1,0 +1,66 @@
+{
+  "core_agent": {
+    "hash": null,
+    "last_passed": null,
+    "model": null,
+    "status": "pending",
+    "test": "tests/live/test_live_smoke.py",
+    "watch": [
+      "src/deepcrew/agent.py",
+      "src/deepcrew/runner.py",
+      "src/deepcrew/tools.py"
+    ]
+  },
+  "core_features": {
+    "hash": null,
+    "last_passed": null,
+    "model": null,
+    "status": "pending",
+    "test": "tests/live/test_live_core.py",
+    "watch": [
+      "src/deepcrew/apex.py",
+      "src/deepcrew/loop.py",
+      "src/deepcrew/orchestrator.py",
+      "src/deepcrew/runner.py",
+      "src/deepcrew/spawner.py"
+    ]
+  },
+  "episodic_memory": {
+    "hash": null,
+    "last_passed": null,
+    "model": null,
+    "status": "pending",
+    "test": "tests/live/test_live_episodic_memory.py",
+    "watch": [
+      "src/deepcrew/episodic_memory.py",
+      "src/deepcrew/loop.py",
+      "src/deepcrew/runner.py"
+    ]
+  },
+  "examples_memory": {
+    "hash": null,
+    "last_passed": null,
+    "model": null,
+    "status": "pending",
+    "test": "tests/live/test_live_examples.py",
+    "watch": [
+      "examples/episodic_memory.py",
+      "examples/procedural_memory.py",
+      "src/deepcrew/episodic_memory.py",
+      "src/deepcrew/procedural_memory.py",
+      "src/deepcrew/runner.py"
+    ]
+  },
+  "procedural_memory": {
+    "hash": null,
+    "last_passed": null,
+    "model": null,
+    "status": "pending",
+    "test": "tests/live/test_live_procedural_memory.py",
+    "watch": [
+      "src/deepcrew/loop.py",
+      "src/deepcrew/procedural_memory.py",
+      "src/deepcrew/runner.py"
+    ]
+  }
+}

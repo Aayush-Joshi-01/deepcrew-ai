@@ -14,10 +14,12 @@ The outer iteration loop is distinct from the inner per-turn `max_turns` cycle. 
 ```python
 from deepcrew import Agent, run_agent, LoopConfig, tool
 
+
 @tool
 def search_web(query: str) -> str:
     "Search the web for information."
     ...
+
 
 agent = Agent(
     name="researcher",
@@ -80,8 +82,8 @@ agent = Agent(
         max_iterations=8,
         verifier=Verifier(),
         adaptive=True,
-        min_improvement=0.02,   # smaller deltas than this count as "not improving"
-        plateau_patience=2,     # stop after 2 consecutive non-improving iterations
+        min_improvement=0.02,  # smaller deltas than this count as "not improving"
+        plateau_patience=2,  # stop after 2 consecutive non-improving iterations
     ),
 )
 
@@ -126,13 +128,19 @@ The distilled skill is replayable, not a frozen memoized answer: calling it re-r
 ```python
 from deepcrew import search_loop, Agent, tool
 
+
 @tool
 def search_web(query: str) -> str:
     "Search the web."
     ...
 
-agent = Agent("searcher", model="openai/gpt-4o-mini",
-              system_prompt="You are a research agent.", tools=[search_web])
+
+agent = Agent(
+    "searcher",
+    model="openai/gpt-4o-mini",
+    system_prompt="You are a research agent.",
+    tools=[search_web],
+)
 
 # Runs at most 3 iterations, stopping early if result.confidence >= 0.8
 result = await search_loop(
@@ -154,7 +162,8 @@ result = await search_loop(
 from deepcrew import Agent, run_agent, LoopConfig, LoopConvergedError
 
 agent = Agent(
-    "reasoner", model="openai/gpt-4o",
+    "reasoner",
+    model="openai/gpt-4o",
     system_prompt="When you have a final answer, prefix it with 'FINAL ANSWER:'.",
     loop_config=LoopConfig(
         max_iterations=6,
@@ -165,7 +174,7 @@ agent = Agent(
 try:
     result = await run_agent(agent, [{"role": "user", "content": "..."}])
 except LoopConvergedError as exc:
-    result = exc.result   # the AgentResult that triggered the stop
+    result = exc.result  # the AgentResult that triggered the stop
 ```
 
 `convergence_fn` is different: returning `True` from it makes the loop exit and return the result normally, no exception involved. Use `convergence_fn` for the common case (stop and return); reach for `stop_condition` only when you specifically want the exception-based early-exit path — e.g. to unwind through several stack frames of your own code, or to distinguish "converged normally" from "stopped early" at the call site via `except` vs. normal return.
@@ -184,7 +193,9 @@ except LoopConvergedError as exc:
 
 - **procedural_memory v0.2.2** (ProceduralMemory | None): Evolving playbook, read before iteration 1 and curated on loop exit. Requires `verifier` to be set too — see the [Procedural Memory guide](#procedural-memory).
 
-- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.name`.
+- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.procedural_task_tag`, then `agent.name`.
+
+- **episodic_memory v0.6.0** (EpisodicMemory | None): When set, one `Episode` is recorded per iteration with its outcome/score from that iteration's verifier feedback. Falls back to `agent.episodic_memory`. See [Episodic Memory](episodic-memory.html).
 
 - **adaptive v0.2.3** (bool = False): Plateau-detection early exit based on verifier score deltas. No-op without `verifier`. Never exceeds `max_iterations`.
 
@@ -228,7 +239,8 @@ from deepcrew.types import EventType
 
 while True:
     event = await queue.get()
-    if event is None: break
+    if event is None:
+        break
     if event.event == EventType.LOOP_ITERATION:
         i = event.data["iteration"]
         converged = event.data["converged"]

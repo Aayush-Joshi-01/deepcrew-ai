@@ -8,9 +8,65 @@
   <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+
+  <!-- seo:start -->
+  <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/memory.html" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+  <meta name="author" content="Aayush Joshi" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="deepcrew-ai" />
+  <meta property="og:title" content="Memory Providers — deepcrew-ai" />
+  <meta property="og:description" content="Pluggable context stores — InMemory, File, and Redis-backed — auto-injected into each LLM call." />
+  <meta property="og:url" content="https://deepcrew-ai.aayushjoshi.dev/guides/memory.html" />
+  <meta property="og:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="deepcrew-ai — multi-agent AI, without the boilerplate" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Memory Providers — deepcrew-ai" />
+  <meta name="twitter:description" content="Pluggable context stores — InMemory, File, and Redis-backed — auto-injected into each LLM call." />
+  <meta name="twitter:image" content="https://deepcrew-ai.aayushjoshi.dev/assets/og.png" />
+  <link rel="alternate" type="text/markdown" href="https://deepcrew-ai.aayushjoshi.dev/md/guides/memory.md" title="This page as Markdown" />
+  <link rel="alternate" type="text/plain" href="https://deepcrew-ai.aayushjoshi.dev/llms.txt" title="llms.txt" />
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Memory Providers — deepcrew-ai",
+  "headline": "Memory Providers — deepcrew-ai",
+  "description": "Pluggable context stores — InMemory, File, and Redis-backed — auto-injected into each LLM call.",
+  "url": "https://deepcrew-ai.aayushjoshi.dev/guides/memory.html",
+  "inLanguage": "en",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "deepcrew-ai",
+    "url": "https://deepcrew-ai.aayushjoshi.dev"
+  },
+  "about": {
+    "@type": "SoftwareSourceCode",
+    "name": "deepcrew-ai",
+    "description": "Async, LiteLLM-backed multi-agent Python library: self-improving verifier loop, bounded recursive agent spawning, APEX synthesis, DAG workflows, multimodal input, and token streaming.",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.11+",
+    "codeRepository": "https://github.com/Aayush-Joshi-01/deepcrew-ai",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Aayush Joshi"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://pypi.org/project/deepcrew-ai/"
+  }
+}
+  </script>
+  <!-- seo:end -->
 </head>
 <body>
 
@@ -180,6 +236,9 @@ while not queue.empty():
   </div>
   <p>All three built-in providers (<code>InMemoryProvider</code>, <code>FileMemoryProvider</code>, <code>RedisMemoryProvider</code>) implement <code>search()</code> identically: a case-insensitive substring match on either the key or the value, sorted by key, truncated to <code>top_k</code>. This is not semantic search — a query like <code>"CRISPR gene editing"</code> will not match a stored value about <code>"Cas9 mechanism"</code> unless the substring itself literally overlaps. If you need embedding-based retrieval, that's a natural fit for a custom <code>MemoryProvider</code> like the SQLite example above, backed by a vector index instead of a LIKE query.</p>
 
+  <h3>Episodic memory (past runs)</h3>
+  <p><code>EpisodicMemory</code> (v0.6.0) is the specifics-keeping counterpart: a durable log of past runs — query, answer, outcome, score — recalled by relevance before each new run and recorded after it, automatically, via <code>Agent(episodic_memory=...)</code>. See the <a href="episodic-memory.html">Episodic Memory guide</a>.</p>
+
   <h3>Procedural memory (evolving playbook)</h3>
   <p><code>ProceduralMemory</code> is an opt-in, durable "the system learns from its own past runs" store, built on top of any <code>MemoryProvider</code>. See the full <a href="procedural-memory.html">Procedural Memory feature guide</a> for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.</p>
 
@@ -196,6 +255,7 @@ while not queue.empty():
   <ul>
     <li><a href="redis-memory.html">Redis Memory Provider</a> — a persistent, shared, multi-process-safe option built into the library.</li>
     <li><a href="procedural-memory.html">Procedural Memory</a> — a structured playbook layered on top of any provider here.</li>
+    <li><a href="episodic-memory.html">Episodic Memory</a> — a log of past runs layered on top of any provider here.</li>
   </ul>
 </section>
 
@@ -362,6 +422,10 @@ class MemoryProvider(ABC):
 
 All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) implement `search()` identically: a case-insensitive substring match on either the key or the value, sorted by key, truncated to `top_k`. This is not semantic search — a query like `"CRISPR gene editing"` will not match a stored value about `"Cas9 mechanism"` unless the substring itself literally overlaps. If you need embedding-based retrieval, that's a natural fit for a custom `MemoryProvider` like the SQLite example above, backed by a vector index instead of a LIKE query.
 
+### Episodic memory (past runs)
+
+`EpisodicMemory` (v0.6.0) is the specifics-keeping counterpart: a durable log of past runs — query, answer, outcome, score — recalled by relevance before each new run and recorded after it, automatically, via `Agent(episodic_memory=...)`. See the [Episodic Memory guide](episodic-memory.html).
+
 ### Procedural memory (evolving playbook)
 
 `ProceduralMemory` is an opt-in, durable "the system learns from its own past runs" store, built on top of any `MemoryProvider`. See the full [Procedural Memory feature guide](procedural-memory.html) for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.
@@ -377,6 +441,7 @@ All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMe
 
     - [Redis Memory Provider](redis-memory.html) — a persistent, shared, multi-process-safe option built into the library.
     - [Procedural Memory](procedural-memory.html) — a structured playbook layered on top of any provider here.
+    - [Episodic Memory](episodic-memory.html) — a log of past runs layered on top of any provider here.
 
 </script>
 <script src="../assets/js/main.js"></script>

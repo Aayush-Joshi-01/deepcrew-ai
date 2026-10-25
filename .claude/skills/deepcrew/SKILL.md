@@ -16,6 +16,7 @@ pip install deepcrew-ai
 pip install deepcrew-ai[fastapi]   # SSE streaming endpoint
 pip install deepcrew-ai[redis]     # Redis-backed memory
 pip install deepcrew-ai[otel]      # OpenTelemetry tracing
+pip install deepcrew-ai[log]       # colour logging via rich (plain ANSI fallback without it)
 ```
 
 API keys are read by LiteLLM from standard env vars — set whichever providers you use:
@@ -31,6 +32,8 @@ determines the provider, e.g. `"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`,
 | Router picks one agent or fans out to several in parallel | `Orchestrator` |
 | An explicit, fixed pipeline of steps with dependencies | `WorkflowBuilder` |
 | An agent that critiques and improves its own answer | `Agent(loop_config=LoopConfig(verifier=...))` |
+| An agent that recalls relevant past runs before answering | `Agent(episodic_memory=EpisodicMemory(...))` |
+| An agent that accumulates reusable how-to strategies | `Agent(procedural_memory=ProceduralMemory(...))` + a verifier loop |
 | An agent that can delegate sub-tasks to fresh agents mid-run | `Orchestrator(enable_spawn=True)` |
 | A simple chatbot UI that should only show the reply text | `StreamPolicy.chat()` |
 | A technical/debug UI that should show everything | `StreamPolicy.verbose()` |
@@ -43,10 +46,12 @@ determines the provider, e.g. `"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`,
 ```python
 from deepcrew import Agent, run_agent, tool
 
+
 @tool
 def get_weather(city: str) -> str:
     """Look up the current weather for a city."""
     return f"Sunny in {city}"
+
 
 agent = Agent(name="assistant", model="openai/gpt-4o", tools=[get_weather])
 result = await run_agent(agent, [{"role": "user", "content": "Weather in Tokyo?"}])
@@ -59,8 +64,9 @@ print(result.text)
 from deepcrew import Agent, run_agent, image, pdf, user_message
 
 agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
-msg = user_message("Summarize this chart and check it against the report.",
-                    image("chart.png"), pdf("report.pdf"))
+msg = user_message(
+    "Summarize this chart and check it against the report.", image("chart.png"), pdf("report.pdf")
+)
 result = await run_agent(agent, [msg])
 ```
 
@@ -73,9 +79,11 @@ size-checked and base64-encoded automatically; raises `ContentError` on bad inpu
 from pydantic import BaseModel
 from deepcrew import Agent, run_agent
 
+
 class Verdict(BaseModel):
     approved: bool
     reason: str
+
 
 agent = Agent(name="reviewer", model="openai/gpt-4o", response_model=Verdict)
 result = await run_agent(agent, [{"role": "user", "content": "Review this PR diff: ..."}])
@@ -83,6 +91,11 @@ result.parsed  # a validated Verdict instance (one automatic repair attempt on b
 ```
 
 ### Orchestrator with APEX synthesis
+
+The `Orchestrator` runs a router LLM called NIA (Navigator & Intelligence Allocator) to pick
+single-agent vs. parallel fan-out and allocate tools per agent, then APEX (Assembly & Precision
+Executor) merges the parallel results with a confidence score and optional `[source: agent]`
+citations.
 
 ```python
 from deepcrew import Agent, Orchestrator, ApexConfig
@@ -122,7 +135,7 @@ agent = Agent(
     loop_config=LoopConfig(
         max_iterations=5,
         verifier=Verifier(VerifierConfig(threshold=0.85)),
-        adaptive=True,           # early-stop on score plateau
+        adaptive=True,  # early-stop on score plateau
     ),
 )
 result = await run_agent(agent, [{"role": "user", "content": "Research topic X thoroughly."}])
@@ -131,8 +144,9 @@ result = await run_agent(agent, [{"role": "user", "content": "Research topic X t
 ### Bounded agent spawning
 
 ```python
-orch = Orchestrator(agents=[planner], router_model="openai/gpt-4o-mini",
-                     enable_spawn=True, max_spawn_depth=2)
+orch = Orchestrator(
+    agents=[planner], router_model="openai/gpt-4o-mini", enable_spawn=True, max_spawn_depth=2
+)
 result = await orch.run("Plan and execute a multi-step research task")
 ```
 
@@ -141,11 +155,17 @@ result = await orch.run("Plan and execute a multi-step research task")
 ```python
 from deepcrew import Agent, AgentHooks, run_agent
 
+
 async def approve(tool_name: str, args: dict) -> bool:
     return tool_name != "delete_file"  # block this one specific tool
 
-agent = Agent(name="assistant", model="openai/gpt-4o", tools=[delete_file, read_file],
-              hooks=AgentHooks(approve_tool=approve))
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    tools=[delete_file, read_file],
+    hooks=AgentHooks(approve_tool=approve),
+)
 ```
 
 Hooks *intercept and can change* execution — different from the observe-only event stream.
@@ -173,11 +193,61 @@ app.include_router(create_stream_router(agent, policy=StreamPolicy.chat()))
 # POST /chat streams SSE; POST /chat/complete returns the final result as JSON.
 ```
 
+### Episodic memory (recall past runs)
+
+```python
+from deepcrew import Agent, EpisodicMemory, run_agent
+from deepcrew.memory import FileMemoryProvider
+
+episodic = EpisodicMemory(FileMemoryProvider("episodes.json"), namespace="bot", recall_k=3)
+agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
+
+await run_agent(agent, [{"role": "user", "content": "..."}])  # recorded afterwards
+r = await run_agent(
+    agent, [{"role": "user", "content": "..."}]
+)  # relevant past episodes recalled first
+r.episodes_recalled  # int
+```
+
+The record/recall cycle is automatic once `Agent.episodic_memory` is set (one episode per
+iteration inside a `LoopConfig` loop). `recall()` ranks by keyword overlap + recency, no
+embeddings. Optional `EpisodicMemory(reflect_model=...)` distils a one-line lesson per
+episode. Distinct from `Agent.memory` (raw key/value) and `ProceduralMemory` (distilled
+rules).
+
+## Verifying against a real provider
+
+The default `pytest` run is fully mocked. To confirm a feature works end to end:
+`GEMINI_API_KEY=... pytest --live tests/live`. A content-hash ledger
+(`tests/live/LEDGER.md`) skips features whose source is unchanged since their last live
+pass, so it stays cheap. New behaviour that needs live proof gets a
+`pytest.mark.live(feature=..., watch=[...])` test.
+
+## Turning on logs
+
+Logging is off by default (library `NullHandler`). It is separate from `ObservabilityConfig`
+(OpenTelemetry spans) — this is plain human/JSON logs.
+
+```python
+from deepcrew import configure_logging, get_logger
+
+configure_logging("dev")  # colour + DEBUG; also "prod" (JSON lines), "verbose", "quiet"
+# env-only, no code change:  DEEPCREW_LOG_PROFILE=prod  /  DEEPCREW_LOG_LEVEL=DEBUG
+
+log = get_logger("myapp.tools")  # namespaced under deepcrew.*, same styling
+log.info("price lookup", sku=sku)  # extra kwargs -> structured fields
+log.bind(request_id=rid).warning("slow", latency_ms=812)
+```
+
+Levels are the stdlib names plus `TRACE` (5). Every library lifecycle log carries an
+`event=` field matching its `StreamEvent` type. The `deepcrew` CLI is quiet by default;
+pass `-v` / `--log-profile dev` / `--log-json`.
+
 ## Pitfalls
 
 - **`max_turns` exhaustion**: `Agent.max_turns` (default 10) caps LLM↔tool cycles; a tool-heavy
   agent that never converges raises `MaxTurnsError`. Raise `max_turns` or fix the tool loop.
-- **The Orchestrator's router is text-only**: it runs in JSON mode to decide routing, so it never
+- **The Orchestrator's router (NIA) is text-only**: it runs in JSON mode to decide routing, so it never
   sees `attachments` directly — only a text summary of how many images/documents exist. The
   executing agent(s) get the actual attachments.
 - **File/PDF content blocks aren't universal**: `pdf()` produces a `file` content block supported
