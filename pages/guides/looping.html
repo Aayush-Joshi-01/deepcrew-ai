@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+
   <!-- seo:start -->
   <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/looping.html" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -290,7 +291,8 @@ except LoopConvergedError as exc:
     <div class="param-row"><div class="param-cell param-name">refine_prompt</div><div class="param-cell param-type">str</div><div class="param-cell param-desc">Appended to conversation on each non-converged iteration. Default: <code>"Your answer is incomplete. Please search for more information and expand your response."</code></div></div>
     <div class="param-row"><div class="param-cell param-name">verifier <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.1</span></div><div class="param-cell param-type">Verifier | None</div><div class="param-cell param-desc">Structured critic. When set, its <code>VerifierFeedback</code> (score + issues + suggestion) drives both convergence and the next refinement prompt, replacing the static <code>refine_prompt</code> text.</div></div>
     <div class="param-row"><div class="param-cell param-name">procedural_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">ProceduralMemory | None</div><div class="param-cell param-desc">Evolving playbook, read before iteration 1 and curated on loop exit. Requires <code>verifier</code> to be set too — see the <a href="#procedural-memory">Procedural Memory guide</a>.</div></div>
-    <div class="param-row"><div class="param-cell param-name">task_tag <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Playbook namespace for <code>procedural_memory</code>. Defaults to <code>agent.name</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">task_tag <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.2</span></div><div class="param-cell param-type">str | None</div><div class="param-cell param-desc">Playbook namespace for <code>procedural_memory</code>. Defaults to <code>agent.procedural_task_tag</code>, then <code>agent.name</code>.</div></div>
+    <div class="param-row"><div class="param-cell param-name">episodic_memory <span class="badge" style="font-size:10px;padding:1px 5px">v0.6.0</span></div><div class="param-cell param-type">EpisodicMemory | None</div><div class="param-cell param-desc">When set, one <code>Episode</code> is recorded per iteration with its outcome/score from that iteration's verifier feedback. Falls back to <code>agent.episodic_memory</code>. See <a href="episodic-memory.html">Episodic Memory</a>.</div></div>
     <div class="param-row"><div class="param-cell param-name">adaptive <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">bool = False</div><div class="param-cell param-desc">Plateau-detection early exit based on verifier score deltas. No-op without <code>verifier</code>. Never exceeds <code>max_iterations</code>.</div></div>
     <div class="param-row"><div class="param-cell param-name">min_improvement <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">float = 0.02</div><div class="param-cell param-desc">Minimum verifier-score delta between iterations to count as still improving.</div></div>
     <div class="param-row"><div class="param-cell param-name">plateau_patience <span class="badge" style="font-size:10px;padding:1px 5px">v0.2.3</span></div><div class="param-cell param-type">int = 2</div><div class="param-cell param-desc">Consecutive non-improving iterations tolerated before an adaptive early stop.</div></div>
@@ -582,7 +584,9 @@ except LoopConvergedError as exc:
 
 - **procedural_memory v0.2.2** (ProceduralMemory | None): Evolving playbook, read before iteration 1 and curated on loop exit. Requires `verifier` to be set too — see the [Procedural Memory guide](#procedural-memory).
 
-- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.name`.
+- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.procedural_task_tag`, then `agent.name`.
+
+- **episodic_memory v0.6.0** (EpisodicMemory | None): When set, one `Episode` is recorded per iteration with its outcome/score from that iteration's verifier feedback. Falls back to `agent.episodic_memory`. See [Episodic Memory](episodic-memory.html).
 
 - **adaptive v0.2.3** (bool = False): Plateau-detection early exit based on verifier score deltas. No-op without `verifier`. Never exceeds `max_iterations`.
 

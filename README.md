@@ -4,7 +4,7 @@
 
 <h1 align="center">deepcrew-ai</h1>
 
-Multi-agent AI library for Python. Build parallel workflows, spawn agents dynamically, attach tools via MCP, and stream events in real time — using any of 100+ LLM providers, with minimal boilerplate.
+Multi-agent AI library for Python. Build parallel workflows, spawn agents dynamically, attach tools via MCP, let agents refine their own answers and remember past runs, and stream events in real time — using any of 100+ LLM providers, with minimal boilerplate.
 
 ```bash
 pip install deepcrew-ai
@@ -31,7 +31,7 @@ pip install deepcrew-ai
 - [Orchestration Modes](#orchestration-modes)
   - [Workflow Builder — explicit DAG](#workflow-builder--explicit-dag)
   - [Orchestrator — automated AI routing with APEX](#orchestrator--automated-ai-routing-with-apex)
-- [Feature Guide (v0.2.0 – v0.3.0)](#feature-guide-v020--v030)
+- [Feature Guide](#feature-guide)
   - [APEX Synthesizer](#apex-synthesizer)
   - [Agent Spawning](#agent-spawning) — incl. [nested spawning](#nested-spawning-bounded)
   - [Looping](#looping) — incl. [verifier](#verifier-driven-refinement), [adaptive budget](#adaptive-iteration-budget), [branching](#branching-self-consistency)
@@ -48,6 +48,7 @@ pip install deepcrew-ai
 - [Streaming with FastAPI](#streaming-with-fastapi)
 - [Stream Events](#stream-events)
 - [Installation](#installation)
+- [Development & Testing](#development--testing)
 - [Documentation](#documentation)
 - [License](#license)
 
@@ -177,12 +178,17 @@ spawning bounded recursion. Every addition is opt-in and fully backward compatib
 - **Parallel execution** — `asyncio.gather` at every level: tools, agents, workflow nodes
 - **MCP tool integration** — stdio (subprocess), SSE (legacy), and streamable-HTTP transports
 - **Python function tools** — `@tool` decorator; JSON Schema auto-generated from type hints
+- **Self-improving loop** — `LoopConfig` + `Verifier`: scored refinement, adaptive early-stop, self-consistency branching, skill distillation
+- **Bounded agent spawning** — agents spawn sub-agents mid-run, hard-capped by `max_spawn_depth`
 - **Skills** — reusable capability bundles exposed to the LLM as tools
-- **Memory providers** — pluggable short-term and persistent context stores
+- **Three memory types** — semantic (`MemoryProvider`), procedural (`ProceduralMemory`, an evolving playbook) and episodic (`EpisodicMemory`, a log of past runs recalled before each run)
+- **Multimodal input** — `image()`, `pdf()`, `user_message()`; **structured output** via `response_model`; **human-in-the-loop** tool approval via `AgentHooks`
 - **Retry & fallback** — per-agent exponential backoff + model fallback chains
+- **Streaming** — true token streaming, selectable visibility (`StreamPolicy`), FastAPI SSE integration
 - **OpenTelemetry** — optional OTel span emission for every LLM call and tool execution
-- **SSE streaming** — compatible with FastAPI `StreamingResponse`
+- **Structured logging** — opt-in, profile-based (dev/prod/verbose/quiet), JSON or coloured text, `get_logger()` for your own components
 - **CLI** — `deepcrew run workflow.yaml` for declarative workflow files
+- **Live-verified** — opt-in Gemini live tests with a content-hash ledger (see [Development & Testing](#development--testing))
 
 ---
 
@@ -274,7 +280,7 @@ print(result.final_text)
 
 ---
 
-## Feature Guide (v0.2.0 – v0.3.0)
+## Feature Guide
 
 ### APEX Synthesizer
 
@@ -671,6 +677,12 @@ deepcrew agents list --config workflow.yaml
 
 # Version
 deepcrew --version
+
+# Logging (quiet by default — warnings and errors only)
+deepcrew -v run workflow.yaml                    # verbose profile
+deepcrew --log-profile dev run workflow.yaml     # coloured DEBUG
+deepcrew --log-level DEBUG --log-json run workflow.yaml
+deepcrew -q run workflow.yaml                    # errors only
 ```
 
 `workflow.yaml` example:
@@ -794,6 +806,7 @@ Agent("a", model="anthropic/claude-haiku-4-5-20251001")
 
 # Google
 Agent("a", model="gemini/gemini-2.0-flash")
+Agent("a", model="gemini/gemini-3.5-flash-lite")  # default model of the live tests
 Agent("a", model="gemini/gemini-2.5-pro")
 
 # AWS Bedrock
@@ -895,11 +908,41 @@ pip install "deepcrew-ai[fastapi]"
 # With the Redis memory provider
 pip install "deepcrew-ai[redis]"
 
-# With dev dependencies
+# With coloured logging via rich (plain ANSI fallback without it)
+pip install "deepcrew-ai[log]"
+
+# With dev dependencies (pytest, ruff, mypy, rich)
 pip install "deepcrew-ai[dev]"
 ```
 
+API keys are read by LiteLLM from the standard environment variables (`OPENAI_API_KEY`,
+`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, ...).
+
 Requires Python 3.11+.
+
+---
+
+## Development & Testing
+
+```bash
+pip install -e ".[dev,otel,fastapi,log]"
+ruff check . && ruff format --check . && mypy src/
+pytest                              # fully mocked, offline, no API keys needed
+```
+
+**Live tests** (opt-in) call a real model and verify features end to end:
+
+```bash
+export GEMINI_API_KEY=...
+pytest --live tests/live            # runs only features whose source changed since their last pass
+pytest --live --relive tests/live   # ignore the ledger; run everything
+```
+
+`tests/live/LEDGER.json` / [`LEDGER.md`](tests/live/LEDGER.md) record which features have passed a live
+test; a feature whose watched source files are unchanged is skipped, so a verified feature is not
+re-billed until its code changes. Default model `gemini/gemini-3.5-flash-lite` (override with
+`DEEPCREW_LIVE_MODEL`). See [`tests/live/README.md`](tests/live/README.md) and
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
@@ -908,10 +951,14 @@ Requires Python 3.11+.
 Full documentation at **[deepcrew-ai.aayushjoshi.dev](https://deepcrew-ai.aayushjoshi.dev)**
 
 - [Getting Started](https://deepcrew-ai.aayushjoshi.dev)
-- [Features](https://deepcrew-ai.aayushjoshi.dev/features.html) — one page per feature
+- [Features](https://deepcrew-ai.aayushjoshi.dev/features.html) — one page per feature, including
+  [Episodic Memory](https://deepcrew-ai.aayushjoshi.dev/guides/episodic-memory.html),
+  [Procedural Memory](https://deepcrew-ai.aayushjoshi.dev/guides/procedural-memory.html) and
+  [Logging](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html)
 - [Examples Library](https://deepcrew-ai.aayushjoshi.dev/examples.html)
 - [Migration Guide (CrewAI / Google ADK)](https://deepcrew-ai.aayushjoshi.dev/guides/migration.html)
 - [llms.txt](https://deepcrew-ai.aayushjoshi.dev/llms.txt) — machine-readable docs index
+- [CHANGELOG](CHANGELOG.md) · [CONTRIBUTING](CONTRIBUTING.md) · [SECURITY](SECURITY.md) · [Release runbook](RELEASE.md)
 
 ---
 

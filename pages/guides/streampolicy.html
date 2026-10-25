@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+
   <!-- seo:start -->
   <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/streampolicy.html" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -160,6 +161,8 @@ async for event in orch.stream("...", policy=StreamPolicy.verbose()):
         <tr><td><code>fallback_triggered</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
         <tr><td><code>memory_store</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
         <tr><td><code>memory_retrieve</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>episode_recalled</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
+        <tr><td><code>episode_recorded</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
         <tr><td><code>loop_iteration</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
         <tr><td><code>apex_start</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
         <tr><td><code>apex_done</code></td><td>&#8212;</td><td>&#8212;</td><td>&#10003;</td></tr>
@@ -170,7 +173,7 @@ async for event in orch.stream("...", policy=StreamPolicy.verbose()):
       </tbody>
     </table>
   </div>
-  <p>Notice <code>retry_attempt</code>/<code>fallback_triggered</code>, every Self-Improving Loop event (<code>loop_iteration</code>, <code>verifier_scored</code>, <code>playbook_updated</code>, <code>branch_selected</code>, <code>skill_extracted</code>), and both memory events are <code>verbose()</code>-only — a <code>standard()</code> consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.</p>
+  <p>Notice <code>retry_attempt</code>/<code>fallback_triggered</code>, every Self-Improving Loop event (<code>loop_iteration</code>, <code>verifier_scored</code>, <code>playbook_updated</code>, <code>branch_selected</code>, <code>skill_extracted</code>), both memory events, and both episodic-memory events (<code>episode_recalled</code>/<code>episode_recorded</code>) are <code>verbose()</code>-only — a <code>standard()</code> consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.</p>
 
   <h3>Custom policies and filter_stream()</h3>
   <p><code>allows()</code> is a plain include-then-exclude check: if <code>include</code> is set, the event type must be in it; then it must not be in <code>exclude</code>. You can combine both, or use <code>filter_stream()</code> standalone against any async generator of <code>StreamEvent</code>s — it isn't tied to <code>Orchestrator</code>/<code>WorkflowBuilder</code>.</p>
@@ -306,6 +309,10 @@ The presets are fixed sets defined in `stream.py`, not computed dynamically — 
 
         | `memory_retrieve` | &#8212; | &#8212; | &#10003; |
 
+        | `episode_recalled` | &#8212; | &#8212; | &#10003; |
+
+        | `episode_recorded` | &#8212; | &#8212; | &#10003; |
+
         | `loop_iteration` | &#8212; | &#8212; | &#10003; |
 
         | `apex_start` | &#8212; | &#8212; | &#10003; |
@@ -320,7 +327,7 @@ The presets are fixed sets defined in `stream.py`, not computed dynamically — 
 
         | `skill_extracted` | &#8212; | &#8212; | &#10003; |
 
-Notice `retry_attempt`/`fallback_triggered`, every Self-Improving Loop event (`loop_iteration`, `verifier_scored`, `playbook_updated`, `branch_selected`, `skill_extracted`), and both memory events are `verbose()`-only — a `standard()` consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.
+Notice `retry_attempt`/`fallback_triggered`, every Self-Improving Loop event (`loop_iteration`, `verifier_scored`, `playbook_updated`, `branch_selected`, `skill_extracted`), both memory events, and both episodic-memory events (`episode_recalled`/`episode_recorded`) are `verbose()`-only — a `standard()` consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.
 
 ### Custom policies and filter_stream()
 

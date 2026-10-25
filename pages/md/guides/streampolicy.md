@@ -62,6 +62,10 @@ The presets are fixed sets defined in `stream.py`, not computed dynamically — 
 
         | `memory_retrieve` | &#8212; | &#8212; | &#10003; |
 
+        | `episode_recalled` | &#8212; | &#8212; | &#10003; |
+
+        | `episode_recorded` | &#8212; | &#8212; | &#10003; |
+
         | `loop_iteration` | &#8212; | &#8212; | &#10003; |
 
         | `apex_start` | &#8212; | &#8212; | &#10003; |
@@ -76,7 +80,7 @@ The presets are fixed sets defined in `stream.py`, not computed dynamically — 
 
         | `skill_extracted` | &#8212; | &#8212; | &#10003; |
 
-Notice `retry_attempt`/`fallback_triggered`, every Self-Improving Loop event (`loop_iteration`, `verifier_scored`, `playbook_updated`, `branch_selected`, `skill_extracted`), and both memory events are `verbose()`-only — a `standard()` consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.
+Notice `retry_attempt`/`fallback_triggered`, every Self-Improving Loop event (`loop_iteration`, `verifier_scored`, `playbook_updated`, `branch_selected`, `skill_extracted`), both memory events, and both episodic-memory events (`episode_recalled`/`episode_recorded`) are `verbose()`-only — a `standard()` consumer sees an agent producing output and calling tools, but nothing about retries, memory, or self-improvement happening underneath.
 
 ### Custom policies and filter_stream()
 

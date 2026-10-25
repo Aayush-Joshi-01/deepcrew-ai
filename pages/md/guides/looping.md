@@ -193,7 +193,9 @@ except LoopConvergedError as exc:
 
 - **procedural_memory v0.2.2** (ProceduralMemory | None): Evolving playbook, read before iteration 1 and curated on loop exit. Requires `verifier` to be set too — see the [Procedural Memory guide](#procedural-memory).
 
-- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.name`.
+- **task_tag v0.2.2** (str | None): Playbook namespace for `procedural_memory`. Defaults to `agent.procedural_task_tag`, then `agent.name`.
+
+- **episodic_memory v0.6.0** (EpisodicMemory | None): When set, one `Episode` is recorded per iteration with its outcome/score from that iteration's verifier feedback. Falls back to `agent.episodic_memory`. See [Episodic Memory](episodic-memory.html).
 
 - **adaptive v0.2.3** (bool = False): Plateau-detection early exit based on verifier score deltas. No-op without `verifier`. Never exceeds `max_iterations`.
 

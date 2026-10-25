@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <link rel="stylesheet" href="../assets/css/style.css" />
+
   <!-- seo:start -->
   <link rel="canonical" href="https://deepcrew-ai.aayushjoshi.dev/guides/migration.html" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -169,6 +170,8 @@ result.parsed  # a validated Report instance</code></pre>
         <tr><td>ADK <code>FunctionTool</code></td><td><code>@tool</code> function or <code>Skill</code></td><td>Simple callables become tools; multi-step capabilities become Skills.</td></tr>
         <tr><td>ADK callbacks</td><td><code>AgentHooks</code> + <code>StreamEvent</code> queue</td><td>Hooks intercept (can deny); events only observe.</td></tr>
         <tr><td>ADK <code>Session</code> / state</td><td><code>MemoryProvider</code></td><td>InMemory, File, or Redis-backed.</td></tr>
+        <tr><td>ADK long-term memory / past-session recall</td><td><code>EpisodicMemory</code></td><td>Past runs recalled by relevance before each run; <code>Agent(episodic_memory=...)</code>.</td></tr>
+        <tr><td>ADK logging / trace callbacks</td><td><code>configure_logging()</code> + <code>get_logger()</code></td><td>Opt-in structured logs; OTel spans are separate.</td></tr>
         <tr><td>ADK <code>SequentialAgent</code>/<code>ParallelAgent</code></td><td><code>WorkflowBuilder</code></td><td>Independent DAG nodes run in parallel automatically.</td></tr>
         <tr><td>ADK <code>LoopAgent</code></td><td><code>LoopConfig</code> + <code>run_agent_loop</code></td><td>Verifier-driven convergence rather than a fixed iteration count.</td></tr>
       </tbody>
@@ -280,6 +283,8 @@ result.parsed  # a validated Report instance
 | ADK `FunctionTool` | `@tool`-decorated function or `Skill` | Simple callables become tools; multi-step capabilities become `Skill` subclasses. |
 | ADK callbacks (`before_tool_callback`, etc.) | `AgentHooks` + the `StreamEvent` queue | Hooks *intercept* (can deny a tool call); events only *observe*. Use `StreamPolicy` to control what a UI sees. |
 | ADK `Session` / state | `MemoryProvider` (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) | Pluggable backend; attach via `Agent(memory=...)`. |
+| ADK long-term memory / past-session recall | `EpisodicMemory` | Durable log of past runs recalled by relevance before each run (`Agent(episodic_memory=...)`). |
+| ADK logging / callbacks for traces | `configure_logging()` + `get_logger()` | Opt-in structured logs (dev/prod/verbose/quiet); OpenTelemetry spans stay separate (`ObservabilityConfig`). |
 | ADK `SequentialAgent` / `ParallelAgent` | `WorkflowBuilder` | Explicit `.then()` edges; independent nodes at the same DAG level run in parallel automatically. |
 | ADK `LoopAgent` | `LoopConfig` + `run_agent_loop` | deepcrew's loop is verifier-driven (a critic scores each iteration) rather than a fixed iteration count, with optional adaptive early-stop and self-consistency branching. |
 

@@ -122,6 +122,10 @@ class MemoryProvider(ABC):
 
 All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) implement `search()` identically: a case-insensitive substring match on either the key or the value, sorted by key, truncated to `top_k`. This is not semantic search — a query like `"CRISPR gene editing"` will not match a stored value about `"Cas9 mechanism"` unless the substring itself literally overlaps. If you need embedding-based retrieval, that's a natural fit for a custom `MemoryProvider` like the SQLite example above, backed by a vector index instead of a LIKE query.
 
+### Episodic memory (past runs)
+
+`EpisodicMemory` (v0.6.0) is the specifics-keeping counterpart: a durable log of past runs — query, answer, outcome, score — recalled by relevance before each new run and recorded after it, automatically, via `Agent(episodic_memory=...)`. See the [Episodic Memory guide](episodic-memory.html).
+
 ### Procedural memory (evolving playbook)
 
 `ProceduralMemory` is an opt-in, durable "the system learns from its own past runs" store, built on top of any `MemoryProvider`. See the full [Procedural Memory feature guide](procedural-memory.html) for a showcase of usage patterns, from a single agent that gets smarter over time to sharing one playbook across a whole agent pool.
@@ -137,3 +141,4 @@ All three built-in providers (`InMemoryProvider`, `FileMemoryProvider`, `RedisMe
 
     - [Redis Memory Provider](redis-memory.html) — a persistent, shared, multi-process-safe option built into the library.
     - [Procedural Memory](procedural-memory.html) — a structured playbook layered on top of any provider here.
+    - [Episodic Memory](episodic-memory.html) — a log of past runs layered on top of any provider here.

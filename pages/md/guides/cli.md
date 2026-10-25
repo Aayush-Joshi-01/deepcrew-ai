@@ -67,6 +67,17 @@ deepcrew run workflow.yaml --input "Quantum computing in 2026" --no-stream
 deepcrew agents list --config workflow.yaml
 ```
 
+### Logging flags (v0.5.0)
+
+The CLI is quiet by default (warnings and errors only) and shares the library's [logging layer](logging.html). Global flags go before the subcommand; `DEEPCREW_LOG*` environment variables still override them.
+
+```bash
+deepcrew -v run workflow.yaml                       # verbose profile (TRACE)
+deepcrew --log-profile dev run workflow.yaml        # coloured DEBUG
+deepcrew --log-level DEBUG --log-json run workflow.yaml
+deepcrew -q run workflow.yaml                       # errors only
+```
+
 ### YAML schema
 
 - **agents[].name*** (str): Agent identifier, referenced in workflow steps.

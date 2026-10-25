@@ -1,5 +1,5 @@
 # Observability
-deepcrew-ai emits OpenTelemetry spans for every LLM call, tool execution, and workflow step. When `observability=None` (the default), all span context managers are `nullcontext()` — absolutely zero overhead.
+deepcrew-ai emits OpenTelemetry spans for every LLM call, tool execution, and workflow step. When `observability=None` (the default), all span context managers are `nullcontext()` — absolutely zero overhead. Looking for plain human/JSON logs instead of spans? See the [Logging](logging.html) guide — the two are independent and compose.
 
 ### Installation
 

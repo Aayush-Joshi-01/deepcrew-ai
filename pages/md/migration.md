@@ -56,6 +56,8 @@ result.parsed  # a validated Report instance
 | ADK `FunctionTool` | `@tool`-decorated function or `Skill` | Simple callables become tools; multi-step capabilities become `Skill` subclasses. |
 | ADK callbacks (`before_tool_callback`, etc.) | `AgentHooks` + the `StreamEvent` queue | Hooks *intercept* (can deny a tool call); events only *observe*. Use `StreamPolicy` to control what a UI sees. |
 | ADK `Session` / state | `MemoryProvider` (`InMemoryProvider`, `FileMemoryProvider`, `RedisMemoryProvider`) | Pluggable backend; attach via `Agent(memory=...)`. |
+| ADK long-term memory / past-session recall | `EpisodicMemory` | Durable log of past runs recalled by relevance before each run (`Agent(episodic_memory=...)`). |
+| ADK logging / callbacks for traces | `configure_logging()` + `get_logger()` | Opt-in structured logs (dev/prod/verbose/quiet); OpenTelemetry spans stay separate (`ObservabilityConfig`). |
 | ADK `SequentialAgent` / `ParallelAgent` | `WorkflowBuilder` | Explicit `.then()` edges; independent nodes at the same DAG level run in parallel automatically. |
 | ADK `LoopAgent` | `LoopConfig` + `run_agent_loop` | deepcrew's loop is verifier-driven (a critic scores each iteration) rather than a fixed iteration count, with optional adaptive early-stop and self-consistency branching. |
 
