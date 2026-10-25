@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.6.1] — 2026-10-25 — Security fix
+
+Dependency and hardening release; no API changes.
+
+### Security
+- **litellm floor raised to `>=1.83.7,!=1.107.0`** (was `>=1.63.0`). `litellm` 1.82.7, 1.82.8
+  and 1.107.0 were malicious PyPI uploads (credential stealers); 1.83.7 also contains the fixes
+  for the 2026 proxy advisories (CVE-2026-42208, CVE-2026-30623, …).
+- **`certifi>=2026.10.19` is now a declared dependency** — the eMudhra emSign root CA incident
+  removed that root from certifi. Upgrade `pip>=26.2.2` as well (pip vendors its own certifi).
+- `CodeExecutionSkill` now runs the child with `python -I` and strips environment variables whose
+  names contain `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PASSWD`, `CREDENTIAL` or `AUTH`, so
+  generated code can no longer read API keys from the parent environment.
+
+### Changed
+- CI gains a `pip-audit` job; CI and release jobs upgrade `pip`/`certifi` first.
+- Added `.github/dependabot.yml` (weekly pip + GitHub Actions updates).
+- `SECURITY.md` documents the incidents and required versions.
+
 ## [0.6.0] — 2026-08-30 — Episodic Memory
 
 A third memory concept — the one that keeps the specifics — plus an optional LLM reflector
@@ -431,6 +450,7 @@ additions are opt-in and fully backward compatible — an unconfigured `LoopConf
 - 37 unit tests; all passing on Python 3.13
 - 4 runnable examples
 
+[0.6.1]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.4.0...v0.6.0
 [0.4.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Aayush-Joshi-01/deepcrew-ai/compare/v0.2.0...v0.3.0

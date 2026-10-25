@@ -157,7 +157,7 @@ for skill in SkillRegistry.list_all():
 
         | `SummarizeSkill` | `summarize` | LLM-backed text summarization. | `model="openai/gpt-4o-mini"` |
 
-        | `CodeExecutionSkill` | `code_exec` | Runs Python in an isolated subprocess. | `timeout=10.0` |
+        | `CodeExecutionSkill` | `code_exec` | Runs Python in an isolated subprocess (`python -I`) with secret-looking environment variables (`*KEY*`, `*TOKEN*`, `*SECRET*`, …) removed. | `timeout=10.0` |
 
 ### How-to: self-evolving skills (auto_extract_skill) v0.2.5
 

@@ -6,7 +6,7 @@ How the automation works and exactly what to do to cut a release.
 
 | Workflow | File | Fires when | What it does |
 | --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | push/PR to `main` touching `src/**`, `tests/**`, `pyproject.toml` | ruff, ruff format, mypy, version-sync check, pytest on 3.11/3.12/3.13 |
+| **CI** | `.github/workflows/ci.yml` | push/PR to `main` touching `src/**`, `tests/**`, `pyproject.toml` | ruff, ruff format, mypy, version-sync check, `pip-audit` dependency audit, pytest on 3.11/3.12/3.13 |
 | **Deploy Docs** | `.github/workflows/docs.yml` | push to `main` touching `pages/**` | Uploads `pages/` and deploys to GitHub Pages |
 | **Release** | `.github/workflows/publish.yml` | push of a `v*` tag | Builds, verifies, **waits for approval**, publishes to PyPI, creates the GitHub Release |
 
@@ -49,8 +49,8 @@ tag/version check before building anything.
 ```bash
 git checkout main
 git pull
-git tag -a v0.6.0 -m "deepcrew-ai v0.6.0 — <summary>"
-git push origin v0.6.0
+git tag -a v0.6.1 -m "deepcrew-ai v0.6.1 — <summary>"
+git push origin v0.6.1
 ```
 
 ### 5. Approve the release
@@ -65,8 +65,11 @@ with the `.whl` and `.tar.gz` attached and generated notes.
 ### 6. Verify
 ```bash
 curl -s https://pypi.org/pypi/deepcrew-ai/json | python -c "import sys,json;print(json.load(sys.stdin)['info']['version'])"
-gh release view v0.6.0
+gh release view v0.6.1
 ```
+
+> Dependabot (`.github/dependabot.yml`) opens weekly PRs for pip and GitHub Actions updates.
+> Release/CI jobs upgrade `pip>=26.2.2` and `certifi>=2026.10.19` first (eMudhra emSign incident).
 
 ## Docs-only change
 

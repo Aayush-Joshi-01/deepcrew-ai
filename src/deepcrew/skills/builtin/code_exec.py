@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import re
 import subprocess
 import sys
 from typing import Any
 
 from ...exceptions import SkillError
 from ..base import Skill
+
+_SECRET_ENV = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH", re.IGNORECASE)
 
 
 class CodeExecutionSkill(Skill):
@@ -35,13 +39,17 @@ class CodeExecutionSkill(Skill):
         if language.lower() != "python":
             raise SkillError(f"CodeExecutionSkill only supports 'python', got {language!r}")
 
+        # Isolated mode (-I) ignores PYTHON* env vars and the cwd; the child also never
+        # inherits credentials, so generated code cannot read API keys from the environment.
+        env = {k: v for k, v in os.environ.items() if not _SECRET_ENV.search(k)}
         try:
             proc = await asyncio.to_thread(
                 subprocess.run,
-                [sys.executable, "-c", code],
+                [sys.executable, "-I", "-c", code],
                 capture_output=True,
                 text=True,
                 timeout=self._timeout,
+                env=env,
             )
             output = proc.stdout
             if proc.stderr:

@@ -51,3 +51,11 @@ Out of scope:
 environment by LiteLLM at call time. If you find a path where a key is written to
 a log line, a `StreamEvent` payload, or an OpenTelemetry span attribute, treat it
 as a security issue and report it privately.
+
+## Dependency advisories
+
+- **litellm supply-chain incidents:** `litellm` 1.82.7, 1.82.8 (March 2026) and 1.107.0
+  (21 Oct 2026) were malicious PyPI uploads. `deepcrew-ai` requires `litellm>=1.83.7,!=1.107.0`.
+  If you installed any of those versions, treat the host and its credentials as compromised.
+- **eMudhra emSign CA incident (Oct 2026):** upgrade `pip>=26.2.2` and `certifi>=2026.10.19`
+  in every environment that installs or runs `deepcrew-ai`; `certifi` is a declared dependency.

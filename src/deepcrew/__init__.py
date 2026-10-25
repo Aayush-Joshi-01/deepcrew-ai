@@ -92,7 +92,7 @@ from .workflow import WorkflowBuilder
 
 logging.getLogger("deepcrew").addHandler(logging.NullHandler())
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 
 __all__ = [
     # APEX

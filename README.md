@@ -56,6 +56,13 @@ pip install deepcrew-ai
 
 ---
 
+## Security note (v0.6.1)
+
+`litellm` 1.82.7, 1.82.8 and 1.107.0 were malicious PyPI releases; `deepcrew-ai` now requires
+`litellm>=1.83.7,!=1.107.0` and `certifi>=2026.10.19` (eMudhra emSign CA incident — also
+upgrade `pip>=26.2.2`). `CodeExecutionSkill` no longer passes secret-looking environment
+variables to its subprocess. See [SECURITY.md](SECURITY.md).
+
 ## What's new in v0.6.0 — Episodic Memory
 
 A third memory concept, the specifics-keeping one — a durable log of past runs that is

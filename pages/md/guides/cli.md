@@ -6,7 +6,7 @@ Run declarative YAML workflow files from the terminal. No Python code required f
 ```python
 pip install deepcrew-ai
 deepcrew --version
-# deepcrew-ai 0.6.0
+# deepcrew-ai 0.6.1
 ```
 
 ### Write a workflow YAML

@@ -254,7 +254,7 @@ for skill in SkillRegistry.list_all():
       <tbody>
         <tr><td><code>WebSearchSkill</code></td><td><code>web_search</code></td><td>DuckDuckGo Instant Answer API. Returns top results.</td><td>None</td></tr>
         <tr><td><code>SummarizeSkill</code></td><td><code>summarize</code></td><td>LLM-backed text summarization.</td><td><code>model="openai/gpt-4o-mini"</code></td></tr>
-        <tr><td><code>CodeExecutionSkill</code></td><td><code>code_exec</code></td><td>Runs Python in an isolated subprocess.</td><td><code>timeout=10.0</code></td></tr>
+        <tr><td><code>CodeExecutionSkill</code></td><td><code>code_exec</code></td><td>Runs Python in an isolated subprocess (<code>python -I</code>) with secret-looking environment variables (<code>*KEY*</code>, <code>*TOKEN*</code>, <code>*SECRET*</code>, …) removed.</td><td><code>timeout=10.0</code></td></tr>
       </tbody>
     </table>
   </div>
@@ -485,7 +485,7 @@ for skill in SkillRegistry.list_all():
 
         | `SummarizeSkill` | `summarize` | LLM-backed text summarization. | `model="openai/gpt-4o-mini"` |
 
-        | `CodeExecutionSkill` | `code_exec` | Runs Python in an isolated subprocess. | `timeout=10.0` |
+        | `CodeExecutionSkill` | `code_exec` | Runs Python in an isolated subprocess (`python -I`) with secret-looking environment variables (`*KEY*`, `*TOKEN*`, `*SECRET*`, …) removed. | `timeout=10.0` |
 
 ### How-to: self-evolving skills (auto_extract_skill) v0.2.5
 
