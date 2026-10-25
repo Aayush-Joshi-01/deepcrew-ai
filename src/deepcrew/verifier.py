@@ -8,7 +8,10 @@ from typing import Any
 
 import litellm
 
+from .logging_config import get_logger
 from .types import AgentResult
+
+log = get_logger("verifier")
 
 _VERIFIER_SYSTEM = """\
 You are a strict quality verifier for an AI agent's answer.
@@ -92,12 +95,19 @@ class Verifier:
         issues = [str(i) for i in issues_raw] if isinstance(issues_raw, list) else []
         suggestion = str(data.get("suggestion") or "")
 
-        return VerifierFeedback(
+        feedback = VerifierFeedback(
             score=score,
             issues=issues,
             suggestion=suggestion,
             converged=score >= cfg.threshold,
         )
+        log.debug(
+            "verify result",
+            score=feedback.score,
+            n_issues=len(feedback.issues),
+            passed=feedback.converged,
+        )
+        return feedback
 
     async def assess_complexity(self, task: str, *, default_model: str) -> bool:
         """

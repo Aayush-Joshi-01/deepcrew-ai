@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import re
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -13,6 +13,7 @@ from .agent import Agent
 from .apex import ApexConfig, APEXSynthesizer
 from .content import ContentPart, TextPart, describe_attachments
 from .exceptions import RouterError
+from .logging_config import elapsed_ms, get_logger
 from .runner import run_agent
 from .spawner import ToolAllocator, make_spawn_tool
 from .stream import StreamPolicy, filter_stream, make_error_event, queue_to_stream
@@ -21,7 +22,7 @@ from .verifier import Verifier
 
 litellm.drop_params = True
 
-logger = logging.getLogger(__name__)
+log = get_logger("orchestrator")
 
 _ROUTER_SYSTEM = """\
 You are a task decomposition specialist.
@@ -246,9 +247,20 @@ class Orchestrator:
         *,
         attachments: list[ContentPart] | None = None,
     ) -> None:
+        started = time.perf_counter()
         try:
             routing = await self._route(query, attachments=attachments)
-            logger.info("orchestrator routing decision: %s", routing)
+            _route_mode = routing.get("route", "single")
+            log.info(
+                "routing decision",
+                event="agent_start",
+                mode=_route_mode,
+                agents=(
+                    [routing.get("agent")]
+                    if _route_mode == "single"
+                    else [a.get("name") for a in routing.get("agents", [])]
+                ),
+            )
             agent_results: list[AgentResult] = []
 
             # Build spawn meta-tool if enabled
@@ -283,6 +295,7 @@ class Orchestrator:
 
             else:
                 specs = routing.get("agents", [])[: self.max_parallel_agents]
+                log.info("fan-out start", event="agent_start", n_agents=len(specs))
                 parallel_coros = []
                 for spec in specs:
                     agent = self._get_agent(spec["name"])
@@ -314,7 +327,11 @@ class Orchestrator:
 
                 for r in parallel_results:
                     if isinstance(r, BaseException):
-                        logger.warning("parallel agent failed: %s: %s", type(r).__name__, r)
+                        log.warning(
+                            "parallel agent failed",
+                            error_type=type(r).__name__,
+                            error=str(r),
+                        )
                         await queue.put(make_error_event("orchestrator", str(r)))
                     else:
                         agent_results.append(r)
@@ -322,9 +339,15 @@ class Orchestrator:
                 apex_result = await self._apex.synthesize(query, agent_results, queue)
                 final_text = apex_result.text
 
+            log.info(
+                "orchestrator done",
+                event="done",
+                n_agents=len(agent_results),
+                duration_ms=elapsed_ms(started),
+            )
             await queue.put(StreamEvent(EventType.DONE, {"final_text": final_text}, "orchestrator"))
         except Exception as exc:
-            logger.exception("orchestrator run failed")
+            log.exception("orchestrator run failed", event="error")
             await queue.put(make_error_event("orchestrator", str(exc)))
         finally:
             await queue.put(None)

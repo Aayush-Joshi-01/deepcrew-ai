@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import os
 from typing import Any
 
 from ..exceptions import MCPError
+from ..logging_config import get_logger
 from ..types import ToolDef
 from .base import MCPClient, _parse_mcp_tool
 
-logger = logging.getLogger(__name__)
+log = get_logger("mcp.stdio")
 
 
 class StdioMCP(MCPClient):
@@ -50,7 +50,7 @@ class StdioMCP(MCPClient):
         self._tool_cache: list[ToolDef] | None = None
 
     async def connect(self) -> None:
-        logger.info("StdioMCP connecting: %s %s", self.command, self.args)
+        log.info("StdioMCP connecting: %s %s", self.command, self.args)
         merged_env = {**os.environ, **(self.env or {})}
         self._proc = await asyncio.create_subprocess_exec(
             self.command,
@@ -105,7 +105,7 @@ class StdioMCP(MCPClient):
             },
         )
         if "error" in resp:
-            logger.error("StdioMCP initialize failed: %s", resp["error"])
+            log.error("StdioMCP initialize failed: %s", resp["error"])
             raise MCPError(f"StdioMCP initialize failed: {resp['error']}")
         await self._notify("notifications/initialized")
 
@@ -114,7 +114,7 @@ class StdioMCP(MCPClient):
             return self._tool_cache
         resp = await self._send("tools/list")
         if "error" in resp:
-            logger.error("StdioMCP tools/list failed: %s", resp["error"])
+            log.error("StdioMCP tools/list failed: %s", resp["error"])
             raise MCPError(f"tools/list failed: {resp['error']}")
         raw_tools: list[dict] = resp.get("result", {}).get("tools", [])
         self._tool_cache = [_parse_mcp_tool(t, self) for t in raw_tools]
@@ -123,7 +123,7 @@ class StdioMCP(MCPClient):
     async def call_tool(self, name: str, args: dict[str, Any]) -> dict[str, Any] | str:
         resp = await self._send("tools/call", {"name": name, "arguments": args})
         if "error" in resp:
-            logger.error("StdioMCP tool %r failed: %s", name, resp["error"])
+            log.error("StdioMCP tool %r failed: %s", name, resp["error"])
             raise MCPError(f"Tool {name!r} failed: {resp['error']}")
         result = resp.get("result", {})
         # MCP returns content array; extract text or return raw

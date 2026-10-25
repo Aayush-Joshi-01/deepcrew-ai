@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
 from typing import Any
 
 from .agent import Agent
 from .exceptions import WorkflowError
+from .logging_config import elapsed_ms, get_logger
 from .observability import ObservabilityConfig, workflow_step_span
 from .runner import run_agent
 from .stream import StreamPolicy, filter_stream, make_error_event, queue_to_stream
 from .types import AgentResult, EventType, StreamEvent, WorkflowResult
+
+log = get_logger("workflow")
 
 
 @dataclass
@@ -168,8 +172,11 @@ class WorkflowBuilder:
             levels = _topological_levels(self._nodes, self._deps)
             outputs: dict[str, AgentResult] = {}
 
-            for level in levels:
+            for level_idx, level in enumerate(levels):
+                log.debug("level start", event="step_start", level=level_idx + 1, nodes=list(level))
+                level_start = time.perf_counter()
                 for name in level:
+                    log.info("step start", event="step_start", node=name)
                     await queue.put(StreamEvent(EventType.STEP_START, {"node": name}, name))
 
                 tasks = [
@@ -190,12 +197,21 @@ class WorkflowBuilder:
                         await queue.put(None)
                         return
                     outputs[name] = result
+                    log.info("step done", event="step_done", node=name)
                     await queue.put(StreamEvent(EventType.STEP_DONE, {"node": name}, name))
+                log.debug(
+                    "level done",
+                    event="step_done",
+                    level=level_idx + 1,
+                    duration_ms=elapsed_ms(level_start),
+                )
 
             sink = _find_sink(self._nodes, self._deps)
             final_text = outputs[sink].text if sink and sink in outputs else ""
+            log.info("workflow done", event="done", n_nodes=len(outputs))
             await queue.put(StreamEvent(EventType.DONE, {"final_text": final_text}, "workflow"))
         except Exception as exc:
+            log.exception("workflow failed", event="error")
             await queue.put(make_error_event("workflow", str(exc)))
         finally:
             await queue.put(None)

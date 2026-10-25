@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass
 
 import litellm
 
+from .logging_config import elapsed_ms, get_logger
 from .types import AgentResult, EventType, StreamEvent, ToolDef
+
+log = get_logger("apex")
 
 _APEX_SYSTEM = """\
 You are APEX, an expert synthesis specialist.
@@ -69,6 +73,8 @@ class APEXSynthesizer:
         tool_defs: list[ToolDef] | None = None,
     ) -> AgentResult:
         """Synthesize multiple agent results into one authoritative response."""
+        log.info("apex synthesis start", event="apex_start", n_agents=len(results))
+        started = time.perf_counter()
         if queue:
             await queue.put(StreamEvent(EventType.APEX_START, {"agents": len(results)}, "apex"))
 
@@ -126,6 +132,12 @@ class APEXSynthesizer:
             confidence=confidence,
         )
 
+        log.info(
+            "apex done",
+            event="apex_done",
+            confidence=confidence,
+            duration_ms=elapsed_ms(started),
+        )
         if queue:
             await queue.put(
                 StreamEvent(
