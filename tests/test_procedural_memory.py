@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from deepcrew.memory.inmemory import InMemoryProvider
@@ -82,3 +84,33 @@ async def test_render_nonempty_includes_helpful_and_avoid_labels():
 async def test_load_returns_empty_list_when_nothing_persisted():
     pm = ProceduralMemory(InMemoryProvider())
     assert await pm.load("unknown_task") == []
+
+
+@pytest.mark.asyncio
+async def test_reflect_model_produces_llm_candidates():
+    resp = MagicMock()
+    resp.choices = [MagicMock()]
+    resp.choices[
+        0
+    ].message.content = (
+        '{"helpful": ["Start with a concrete example"], "harmful": ["Do not hand-wave"]}'
+    )
+    with patch("litellm.acompletion", new=AsyncMock(return_value=resp)):
+        pm = ProceduralMemory(InMemoryProvider(), reflect_model="gemini/x")
+        feedback = VerifierFeedback(score=0.6, issues=["vague"], suggestion="", converged=False)
+        await pm.curate("t", feedback, [AgentResult(agent_id="a", text="answer")])
+    contents = {e.content for e in await pm.load("t")}
+    assert "Start with a concrete example" in contents
+    assert "Do not hand-wave" in contents
+
+
+@pytest.mark.asyncio
+async def test_reflect_model_falls_back_to_heuristic_on_error():
+    with patch("litellm.acompletion", new=AsyncMock(side_effect=RuntimeError("boom"))):
+        pm = ProceduralMemory(InMemoryProvider(), reflect_model="gemini/x")
+        feedback = VerifierFeedback(
+            score=0.5, issues=["missing citations"], suggestion="", converged=False
+        )
+        await pm.curate("t", feedback, [AgentResult(agent_id="a", text="answer")])
+    entries = await pm.load("t")
+    assert any("missing citations" in e.content for e in entries)

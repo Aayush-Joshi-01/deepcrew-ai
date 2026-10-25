@@ -11,6 +11,7 @@ from .types import ToolDef
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
+    from .episodic_memory import EpisodicMemory
     from .hooks import AgentHooks
     from .loop import LoopConfig
     from .mcp.base import MCPClient
@@ -64,6 +65,15 @@ class Agent:
         every run of this agent (single-shot or looped). Writing/curating
         new strategies only happens via a loop whose ``LoopConfig`` also has
         ``procedural_memory`` configured (typically the same instance).
+    procedural_task_tag:
+        Playbook namespace for ``procedural_memory``. Defaults to ``name``.
+        Set this to the same value as ``LoopConfig.task_tag`` when a loop
+        curates under a custom tag, so single-shot runs read the same playbook.
+    episodic_memory:
+        Optional durable log of past runs (see ``EpisodicMemory``). When set,
+        every run recalls relevant past episodes into context beforehand and
+        records the outcome afterwards (one episode per refinement iteration
+        in a loop).
     response_model:
         Optional pydantic model. When set, the agent's final (non-tool-call)
         text is validated against this schema and made available as
@@ -91,6 +101,8 @@ class Agent:
     loop_config: LoopConfig | None = field(default=None)
     skills: list[Skill] = field(default_factory=list)
     procedural_memory: ProceduralMemory | None = field(default=None)
+    procedural_task_tag: str | None = field(default=None)
+    episodic_memory: EpisodicMemory | None = field(default=None)
     response_model: type[BaseModel] | None = field(default=None)
     hooks: AgentHooks | None = field(default=None)
 
