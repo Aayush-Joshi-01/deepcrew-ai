@@ -12,15 +12,21 @@ agent = Agent(
     model="openai/gpt-4o",
     system_prompt="You are a versatile AI assistant.",
     skills=[
-        WebSearchSkill(),                            # DuckDuckGo Instant Answer API
+        WebSearchSkill(),  # DuckDuckGo Instant Answer API
         SummarizeSkill(model="openai/gpt-4o-mini"),  # LLM-backed summarization
-        CodeExecutionSkill(timeout=15.0),            # sandboxed Python subprocess
+        CodeExecutionSkill(timeout=15.0),  # sandboxed Python subprocess
     ],
 )
 
-result = await run_agent(agent, [
-    {"role": "user", "content": "Search for Python async best practices, summarize them, then write a demo script and run it."}
-])
+result = await run_agent(
+    agent,
+    [
+        {
+            "role": "user",
+            "content": "Search for Python async best practices, summarize them, then write a demo script and run it.",
+        }
+    ],
+)
 print(result.text)
 ```
 
@@ -43,6 +49,7 @@ The decorator inspects your function's signature to auto-generate the JSON Schem
 ```python
 from deepcrew import skill, Agent
 
+
 @skill(name="translate", description="Translate text to another language")
 async def translate(text: str, target_language: str) -> str:
     """
@@ -51,12 +58,14 @@ async def translate(text: str, target_language: str) -> str:
         target_language (str): Target language code, e.g. 'es', 'fr', 'ja'.
     """
     import httpx
+
     async with httpx.AsyncClient() as client:
         r = await client.post(
             "https://libretranslate.de/translate",
             json={"q": text, "source": "auto", "target": target_language},
         )
         return r.json()["translatedText"]
+
 
 @skill(name="send_slack", description="Send a message to a Slack channel")
 async def send_slack(channel: str, message: str) -> str:
@@ -67,6 +76,7 @@ async def send_slack(channel: str, message: str) -> str:
     """
     import os
     import httpx
+
     async with httpx.AsyncClient() as client:
         await client.post(
             "https://slack.com/api/chat.postMessage",
@@ -74,6 +84,7 @@ async def send_slack(channel: str, message: str) -> str:
             json={"channel": channel, "text": message},
         )
     return f"Message sent to #{channel}"
+
 
 agent = Agent(
     "comms",
@@ -87,6 +98,7 @@ agent = Agent(
 
 ```python
 from deepcrew.skills.base import Skill
+
 
 class DatabaseQuerySkill(Skill):
     name = "database_query"
@@ -105,6 +117,7 @@ class DatabaseQuerySkill(Skill):
 
     async def execute(self, sql: str, limit: int = 100) -> str:
         import asyncpg
+
         conn = await asyncpg.connect(self._conn_str)
         try:
             rows = await conn.fetch(f"{sql} LIMIT {limit}")
@@ -112,9 +125,9 @@ class DatabaseQuerySkill(Skill):
         finally:
             await conn.close()
 
+
 # Use it:
-agent = Agent("db_agent", model="openai/gpt-4o",
-              skills=[DatabaseQuerySkill("postgresql://...")])
+agent = Agent("db_agent", model="openai/gpt-4o", skills=[DatabaseQuerySkill("postgresql://...")])
 ```
 
 ### SkillRegistry

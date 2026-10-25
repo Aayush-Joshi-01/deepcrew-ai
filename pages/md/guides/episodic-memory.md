@@ -36,7 +36,7 @@ await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?
 
 # run 2 — the earlier episode is recalled into context, then this run is recorded too
 r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
-print(r.episodes_recalled)   # >= 1
+print(r.episodes_recalled)  # >= 1
 ```
 
 - **Recall** happens in the runner before the LLM sees anything: relevant episodes are
@@ -54,9 +54,9 @@ class Episode:
     outcome: Literal["success", "failure", "partial", "unknown"] = "unknown"
     score: float | None = None
     tools_used: list[str] = field(default_factory=list)
-    reflection: str | None = None      # set when reflect_model is configured
+    reflection: str | None = None  # set when reflect_model is configured
     tags: list[str] = field(default_factory=list)
-    timestamp: str = ""                # ISO-8601 UTC, auto-filled
+    timestamp: str = ""  # ISO-8601 UTC, auto-filled
     agent_id: str = ""
 ```
 
@@ -64,11 +64,11 @@ class Episode:
 
 ```python
 EpisodicMemory(
-    backend,                       # any MemoryProvider
-    namespace="default",           # isolates one log from another
-    max_episodes=100,              # ring buffer: oldest overwritten once full
-    recall_k=3,                    # default number returned by recall()
-    reflect_model=None,            # optional: LiteLLM model for a one-line lesson per episode
+    backend,  # any MemoryProvider
+    namespace="default",  # isolates one log from another
+    max_episodes=100,  # ring buffer: oldest overwritten once full
+    recall_k=3,  # default number returned by recall()
+    reflect_model=None,  # optional: LiteLLM model for a one-line lesson per episode
 )
 ```
 

@@ -30,14 +30,16 @@ from deepcrew import Agent, Orchestrator, ApexConfig
 orch = Orchestrator(
     agents=[
         Agent("researcher", model="openai/gpt-4o-mini", system_prompt="Research facts."),
-        Agent("analyst",    model="anthropic/claude-haiku-4-5-20251001", system_prompt="Analyze data."),
+        Agent(
+            "analyst", model="anthropic/claude-haiku-4-5-20251001", system_prompt="Analyze data."
+        ),
     ],
     router_model="openai/gpt-4o-mini",
-    apex_model="openai/gpt-4o",       # defaults to router_model if omitted
+    apex_model="openai/gpt-4o",  # defaults to router_model if omitted
     apex_config=ApexConfig(
-        cite_sources=True,           # [source: researcher] / [source: analyst] inline
-        confidence_threshold=0.75,   # advisory only — see "Common pitfalls" below
-        allow_tools=False,           # APEX can call tools mid-synthesis (experimental)
+        cite_sources=True,  # [source: researcher] / [source: analyst] inline
+        confidence_threshold=0.75,  # advisory only — see "Common pitfalls" below
+        allow_tools=False,  # APEX can call tools mid-synthesis (experimental)
     ),
 )
 

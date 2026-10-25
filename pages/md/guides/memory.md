@@ -16,15 +16,13 @@ agent = Agent(
 )
 
 # First interaction
-result1 = await run_agent(agent, [
-    {"role": "user", "content": "My name is Alice and I'm building a Python library."}
-])
+result1 = await run_agent(
+    agent, [{"role": "user", "content": "My name is Alice and I'm building a Python library."}]
+)
 
 # Memory automatically stores tool results and LLM context
 # Second interaction — agent will remember Alice's project
-result2 = await run_agent(agent, [
-    {"role": "user", "content": "What was my project about again?"}
-])
+result2 = await run_agent(agent, [{"role": "user", "content": "What was my project about again?"}])
 ```
 
 ### FileMemoryProvider — persistent context
@@ -54,6 +52,7 @@ Need something InMemory/File/Redis don't cover — SQLite, a vector database, an
 import sqlite3
 from deepcrew.memory.base import MemoryProvider
 
+
 class SQLiteMemoryProvider(MemoryProvider):
     """Simple SQLite-backed memory — one row per key, LIKE-based search."""
 
@@ -63,9 +62,7 @@ class SQLiteMemoryProvider(MemoryProvider):
         self._conn.commit()
 
     async def store(self, key: str, value: str) -> None:
-        self._conn.execute(
-            "INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, value)
-        )
+        self._conn.execute("INSERT OR REPLACE INTO memory (key, value) VALUES (?, ?)", (key, value))
         self._conn.commit()
 
     async def retrieve(self, key: str) -> str | None:
@@ -74,8 +71,7 @@ class SQLiteMemoryProvider(MemoryProvider):
 
     async def search(self, query: str, top_k: int = 5) -> list[tuple[str, str]]:
         rows = self._conn.execute(
-            "SELECT key, value FROM memory WHERE key LIKE ? OR value LIKE ? "
-            "ORDER BY key LIMIT ?",
+            "SELECT key, value FROM memory WHERE key LIKE ? OR value LIKE ? ORDER BY key LIMIT ?",
             (f"%{query}%", f"%{query}%", top_k),
         ).fetchall()
         return [(k, v) for k, v in rows]
@@ -83,6 +79,7 @@ class SQLiteMemoryProvider(MemoryProvider):
     async def clear(self) -> None:
         self._conn.execute("DELETE FROM memory")
         self._conn.commit()
+
 
 agent = Agent("persistent", model="openai/gpt-4o", memory=SQLiteMemoryProvider("agent.db"))
 ```

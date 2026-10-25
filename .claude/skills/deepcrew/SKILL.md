@@ -46,10 +46,12 @@ determines the provider, e.g. `"openai/gpt-4o"`, `"anthropic/claude-opus-4-8"`,
 ```python
 from deepcrew import Agent, run_agent, tool
 
+
 @tool
 def get_weather(city: str) -> str:
     """Look up the current weather for a city."""
     return f"Sunny in {city}"
+
 
 agent = Agent(name="assistant", model="openai/gpt-4o", tools=[get_weather])
 result = await run_agent(agent, [{"role": "user", "content": "Weather in Tokyo?"}])
@@ -62,8 +64,9 @@ print(result.text)
 from deepcrew import Agent, run_agent, image, pdf, user_message
 
 agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
-msg = user_message("Summarize this chart and check it against the report.",
-                    image("chart.png"), pdf("report.pdf"))
+msg = user_message(
+    "Summarize this chart and check it against the report.", image("chart.png"), pdf("report.pdf")
+)
 result = await run_agent(agent, [msg])
 ```
 
@@ -76,9 +79,11 @@ size-checked and base64-encoded automatically; raises `ContentError` on bad inpu
 from pydantic import BaseModel
 from deepcrew import Agent, run_agent
 
+
 class Verdict(BaseModel):
     approved: bool
     reason: str
+
 
 agent = Agent(name="reviewer", model="openai/gpt-4o", response_model=Verdict)
 result = await run_agent(agent, [{"role": "user", "content": "Review this PR diff: ..."}])
@@ -130,7 +135,7 @@ agent = Agent(
     loop_config=LoopConfig(
         max_iterations=5,
         verifier=Verifier(VerifierConfig(threshold=0.85)),
-        adaptive=True,           # early-stop on score plateau
+        adaptive=True,  # early-stop on score plateau
     ),
 )
 result = await run_agent(agent, [{"role": "user", "content": "Research topic X thoroughly."}])
@@ -139,8 +144,9 @@ result = await run_agent(agent, [{"role": "user", "content": "Research topic X t
 ### Bounded agent spawning
 
 ```python
-orch = Orchestrator(agents=[planner], router_model="openai/gpt-4o-mini",
-                     enable_spawn=True, max_spawn_depth=2)
+orch = Orchestrator(
+    agents=[planner], router_model="openai/gpt-4o-mini", enable_spawn=True, max_spawn_depth=2
+)
 result = await orch.run("Plan and execute a multi-step research task")
 ```
 
@@ -149,11 +155,17 @@ result = await orch.run("Plan and execute a multi-step research task")
 ```python
 from deepcrew import Agent, AgentHooks, run_agent
 
+
 async def approve(tool_name: str, args: dict) -> bool:
     return tool_name != "delete_file"  # block this one specific tool
 
-agent = Agent(name="assistant", model="openai/gpt-4o", tools=[delete_file, read_file],
-              hooks=AgentHooks(approve_tool=approve))
+
+agent = Agent(
+    name="assistant",
+    model="openai/gpt-4o",
+    tools=[delete_file, read_file],
+    hooks=AgentHooks(approve_tool=approve),
+)
 ```
 
 Hooks *intercept and can change* execution — different from the observe-only event stream.
@@ -190,8 +202,10 @@ from deepcrew.memory import FileMemoryProvider
 episodic = EpisodicMemory(FileMemoryProvider("episodes.json"), namespace="bot", recall_k=3)
 agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
 
-await run_agent(agent, [{"role": "user", "content": "..."}])   # recorded afterwards
-r = await run_agent(agent, [{"role": "user", "content": "..."}])  # relevant past episodes recalled first
+await run_agent(agent, [{"role": "user", "content": "..."}])  # recorded afterwards
+r = await run_agent(
+    agent, [{"role": "user", "content": "..."}]
+)  # relevant past episodes recalled first
 r.episodes_recalled  # int
 ```
 
@@ -217,11 +231,11 @@ Logging is off by default (library `NullHandler`). It is separate from `Observab
 ```python
 from deepcrew import configure_logging, get_logger
 
-configure_logging("dev")     # colour + DEBUG; also "prod" (JSON lines), "verbose", "quiet"
+configure_logging("dev")  # colour + DEBUG; also "prod" (JSON lines), "verbose", "quiet"
 # env-only, no code change:  DEEPCREW_LOG_PROFILE=prod  /  DEEPCREW_LOG_LEVEL=DEBUG
 
-log = get_logger("myapp.tools")          # namespaced under deepcrew.*, same styling
-log.info("price lookup", sku=sku)        # extra kwargs -> structured fields
+log = get_logger("myapp.tools")  # namespaced under deepcrew.*, same styling
+log.info("price lookup", sku=sku)  # extra kwargs -> structured fields
 log.bind(request_id=rid).warning("slow", latency_ms=812)
 ```
 

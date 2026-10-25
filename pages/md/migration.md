@@ -20,8 +20,11 @@ deepcrew adds once you're here.
 from crewai import Agent, Crew, Task, Process
 
 researcher = Agent(role="Researcher", goal="Find facts", backstory="...")
-crew = Crew(agents=[researcher], tasks=[Task(description="...", agent=researcher)],
-            process=Process.sequential)
+crew = Crew(
+    agents=[researcher],
+    tasks=[Task(description="...", agent=researcher)],
+    process=Process.sequential,
+)
 result = crew.kickoff()
 ```
 

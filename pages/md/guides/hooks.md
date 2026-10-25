@@ -4,8 +4,10 @@
 ```python
 from deepcrew import Agent, AgentHooks, run_agent
 
+
 async def approve(tool_name: str, args: dict) -> bool:
     return tool_name != "delete_file"  # block one specific tool
+
 
 agent = Agent(
     name="assistant",
@@ -55,6 +57,7 @@ from deepcrew import Agent, AgentHooks, run_agent
 
 pending_approvals: dict[str, asyncio.Future] = {}
 
+
 async def ask_a_human(tool_name: str, args: dict) -> bool:
     request_id = f"{tool_name}:{id(args)}"
     future = asyncio.get_event_loop().create_future()
@@ -62,6 +65,7 @@ async def ask_a_human(tool_name: str, args: dict) -> bool:
     # e.g. post a Slack message with Approve/Deny buttons here, then wait:
     send_approval_request(request_id, tool_name, args)  # your integration
     return await future  # resolved elsewhere when the human responds
+
 
 agent = Agent(
     name="ops_assistant",

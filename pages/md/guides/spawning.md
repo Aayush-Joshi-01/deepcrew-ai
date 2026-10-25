@@ -14,25 +14,30 @@ deepcrew-ai v0.2.0 introduces Claude Code-style dynamic agent spawning. Any runn
 ```python
 from deepcrew import Agent, Orchestrator, tool
 
+
 @tool
 def search_web(query: str) -> str:
     "Search the web."
     ...
+
 
 @tool
 def read_file(path: str) -> str:
     "Read a local file."
     ...
 
+
 @tool
 def run_sql(query: str) -> list[dict]:
     "Execute a SQL query."
     ...
 
+
 @tool
 def call_api(url: str, method: str = "GET") -> dict:
     "Make an HTTP API call."
     ...
+
 
 master = Agent(
     name="coordinator",
@@ -46,12 +51,10 @@ orch = Orchestrator(
     router_model="openai/gpt-4o-mini",
     apex_model="openai/gpt-4o",
     global_tools=[search_web, read_file, run_sql, call_api],  # pool
-    enable_spawn=True,   # injects spawn_agent tool into master
+    enable_spawn=True,  # injects spawn_agent tool into master
 )
 
-result = await orch.run(
-    "Research the top 3 AI papers from last month and summarize key findings."
-)
+result = await orch.run("Research the top 3 AI papers from last month and summarize key findings.")
 print(result.final_text)
 ```
 
@@ -67,7 +70,7 @@ all_tool_defs = [fn_to_tool_def(search_web), fn_to_tool_def(read_file)]
 
 request = SpawnRequest(
     task="Find all Python files that import pandas and list their names.",
-    tools=["read_file", "search_web"],   # hint: names from the pool above
+    tools=["read_file", "search_web"],  # hint: names from the pool above
     model="openai/gpt-4o-mini",
     system_prompt="You are a code analysis assistant.",
     max_turns=5,
@@ -78,10 +81,10 @@ queue: asyncio.Queue = asyncio.Queue()
 result = await spawn_agent(
     request=request,
     all_tool_defs=all_tool_defs,
-    parent_queue=queue,             # None is fine if you don't need SPAWN_AGENT events
+    parent_queue=queue,  # None is fine if you don't need SPAWN_AGENT events
     router_model="openai/gpt-4o-mini",
     parent_agent_id="coordinator",
-    max_depth=2,                    # default; see "Bounded nested spawning" below
+    max_depth=2,  # default; see "Bounded nested spawning" below
 )
 
 print(result.text)
@@ -102,8 +105,8 @@ allocator = ToolAllocator(router_model="openai/gpt-4o-mini")
 # returns only the most relevant subset (up to max_tools)
 relevant_tools = await allocator.allocate(
     task="Analyze sentiment in customer reviews and generate a report",
-    all_tools=my_tool_defs,   # list[ToolDef] — could be dozens of tools
-    max_tools=5,              # default is 10 if you omit this
+    all_tools=my_tool_defs,  # list[ToolDef] — could be dozens of tools
+    max_tools=5,  # default is 10 if you omit this
 )
 
 print([t.name for t in relevant_tools])
@@ -136,8 +139,8 @@ orch = Orchestrator(
     agents=[master_agent],
     global_tools=[search_web, read_file],
     enable_spawn=True,
-    max_spawn_depth=3,                    # up to 3 levels of nested delegation
-    spawn_complexity_check=Verifier(),     # optional: skip nesting for simple sub-tasks
+    max_spawn_depth=3,  # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),  # optional: skip nesting for simple sub-tasks
 )
 ```
 

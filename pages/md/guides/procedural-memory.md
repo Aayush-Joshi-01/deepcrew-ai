@@ -7,8 +7,13 @@ Same agent, same task type, run repeatedly — each run's high-confidence result
 
 ```python
 from deepcrew import (
-    Agent, run_agent, LoopConfig, Verifier, VerifierConfig,
-    FileMemoryProvider, ProceduralMemory,
+    Agent,
+    run_agent,
+    LoopConfig,
+    Verifier,
+    VerifierConfig,
+    FileMemoryProvider,
+    ProceduralMemory,
 )
 
 playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
@@ -17,7 +22,7 @@ agent = Agent(
     name="researcher",
     model="openai/gpt-4o-mini",
     tools=[search_web],
-    procedural_memory=playbook,   # read on every run, even single-shot
+    procedural_memory=playbook,  # read on every run, even single-shot
     loop_config=LoopConfig(
         max_iterations=4,
         verifier=Verifier(VerifierConfig(threshold=0.85)),
@@ -39,6 +44,7 @@ Multiple agents that handle the same kind of task (e.g. every "support_triage" a
 ```python
 shared_playbook = ProceduralMemory(FileMemoryProvider("support_playbook.json"))
 
+
 def make_support_agent(name: str) -> Agent:
     return Agent(
         name=name,
@@ -50,6 +56,7 @@ def make_support_agent(name: str) -> Agent:
             task_tag="support_triage",  # shared namespace, not tied to agent.name
         ),
     )
+
 
 agent_a = make_support_agent("triage_shift_1")
 agent_b = make_support_agent("triage_shift_2")

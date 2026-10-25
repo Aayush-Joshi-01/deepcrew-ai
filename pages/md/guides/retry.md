@@ -11,9 +11,9 @@ agent = Agent(
     model="openai/gpt-4o",
     system_prompt="Be helpful.",
     retry_policy=RetryPolicy(
-        max_retries=3,          # try up to 3 more times after the first failure
-        backoff_seconds=1.0,    # base wait between retries
-        exponential=True,       # 1s, 2s, 4s, 8s ... (doubles each time)
+        max_retries=3,  # try up to 3 more times after the first failure
+        backoff_seconds=1.0,  # base wait between retries
+        exponential=True,  # 1s, 2s, 4s, 8s ... (doubles each time)
         retry_on=(Exception,),  # retry on any exception (default)
     ),
 )
@@ -48,16 +48,18 @@ from deepcrew import Agent, RetryPolicy, FallbackChain
 
 agent = Agent(
     name="fault_tolerant",
-    model="openai/gpt-4o",           # primary model
+    model="openai/gpt-4o",  # primary model
     retry_policy=RetryPolicy(
         max_retries=2,
         backoff_seconds=1.0,
     ),
-    fallback_chain=FallbackChain(models=[
-        "anthropic/claude-haiku-4-5-20251001",  # try first if gpt-4o fails all retries
-        "gemini/gemini-2.0-flash",               # try second
-        "ollama/llama3.2",                       # local fallback
-    ]),
+    fallback_chain=FallbackChain(
+        models=[
+            "anthropic/claude-haiku-4-5-20251001",  # try first if gpt-4o fails all retries
+            "gemini/gemini-2.0-flash",  # try second
+            "ollama/llama3.2",  # local fallback
+        ]
+    ),
 )
 
 # Flow: gpt-4o → retry 1 → retry 2 → claude-haiku → retry 1 → retry 2 → gemini → ...
@@ -78,7 +80,8 @@ from deepcrew.types import EventType
 
 while True:
     event = await queue.get()
-    if event is None: break
+    if event is None:
+        break
     if event.event == EventType.RETRY_ATTEMPT:
         data = event.data
         print(f"Retry {data['attempt']} on {data['model']} — waiting {data['delay']:.1f}s")

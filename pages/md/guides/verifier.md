@@ -33,14 +33,16 @@ code_reviewer = Agent(
     system_prompt="Review the given diff for bugs, security issues, and style.",
     loop_config=LoopConfig(
         max_iterations=3,
-        verifier=Verifier(VerifierConfig(
-            threshold=0.9,
-            rubric=(
-                "1. Every changed function must be covered by the review.\n"
-                "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
-                "3. Style nits are optional but bugs are not."
-            ),
-        )),
+        verifier=Verifier(
+            VerifierConfig(
+                threshold=0.9,
+                rubric=(
+                    "1. Every changed function must be covered by the review.\n"
+                    "2. Security issues (injection, auth, secrets) must be called out explicitly.\n"
+                    "3. Style nits are optional but bugs are not."
+                ),
+            )
+        ),
     ),
 )
 
@@ -55,15 +57,23 @@ result = await run_agent(code_reviewer, [{"role": "user", "content": diff_text}]
 import json
 from deepcrew import VerifierFeedback
 
+
 async def json_schema_grader(query: str, result) -> VerifierFeedback:
     try:
         data = json.loads(result.text)
     except json.JSONDecodeError:
-        return VerifierFeedback(score=0.0, issues=["Output is not valid JSON"], suggestion="Return valid JSON only.")
+        return VerifierFeedback(
+            score=0.0, issues=["Output is not valid JSON"], suggestion="Return valid JSON only."
+        )
     missing = [k for k in ("summary", "action_items") if k not in data]
     if missing:
-        return VerifierFeedback(score=0.4, issues=[f"Missing key: {k}" for k in missing], suggestion="Include all required keys.")
+        return VerifierFeedback(
+            score=0.4,
+            issues=[f"Missing key: {k}" for k in missing],
+            suggestion="Include all required keys.",
+        )
     return VerifierFeedback(score=1.0, converged=True)
+
 
 agent = Agent(
     name="extractor",
@@ -88,8 +98,8 @@ agent = Agent(
         max_iterations=8,
         verifier=Verifier(VerifierConfig(threshold=0.9)),
         adaptive=True,
-        min_improvement=0.02,   # minimum score delta to still count as "improving"
-        plateau_patience=2,     # stop after this many non-improving iterations in a row
+        min_improvement=0.02,  # minimum score delta to still count as "improving"
+        plateau_patience=2,  # stop after this many non-improving iterations in a row
     ),
 )
 
@@ -114,7 +124,7 @@ result = await run_agent(agent, [{"role": "user", "content": "Draft a release no
 feedback = await verifier.evaluate(
     "Draft a release note",
     result,
-    default_model=agent.model,   # used only if VerifierConfig.model wasn't set
+    default_model=agent.model,  # used only if VerifierConfig.model wasn't set
 )
 
 if not feedback.converged:

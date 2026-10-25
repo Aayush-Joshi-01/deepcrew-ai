@@ -80,7 +80,7 @@ agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_m
 
 await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?"}])
 r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
-print(r.episodes_recalled)   # >= 1
+print(r.episodes_recalled)  # >= 1
 ```
 
 See the [Episodic Memory guide](https://deepcrew-ai.aayushjoshi.dev/guides/episodic-memory.html)
@@ -105,9 +105,9 @@ OpenTelemetry (`ObservabilityConfig`) and from the `StreamEvent` queue.
 ```python
 from deepcrew import configure_logging, get_logger
 
-configure_logging("dev")                 # colour + DEBUG; or "prod" for JSON lines
+configure_logging("dev")  # colour + DEBUG; or "prod" for JSON lines
 log = get_logger("myapp.tools.pricing")
-log.info("price lookup", sku=sku, region=region)   # kwargs → structured fields
+log.info("price lookup", sku=sku, region=region)  # kwargs → structured fields
 ```
 
 See the [Logging guide](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html).
@@ -130,7 +130,9 @@ See the [Logging guide](https://deepcrew-ai.aayushjoshi.dev/guides/logging.html)
 from deepcrew import Agent, run_agent, image, pdf, user_message
 
 agent = Agent(name="analyst", model="anthropic/claude-opus-4-8")
-msg = user_message("Summarize this chart against the report.", image("chart.png"), pdf("report.pdf"))
+msg = user_message(
+    "Summarize this chart against the report.", image("chart.png"), pdf("report.pdf")
+)
 result = await run_agent(agent, [msg])
 ```
 
@@ -190,10 +192,12 @@ spawning bounded recursion. Every addition is opt-in and fully backward compatib
 import asyncio
 from deepcrew import Agent, run_agent, tool
 
+
 @tool
 def get_weather(city: str) -> dict:
     "Get current weather for a city."
     return {"city": city, "temp": 22, "condition": "sunny"}
+
 
 async def main():
     agent = Agent(
@@ -204,6 +208,7 @@ async def main():
     )
     result = await run_agent(agent, [{"role": "user", "content": "Weather in Tokyo?"}])
     print(result.text)
+
 
 asyncio.run(main())
 ```
@@ -219,18 +224,21 @@ Define agents and their dependencies. Independent nodes run in parallel automati
 ```python
 from deepcrew import Agent, WorkflowBuilder
 
-researcher = Agent("researcher", model="openai/gpt-4o-mini",
-                   system_prompt="Research the topic thoroughly.")
-critic     = Agent("critic",     model="anthropic/claude-haiku-4-5-20251001",
-                   system_prompt="Find gaps and weaknesses in the research.")
-writer     = Agent("writer",     model="openai/gpt-4o",
-                   system_prompt="Write a polished report.")
+researcher = Agent(
+    "researcher", model="openai/gpt-4o-mini", system_prompt="Research the topic thoroughly."
+)
+critic = Agent(
+    "critic",
+    model="anthropic/claude-haiku-4-5-20251001",
+    system_prompt="Find gaps and weaknesses in the research.",
+)
+writer = Agent("writer", model="openai/gpt-4o", system_prompt="Write a polished report.")
 
 workflow = (
     WorkflowBuilder()
     .add_agent("research", researcher, task="{input}")
-    .add_agent("critique", critic,     task="Critique this research:\n{research}")
-    .add_agent("report",   writer,     task="Write a report using:\n{research}\n\nCritique:\n{critique}")
+    .add_agent("critique", critic, task="Critique this research:\n{research}")
+    .add_agent("report", writer, task="Write a report using:\n{research}\n\nCritique:\n{critique}")
     .then("research", "critique")
     .then("research", "report")
     .then("critique", "report")
@@ -248,9 +256,9 @@ NIA (**N**avigator & **I**ntelligence **A**llocator), the router LLM, decides wh
 from deepcrew import Agent, Orchestrator, ApexConfig
 
 agents = [
-    Agent("researcher", model="openai/gpt-4o-mini",  system_prompt="Research specialist."),
-    Agent("analyst",    model="gemini/gemini-2.0-flash", system_prompt="Data analyst."),
-    Agent("writer",     model="anthropic/claude-haiku-4-5-20251001", system_prompt="Content writer."),
+    Agent("researcher", model="openai/gpt-4o-mini", system_prompt="Research specialist."),
+    Agent("analyst", model="gemini/gemini-2.0-flash", system_prompt="Data analyst."),
+    Agent("writer", model="anthropic/claude-haiku-4-5-20251001", system_prompt="Content writer."),
 ]
 
 orch = Orchestrator(
@@ -278,15 +286,15 @@ from deepcrew import APEXSynthesizer, ApexConfig, AgentResult
 apex = APEXSynthesizer(
     model="openai/gpt-4o",
     config=ApexConfig(
-        cite_sources=True,          # adds [source: agent_name] markers
+        cite_sources=True,  # adds [source: agent_name] markers
         confidence_threshold=0.8,
         allow_tools=False,
     ),
 )
 
 result = await apex.synthesize("What is quantum computing?", agent_results)
-print(result.text)         # synthesis with optional citations
-print(result.confidence)   # float 0.0–1.0
+print(result.text)  # synthesis with optional citations
+print(result.confidence)  # float 0.0–1.0
 ```
 
 ### Agent Spawning
@@ -296,16 +304,19 @@ Any agent can dynamically spawn sub-agents mid-loop with intelligent tool alloca
 ```python
 from deepcrew import Agent, Orchestrator, tool
 
+
 @tool
 def search_web(query: str) -> str: ...
+
 
 @tool
 def read_file(path: str) -> str: ...
 
+
 orch = Orchestrator(
     agents=[master_agent],
     global_tools=[search_web, read_file],  # pool available for sub-agents
-    enable_spawn=True,                      # inject spawn_agent tool into every agent
+    enable_spawn=True,  # inject spawn_agent tool into every agent
 )
 
 # The master_agent can now call spawn_agent(task="...", model="...") mid-loop
@@ -327,8 +338,8 @@ orch = Orchestrator(
     agents=[master_agent],
     global_tools=[search_web, read_file],
     enable_spawn=True,
-    max_spawn_depth=3,                      # up to 3 levels of nested delegation
-    spawn_complexity_check=Verifier(),       # optional: skip nesting for simple sub-tasks
+    max_spawn_depth=3,  # up to 3 levels of nested delegation
+    spawn_complexity_check=Verifier(),  # optional: skip nesting for simple sub-tasks
 )
 ```
 
@@ -404,8 +415,8 @@ agent = Agent(
         max_iterations=8,
         verifier=Verifier(VerifierConfig(threshold=0.9)),
         adaptive=True,
-        min_improvement=0.02,   # minimum score delta to still count as "improving"
-        plateau_patience=2,     # stop after this many non-improving iterations in a row
+        min_improvement=0.02,  # minimum score delta to still count as "improving"
+        plateau_patience=2,  # stop after this many non-improving iterations in a row
     ),
 )
 
@@ -448,8 +459,12 @@ bullets across runs — read on every run (looped or single-shot) and curated
 
 ```python
 from deepcrew import (
-    Agent, LoopConfig, Verifier, VerifierConfig,
-    FileMemoryProvider, ProceduralMemory,
+    Agent,
+    LoopConfig,
+    Verifier,
+    VerifierConfig,
+    FileMemoryProvider,
+    ProceduralMemory,
 )
 
 playbook = ProceduralMemory(FileMemoryProvider("playbook.json"), max_entries=30)
@@ -458,7 +473,7 @@ agent = Agent(
     name="researcher",
     model="openai/gpt-4o-mini",
     tools=[search_web],
-    procedural_memory=playbook,   # read on every run, even single-shot
+    procedural_memory=playbook,  # read on every run, even single-shot
     loop_config=LoopConfig(
         max_iterations=4,
         verifier=Verifier(VerifierConfig(threshold=0.85)),
@@ -492,13 +507,17 @@ agent = Agent(
     ],
 )
 
-result = await run_agent(agent, [{"role": "user", "content": "Search for Python async best practices and summarize them."}])
+result = await run_agent(
+    agent,
+    [{"role": "user", "content": "Search for Python async best practices and summarize them."}],
+)
 ```
 
 Custom skills with the `@skill` decorator:
 
 ```python
 from deepcrew import skill
+
 
 @skill(name="translate", description="Translate text to another language")
 async def translate(text: str, target_language: str) -> str:
@@ -574,13 +593,13 @@ episodic = EpisodicMemory(
     FileMemoryProvider("episodes.json"),
     namespace="support-bot",
     recall_k=3,
-    reflect_model=None,   # set a model to distil a one-line lesson per episode
+    reflect_model=None,  # set a model to distil a one-line lesson per episode
 )
 agent = Agent(name="assistant", model="gemini/gemini-3.5-flash-lite", episodic_memory=episodic)
 
 await run_agent(agent, [{"role": "user", "content": "How do I rotate an API key?"}])
 r = await run_agent(agent, [{"role": "user", "content": "Is key rotation zero-downtime?"}])
-print(r.episodes_recalled)               # >= 1
+print(r.episodes_recalled)  # >= 1
 print([e.outcome for e in await episodic.load()])
 ```
 
@@ -596,10 +615,12 @@ agent = Agent(
     name="resilient",
     model="openai/gpt-4o",
     retry_policy=RetryPolicy(max_retries=3, backoff_seconds=1.0, exponential=True),
-    fallback_chain=FallbackChain(models=[
-        "anthropic/claude-haiku-4-5-20251001",
-        "gemini/gemini-2.0-flash",
-    ]),
+    fallback_chain=FallbackChain(
+        models=[
+            "anthropic/claude-haiku-4-5-20251001",
+            "gemini/gemini-2.0-flash",
+        ]
+    ),
 )
 ```
 
@@ -629,11 +650,11 @@ Separate from OpenTelemetry — plain human/JSON logs, off by default. One call 
 ```python
 from deepcrew import configure_logging, get_logger
 
-configure_logging("dev")     # colour + DEBUG; also "prod" (JSON), "verbose", "quiet"
+configure_logging("dev")  # colour + DEBUG; also "prod" (JSON), "verbose", "quiet"
 # or: DEEPCREW_LOG_PROFILE=prod python app.py
 
 log = get_logger("myapp.tools")
-log.info("price lookup", sku=sku, region=region)   # kwargs become structured fields
+log.info("price lookup", sku=sku, region=region)  # kwargs become structured fields
 ```
 
 Colour uses `rich` when installed (`pip install "deepcrew-ai[log]"`), plain ANSI otherwise.
@@ -685,8 +706,13 @@ allows bounded nested delegation:
 
 ```python
 from deepcrew import (
-    Agent, Orchestrator, LoopConfig, Verifier, VerifierConfig,
-    FileMemoryProvider, ProceduralMemory,
+    Agent,
+    Orchestrator,
+    LoopConfig,
+    Verifier,
+    VerifierConfig,
+    FileMemoryProvider,
+    ProceduralMemory,
 )
 
 verifier = Verifier(VerifierConfig(threshold=0.85))
@@ -696,16 +722,16 @@ researcher = Agent(
     name="researcher",
     model="openai/gpt-4o-mini",
     tools=[search_web],
-    procedural_memory=playbook,          # read on every run
+    procedural_memory=playbook,  # read on every run
     loop_config=LoopConfig(
         max_iterations=6,
-        verifier=verifier,                # structured critique drives refinement
-        procedural_memory=playbook,        # curated after convergence
-        adaptive=True,                     # stop early once improvement plateaus
+        verifier=verifier,  # structured critique drives refinement
+        procedural_memory=playbook,  # curated after convergence
+        adaptive=True,  # stop early once improvement plateaus
         min_improvement=0.02,
         plateau_patience=2,
-        branches=2,                        # 2 parallel candidates per iteration
-        auto_extract_skill=True,           # distill a reusable Skill on success
+        branches=2,  # 2 parallel candidates per iteration
+        auto_extract_skill=True,  # distill a reusable Skill on success
         skill_confidence_threshold=0.85,
     ),
 )
@@ -715,8 +741,8 @@ orch = Orchestrator(
     router_model="openai/gpt-4o-mini",
     global_tools=[search_web, read_file],
     enable_spawn=True,
-    max_spawn_depth=2,                    # bounded recursive delegation
-    spawn_complexity_check=verifier,       # reuse the same verifier as a complexity gate
+    max_spawn_depth=2,  # bounded recursive delegation
+    spawn_complexity_check=verifier,  # reuse the same verifier as a complexity gate
 )
 
 result = await orch.run("Research and summarize the current state of fusion energy")
@@ -738,15 +764,18 @@ async with StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."
     agent = Agent("file_agent", model="openai/gpt-4o", mcps=[mcp])
 
 # HTTP (modern)
-async with HTTPMCP("https://my-mcp.example.com/mcp",
-                   headers={"Authorization": "Bearer sk-..."}) as mcp:
+async with HTTPMCP(
+    "https://my-mcp.example.com/mcp", headers={"Authorization": "Bearer sk-..."}
+) as mcp:
     agent = Agent("agent", model="openai/gpt-4o", mcps=[mcp])
 
 # Multiple servers
-async with MCPManager([
-    StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."]),
-    HTTPMCP("https://search-mcp.example.com/mcp"),
-]) as manager:
+async with MCPManager(
+    [
+        StdioMCP("npx", ["-y", "@modelcontextprotocol/server-filesystem", "."]),
+        HTTPMCP("https://search-mcp.example.com/mcp"),
+    ]
+) as manager:
     agent = Agent("agent", model="openai/gpt-4o", mcps=[manager])
 ```
 
@@ -804,11 +833,13 @@ Or wire it up manually against any `.stream()`-producing object:
 ```python
 from fastapi.responses import StreamingResponse
 
+
 @app.post("/chat-manual")
 async def chat(query: str):
     async def event_stream():
         async for event in orch.stream(query, policy=StreamPolicy.chat()):
             yield event.to_sse()
+
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 ```
 

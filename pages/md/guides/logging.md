@@ -14,9 +14,9 @@ the streaming view is unaffected.
 ```python
 from deepcrew import configure_logging
 
-configure_logging()          # the "dev" profile: colour, DEBUG, timestamps
-configure_logging("prod")    # JSON lines, INFO, no colour
-configure_logging("verbose") # everything, including TRACE token-level detail
+configure_logging()  # the "dev" profile: colour, DEBUG, timestamps
+configure_logging("prod")  # JSON lines, INFO, no colour
+configure_logging("verbose")  # everything, including TRACE token-level detail
 configure_logging(level="DEBUG", format="json")  # ad-hoc knobs
 ```
 
@@ -109,16 +109,18 @@ from deepcrew import get_logger
 
 log = get_logger("myapp.tools.pricing")
 
+
 @tool
 def lookup_price(sku: str, region: str) -> str:
     """Look up the current price for a SKU."""
     log.info("price lookup", sku=sku, region=region)
     ...
 
+
 # attach context carried on every subsequent call
 bound = log.bind(request_id=req_id)
 bound.warning("slow path", latency_ms=812)
-bound.trace("raw payload", body=payload)   # TRACE level helper
+bound.trace("raw payload", body=payload)  # TRACE level helper
 ```
 
 **Design standard for custom components:** prefer `get_logger` over `print` /
