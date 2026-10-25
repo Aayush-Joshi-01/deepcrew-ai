@@ -84,7 +84,12 @@ jobs:
         run: |
           pip install pip-audit
           pip install -e .[otel,fastapi,redis]
-          pip-audit --skip-editable
+          # filelock CVEs: fixed in 4.2.1, but every current litellm pins filelock<4.0, so the
+          # fix cannot be installed alongside it. Remove these ignores once litellm lifts the cap.
+          pip-audit --skip-editable \
+            --ignore-vuln CVE-2026-112940 \
+            --ignore-vuln CVE-2026-112913 \
+            --ignore-vuln CVE-2026-112907
 
   test:
     name: Test (py${{ matrix.python-version }})
